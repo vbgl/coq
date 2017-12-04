@@ -1903,6 +1903,19 @@ let vernac_check_guard () =
 
 exception End_of_input
 
+let wrap_imperative_command (f: 'a -> unit) (arg: 'a) (st: Vernacstate.t) : Vernacstate.t =
+  Vernacstate.unfreeze_interp_state st;
+  try
+    f arg;
+    Vernacstate.freeze_interp_state `No
+  with e ->
+    let e = CErrors.push e in
+    (* FIXME: Need to freeze? Need to invalidate the cache?
+    ignore (Vernacstate.freeze_interp_state `No : Vernacstate.t);
+    *)
+    Vernacstate.invalidate_cache ();
+    Exninfo.iraise e
+
 (* XXX: This won't properly set the proof mode, as of today, it is
    controlled by the STM. Thus, we would need access information from
    the classifier. The proper fix is to move it to the STM, however,
@@ -1933,7 +1946,7 @@ let vernac_load interp fname =
  * is the outdated/deprecated "Local" attribute of some vernacular commands
  * still parsed as the obsolete_locality grammar entry for retrocompatibility.
  * loc is the Loc.t of the vernacular command being interpreted. *)
-let interp ?proof ~atts ~st c =
+let interp ?proof ~atts ~st c : unit =
   let open Vernacinterp in
   vernac_pperr_endline (fun () -> str "interpreting: " ++ Ppvernac.pr_vernac_expr c);
   match c with
@@ -2154,12 +2167,12 @@ let _ =
 
 let current_timeout = ref None
 
-let vernac_timeout f =
+let vernac_timeout (f: 'a -> 'b) (a: 'a) : 'b =
   match !current_timeout, !default_timeout with
     | Some n, _ | None, Some n ->
-      let f () = f (); current_timeout := None in
-      Control.timeout n f () Timeout
-    | None, None -> f ()
+      let f a = let b = f a in current_timeout := None; b in
+      Control.timeout n f a Timeout
+    | None, None -> f a
 
 let restore_timeout () = current_timeout := None
 
@@ -2201,22 +2214,26 @@ let with_fail st b f =
       | _ -> assert false
   end
 
-let interp ?(verbosely=true) ?proof ~st (loc,c) =
+let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   let orig_program_mode = Flags.is_program_mode () in
-  let rec control = function
+  let rec control : _ -> Vernacstate.t =
+    function
   | VernacExpr v ->
       let atts = { loc; locality = None; polymorphic = false; } in
       aux ~atts orig_program_mode v
-  | VernacFail v -> with_fail st true (fun () -> control v)
+  | VernacFail v ->
+      with_fail st true (fun () -> ignore (control v : Vernacstate.t));
+      st
   | VernacTimeout (n,v) ->
       current_timeout := Some n;
       control v
   | VernacRedirect (s, (_,v)) ->
        Topfmt.with_output_to_file s control v
   | VernacTime (_,v) ->
-      System.with_time !Flags.time control v;
+      System.with_time !Flags.time control v
 
-  and aux ?polymorphism ~atts isprogcmd = function
+  and aux ?polymorphism ~atts isprogcmd : _ -> Vernacstate.t =
+    function
 
     | VernacProgram c when not isprogcmd ->
       aux ?polymorphism ~atts true c
@@ -2236,7 +2253,8 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
     | VernacLocal _ ->
       user_err Pp.(str "Locality specified twice")
 
-    | VernacLoad (_,fname) -> vernac_load control fname
+    | VernacLoad (_,fname) ->
+      wrap_imperative_command (vernac_load control) fname st
 
     | c ->
       check_vernac_supports_locality c atts.locality;
@@ -2244,15 +2262,17 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
       let polymorphic = enforce_polymorphism polymorphism in
       Obligations.set_program_mode isprogcmd;
       try
-        vernac_timeout begin fun () ->
+        vernac_timeout begin fun st ->
           let atts = { atts with polymorphic } in
-          if verbosely
-          then Flags.verbosely (interp ?proof ~atts ~st) c
-          else Flags.silently  (interp ?proof ~atts ~st) c;
+          let st =
+            (if verbosely then Flags.verbosely else Flags.silently)
+              (wrap_imperative_command (interp ?proof ~atts ~st) c) st
+          in
           if orig_program_mode || not !Flags.program_mode || isprogcmd then
             Flags.program_mode := orig_program_mode;
-          ignore (Flags.use_polymorphic_flag ())
-          end
+          ignore (Flags.use_polymorphic_flag () : bool);
+          st
+        end st
         with
         | reraise when
               (match reraise with
@@ -2263,21 +2283,9 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
             let e = locate_if_not_already ?loc e in
             let () = restore_timeout () in
             Flags.program_mode := orig_program_mode;
-	    ignore (Flags.use_polymorphic_flag ());
+            ignore (Flags.use_polymorphic_flag () : bool);
             iraise e
   in
   if verbosely
   then Flags.verbosely control c
   else control  c
-
-(* XXX: There is a bug here in case of an exception, see @gares
-   comments on the PR *)
-let interp ?verbosely ?proof ~st cmd =
-  Vernacstate.unfreeze_interp_state st;
-  try
-    interp ?verbosely ?proof ~st cmd;
-    Vernacstate.freeze_interp_state `No
-  with exn ->
-    let exn = CErrors.push exn in
-    Vernacstate.invalidate_cache ();
-    iraise exn
