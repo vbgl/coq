@@ -1946,7 +1946,8 @@ let vernac_load interp fname =
  * is the outdated/deprecated "Local" attribute of some vernacular commands
  * still parsed as the obsolete_locality grammar entry for retrocompatibility.
  * loc is the Loc.t of the vernacular command being interpreted. *)
-let interp ?proof ~atts ~st c : unit =
+let interp ?proof ~atts ~st c : Vernacstate.t =
+  let ret f a = wrap_imperative_command f a st in
   let open Vernacinterp in
   vernac_pperr_endline (fun () -> str "interpreting: " ++ Ppvernac.pr_vernac_expr c);
   match c with
@@ -1979,134 +1980,135 @@ let interp ?proof ~atts ~st c : unit =
 
   (* Syntax *)
   | VernacSyntaxExtension (infix, sl) ->
-      vernac_syntax_extension atts infix sl
-  | VernacDelimiters (sc,lr) -> vernac_delimiters sc lr
-  | VernacBindScope (sc,rl) -> vernac_bind_scope sc rl
-  | VernacOpenCloseScope (b, s) -> vernac_open_close_scope ~atts (b,s)
-  | VernacArgumentsScope (qid,scl) -> vernac_arguments_scope ~atts qid scl
-  | VernacInfix (mv,qid,sc) -> vernac_infix ~atts mv qid sc
+      ret (vernac_syntax_extension atts infix) sl
+  | VernacDelimiters (sc,lr) -> ret (vernac_delimiters sc) lr
+  | VernacBindScope (sc,rl) -> ret (vernac_bind_scope sc) rl
+  | VernacOpenCloseScope (b, s) -> ret (vernac_open_close_scope ~atts) (b,s)
+  | VernacArgumentsScope (qid,scl) -> ret (vernac_arguments_scope ~atts qid) scl
+  | VernacInfix (mv,qid,sc) -> ret (vernac_infix ~atts mv qid) sc
   | VernacNotation (c,infpl,sc) ->
-      vernac_notation ~atts c infpl sc
+      ret (vernac_notation ~atts c infpl) sc
   | VernacNotationAddFormat(n,k,v) ->
-      Metasyntax.add_notation_extra_printing_rule n k v
+      ret (Metasyntax.add_notation_extra_printing_rule n k) v
 
   (* Gallina *)
   | VernacDefinition ((discharge,kind),lid,d) ->
-      vernac_definition ~atts discharge kind lid d
-  | VernacStartTheoremProof (k,l) -> vernac_start_proof ~atts k l
-  | VernacEndProof e -> vernac_end_proof ?proof e
-  | VernacExactProof c -> vernac_exact_proof c
+      ret (vernac_definition ~atts discharge kind lid) d
+  | VernacStartTheoremProof (k,l) -> ret (vernac_start_proof ~atts k) l
+  | VernacEndProof e -> ret (vernac_end_proof ?proof) e
+  | VernacExactProof c -> ret vernac_exact_proof c
   | VernacAssumption ((discharge,kind),nl,l) ->
-      vernac_assumption ~atts discharge kind l nl
-  | VernacInductive (cum, priv,finite,l) -> vernac_inductive ~atts cum priv finite l
-  | VernacFixpoint (discharge, l) -> vernac_fixpoint ~atts discharge l
-  | VernacCoFixpoint (discharge, l) -> vernac_cofixpoint ~atts discharge l
-  | VernacScheme l -> vernac_scheme l
-  | VernacCombinedScheme (id, l) -> vernac_combined_scheme id l
-  | VernacUniverse l -> vernac_universe ~atts l
-  | VernacConstraint l -> vernac_constraint ~atts l
+      ret (vernac_assumption ~atts discharge kind l) nl
+  | VernacInductive (cum, priv,finite,l) -> ret (vernac_inductive ~atts cum priv finite) l
+  | VernacFixpoint (discharge, l) -> ret (vernac_fixpoint ~atts discharge) l
+  | VernacCoFixpoint (discharge, l) -> ret (vernac_cofixpoint ~atts discharge) l
+  | VernacScheme l -> ret vernac_scheme l
+  | VernacCombinedScheme (id, l) -> ret (vernac_combined_scheme id) l
+  | VernacUniverse l -> ret (vernac_universe ~atts) l
+  | VernacConstraint l -> ret (vernac_constraint ~atts) l
 
   (* Modules *)
   | VernacDeclareModule (export,lid,bl,mtyo) ->
-      vernac_declare_module export lid bl mtyo
+      ret (vernac_declare_module export lid bl) mtyo
   | VernacDefineModule (export,lid,bl,mtys,mexprl) ->
-      vernac_define_module export lid bl mtys mexprl
+      ret (vernac_define_module export lid bl mtys) mexprl
   | VernacDeclareModuleType (lid,bl,mtys,mtyo) ->
-      vernac_declare_module_type lid bl mtys mtyo
+      ret (vernac_declare_module_type lid bl mtys) mtyo
   | VernacInclude in_asts ->
-      vernac_include in_asts
+      ret vernac_include in_asts
   (* Gallina extensions *)
-  | VernacBeginSection lid -> vernac_begin_section lid
+  | VernacBeginSection lid -> ret vernac_begin_section lid
 
-  | VernacEndSegment lid -> vernac_end_segment lid
+  | VernacEndSegment lid -> ret vernac_end_segment lid
 
-  | VernacNameSectionHypSet (lid, set) -> vernac_name_sec_hyp lid set
+  | VernacNameSectionHypSet (lid, set) -> ret (vernac_name_sec_hyp lid) set
 
-  | VernacRequire (from, export, qidl) -> vernac_require from export qidl
-  | VernacImport (export,qidl) -> vernac_import export qidl
-  | VernacCanonical qid -> vernac_canonical qid
-  | VernacCoercion (r,s,t) -> vernac_coercion ~atts r s t
+  | VernacRequire (from, export, qidl) -> ret (vernac_require from export) qidl
+  | VernacImport (export,qidl) -> ret (vernac_import export) qidl
+  | VernacCanonical qid -> ret vernac_canonical qid
+  | VernacCoercion (r,s,t) -> ret (vernac_coercion ~atts r s) t
   | VernacIdentityCoercion ((_,id),s,t) ->
-      vernac_identity_coercion ~atts id s t
+      ret (vernac_identity_coercion ~atts id s) t
 
   (* Type classes *)
   | VernacInstance (abst, sup, inst, props, info) ->
-      vernac_instance ~atts abst sup inst props info
-  | VernacContext sup -> vernac_context ~atts sup
-  | VernacDeclareInstances insts -> vernac_declare_instances ~atts insts
-  | VernacDeclareClass id -> vernac_declare_class id
+      ret (vernac_instance ~atts abst sup inst props) info
+  | VernacContext sup -> ret (vernac_context ~atts) sup
+  | VernacDeclareInstances insts -> ret (vernac_declare_instances ~atts) insts
+  | VernacDeclareClass id -> ret vernac_declare_class id
 
   (* Solving *)
-  | VernacSolveExistential (n,c) -> vernac_solve_existential n c
+  | VernacSolveExistential (n,c) -> ret (vernac_solve_existential n) c
 
   (* Auxiliary file and library management *)
-  | VernacAddLoadPath (isrec,s,alias) -> vernac_add_loadpath isrec s alias
-  | VernacRemoveLoadPath s -> vernac_remove_loadpath s
-  | VernacAddMLPath (isrec,s) -> vernac_add_ml_path isrec s
-  | VernacDeclareMLModule l -> vernac_declare_ml_module ~atts l
-  | VernacChdir s -> vernac_chdir s
+  | VernacAddLoadPath (isrec,s,alias) -> ret (vernac_add_loadpath isrec s) alias
+  | VernacRemoveLoadPath s -> ret vernac_remove_loadpath s
+  | VernacAddMLPath (isrec,s) -> ret (vernac_add_ml_path isrec) s
+  | VernacDeclareMLModule l -> ret (vernac_declare_ml_module ~atts) l
+  | VernacChdir s -> ret vernac_chdir s
 
   (* State management *)
-  | VernacWriteState s -> vernac_write_state s
-  | VernacRestoreState s -> vernac_restore_state s
+  | VernacWriteState s -> ret vernac_write_state s
+  | VernacRestoreState s -> ret vernac_restore_state s
 
   (* Commands *)
-  | VernacCreateHintDb (dbname,b) -> vernac_create_hintdb ~atts dbname b
-  | VernacRemoveHints (dbnames,ids) -> vernac_remove_hints ~atts dbnames ids
+  | VernacCreateHintDb (dbname,b) -> ret (vernac_create_hintdb ~atts dbname) b
+  | VernacRemoveHints (dbnames,ids) -> ret (vernac_remove_hints ~atts dbnames) ids
   | VernacHints (dbnames,hints) ->
-      vernac_hints ~atts dbnames hints
+      ret (vernac_hints ~atts dbnames) hints
   | VernacSyntacticDefinition (id,c,b) ->
-      vernac_syntactic_definition ~atts id c b
+      ret (vernac_syntactic_definition ~atts id c) b
   | VernacDeclareImplicits (qid,l) ->
-      vernac_declare_implicits ~atts qid l
+      ret (vernac_declare_implicits ~atts qid) l
   | VernacArguments (qid, args, more_implicits, nargs, flags) ->
-      vernac_arguments ~atts qid args more_implicits nargs flags
-  | VernacReserve bl -> vernac_reserve bl
-  | VernacGeneralizable gen -> vernac_generalizable ~atts gen
-  | VernacSetOpacity qidl -> vernac_set_opacity ~atts qidl
-  | VernacSetStrategy l -> vernac_set_strategy ~atts l
-  | VernacSetOption (key,v) -> vernac_set_option ~atts key v
-  | VernacSetAppendOption (key,v) -> vernac_set_append_option ~atts key v
-  | VernacUnsetOption key -> vernac_unset_option ~atts key
-  | VernacRemoveOption (key,v) -> vernac_remove_option key v
-  | VernacAddOption (key,v) -> vernac_add_option key v
-  | VernacMemOption (key,v) -> vernac_mem_option key v
-  | VernacPrintOption key -> vernac_print_option key
-  | VernacCheckMayEval (r,g,c) -> vernac_check_may_eval ~atts r g c
-  | VernacDeclareReduction (s,r) -> vernac_declare_reduction ~atts s r
-  | VernacGlobalCheck c -> vernac_global_check c
+      ret (vernac_arguments ~atts qid args more_implicits nargs) flags
+  | VernacReserve bl -> ret vernac_reserve bl
+  | VernacGeneralizable gen -> ret (vernac_generalizable ~atts) gen
+  | VernacSetOpacity qidl -> ret (vernac_set_opacity ~atts) qidl
+  | VernacSetStrategy l -> ret (vernac_set_strategy ~atts) l
+  | VernacSetOption (key,v) -> ret (vernac_set_option ~atts key) v
+  | VernacSetAppendOption (key,v) -> ret (vernac_set_append_option ~atts key) v
+  | VernacUnsetOption key -> ret (vernac_unset_option ~atts) key
+  | VernacRemoveOption (key,v) -> ret (vernac_remove_option key) v
+  | VernacAddOption (key,v) -> ret (vernac_add_option key) v
+  | VernacMemOption (key,v) -> ret (vernac_mem_option key) v
+  | VernacPrintOption key -> ret vernac_print_option key
+  | VernacCheckMayEval (r,g,c) -> ret (vernac_check_may_eval ~atts r g) c
+  | VernacDeclareReduction (s,r) -> ret (vernac_declare_reduction ~atts s) r
+  | VernacGlobalCheck c -> ret vernac_global_check c
   | VernacPrint p ->
+    ret (fun () ->
     let sigma, env = Pfedit.get_current_context () in
-    vernac_print ~atts env sigma p
-  | VernacSearch (s,g,r) -> vernac_search ~atts s g r
-  | VernacLocate l -> vernac_locate l
-  | VernacRegister (id, r) -> vernac_register id r
-  | VernacComments l -> Flags.if_verbose Feedback.msg_info (str "Comments ok\n")
+    vernac_print ~atts env sigma p) ()
+  | VernacSearch (s,g,r) -> ret (vernac_search ~atts s g) r
+  | VernacLocate l -> ret vernac_locate l
+  | VernacRegister (id, r) -> ret (vernac_register id) r
+  | VernacComments l -> ret (fun () -> Flags.if_verbose Feedback.msg_info (str "Comments ok\n")) ()
 
   (* Proof management *)
-  | VernacGoal t -> vernac_start_proof ~atts Theorem [None,([],t)]
-  | VernacFocus n -> vernac_focus n
-  | VernacUnfocus -> vernac_unfocus ()
-  | VernacUnfocused -> vernac_unfocused ()
-  | VernacBullet b -> vernac_bullet b
-  | VernacSubproof n -> vernac_subproof n
-  | VernacEndSubproof -> vernac_end_subproof ()
-  | VernacShow s -> vernac_show s
-  | VernacCheckGuard -> vernac_check_guard ()
+  | VernacGoal t -> ret (vernac_start_proof ~atts Theorem) [None,([],t)]
+  | VernacFocus n -> ret vernac_focus n
+  | VernacUnfocus -> ret vernac_unfocus ()
+  | VernacUnfocused -> ret vernac_unfocused ()
+  | VernacBullet b -> ret vernac_bullet b
+  | VernacSubproof n -> ret vernac_subproof n
+  | VernacEndSubproof -> ret vernac_end_subproof ()
+  | VernacShow s -> ret vernac_show s
+  | VernacCheckGuard -> ret vernac_check_guard ()
   | VernacProof (tac, using) ->
+    ret (fun () ->
     let using = Option.append using (Proof_using.get_default_proof_using ()) in
     let tacs = if Option.is_empty tac then "tac:no" else "tac:yes" in
     let usings = if Option.is_empty using then "using:no" else "using:yes" in
     Aux_file.record_in_aux_at ?loc:atts.loc "VernacProof" (tacs^" "^usings);
     Option.iter vernac_set_end_tac tac;
     Option.iter vernac_set_used_variables using
-  | VernacProofMode mn -> Proof_global.set_proof_mode mn [@ocaml.warning "-3"]
+    ) ()
+  | VernacProofMode mn -> ret Proof_global.set_proof_mode mn [@ocaml.warning "-3"]
 
   (* Extensions *)
   | VernacExtend (opn,args) ->
-    (* XXX: Here we are returning the state! :) *)
-    let _st : Vernacstate.t = Vernacinterp.call ~atts opn args ~st in
-    ()
+    Vernacinterp.call ~atts opn args ~st
 
 (* Vernaculars that take a locality flag *)
 let check_vernac_supports_locality c l =
@@ -2266,7 +2268,7 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
           let atts = { atts with polymorphic } in
           let st =
             (if verbosely then Flags.verbosely else Flags.silently)
-              (wrap_imperative_command (interp ?proof ~atts ~st) c) st
+              (interp ?proof ~atts ~st) c
           in
           if orig_program_mode || not !Flags.program_mode || isprogcmd then
             Flags.program_mode := orig_program_mode;
