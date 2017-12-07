@@ -1916,6 +1916,10 @@ let wrap_imperative_command (f: 'a -> unit) (arg: 'a) (st: Vernacstate.t) : Vern
     Vernacstate.invalidate_cache ();
     Exninfo.iraise e
 
+let wrap_query (f: 'a -> unit) (arg: 'a) (st: Vernacstate.t) : Vernacstate.t =
+  ignore (wrap_imperative_command f arg st : Vernacstate.t);
+  st
+
 (* XXX: This won't properly set the proof mode, as of today, it is
    controlled by the STM. Thus, we would need access information from
    the classifier. The proper fix is to move it to the STM, however,
@@ -1948,6 +1952,7 @@ let vernac_load interp fname =
  * loc is the Loc.t of the vernacular command being interpreted. *)
 let interp ?proof ~atts ~st c : Vernacstate.t =
   let ret f a = wrap_imperative_command f a st in
+  let query f a = wrap_query f a st in
   let open Vernacinterp in
   vernac_pperr_endline (fun () -> str "interpreting: " ++ Ppvernac.pr_vernac_expr c);
   match c with
@@ -2073,15 +2078,15 @@ let interp ?proof ~atts ~st c : Vernacstate.t =
   | VernacAddOption (key,v) -> ret (vernac_add_option key) v
   | VernacMemOption (key,v) -> ret (vernac_mem_option key) v
   | VernacPrintOption key -> ret vernac_print_option key
-  | VernacCheckMayEval (r,g,c) -> ret (vernac_check_may_eval ~atts r g) c
+  | VernacCheckMayEval (r,g,c) -> query (vernac_check_may_eval ~atts r g) c
   | VernacDeclareReduction (s,r) -> ret (vernac_declare_reduction ~atts s) r
-  | VernacGlobalCheck c -> ret vernac_global_check c
+  | VernacGlobalCheck c -> query vernac_global_check c
   | VernacPrint p ->
-    ret (fun () ->
+    query (fun () ->
     let sigma, env = Pfedit.get_current_context () in
     vernac_print ~atts env sigma p) ()
-  | VernacSearch (s,g,r) -> ret (vernac_search ~atts s g) r
-  | VernacLocate l -> ret vernac_locate l
+  | VernacSearch (s,g,r) -> query (vernac_search ~atts s g) r
+  | VernacLocate l -> query vernac_locate l
   | VernacRegister (id, r) -> ret (vernac_register id) r
   | VernacComments l -> ret (fun () -> Flags.if_verbose Feedback.msg_info (str "Comments ok\n")) ()
 
@@ -2089,12 +2094,12 @@ let interp ?proof ~atts ~st c : Vernacstate.t =
   | VernacGoal t -> ret (vernac_start_proof ~atts Theorem) [None,([],t)]
   | VernacFocus n -> ret vernac_focus n
   | VernacUnfocus -> ret vernac_unfocus ()
-  | VernacUnfocused -> ret vernac_unfocused ()
+  | VernacUnfocused -> query vernac_unfocused ()
   | VernacBullet b -> ret vernac_bullet b
   | VernacSubproof n -> ret vernac_subproof n
   | VernacEndSubproof -> ret vernac_end_subproof ()
-  | VernacShow s -> ret vernac_show s
-  | VernacCheckGuard -> ret vernac_check_guard ()
+  | VernacShow s -> query vernac_show s
+  | VernacCheckGuard -> query vernac_check_guard ()
   | VernacProof (tac, using) ->
     ret (fun () ->
     let using = Option.append using (Proof_using.get_default_proof_using ()) in
