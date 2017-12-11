@@ -28,7 +28,6 @@ open Redexpr
 open Lemmas
 open Misctypes
 open Locality
-open Vernacinterp
 
 module NamedDecl = Context.Named.Declaration
 
@@ -1953,7 +1952,6 @@ let vernac_load interp fname =
 let interp ?proof ~atts ~st c : Vernacstate.t =
   let ret f a = wrap_imperative_command f a st in
   let query f a = wrap_query f a st in
-  let open Vernacinterp in
   vernac_pperr_endline (fun () -> str "interpreting: " ++ Ppvernac.pr_vernac_expr c);
   match c with
 

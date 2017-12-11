@@ -314,6 +314,13 @@ type cumulative_inductive_parsing_flag =
 
 (** {6 The type of vernacular expressions} *)
 
+type atts = {
+  loc : Loc.t option;
+  locality : bool option;
+  polymorphic : bool;
+  program : bool;
+}
+
 type vernac_implicit_status = Implicit | MaximallyImplicit | NotImplicit
 
 type vernac_argument_status = {
