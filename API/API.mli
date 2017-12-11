@@ -4157,6 +4157,13 @@ sig
     | LocalCumulativity
     | LocalNonCumulativity
 
+  type atts = {
+    loc : Loc.t option;
+    locality : bool option;
+    polymorphic : bool;
+    program : bool;
+  }
+
   type vernac_expr =
   | VernacLoad of verbose_flag * string
   | VernacSyntaxExtension of bool * (lstring * syntax_modifier list)
@@ -6172,14 +6179,7 @@ sig
 
   type deprecation = bool
 
-  type atts = {
-    loc : Loc.t option;
-    locality : bool option;
-    polymorphic : bool;
-    program : bool;
-  }
-
-  type 'a vernac_command = 'a -> atts:atts -> st:Vernacstate.t -> Vernacstate.t
+  type 'a vernac_command = 'a -> atts:Vernacexpr.atts -> st:Vernacstate.t -> Vernacstate.t
 
   type plugin_args = Genarg.raw_generic_argument list
 

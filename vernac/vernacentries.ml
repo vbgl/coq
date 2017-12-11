@@ -28,7 +28,6 @@ open Redexpr
 open Lemmas
 open Misctypes
 open Locality
-open Vernacinterp
 
 module NamedDecl = Context.Named.Declaration
 
@@ -1934,7 +1933,6 @@ let vernac_load interp fname =
  * still parsed as the obsolete_locality grammar entry for retrocompatibility.
  * loc is the Loc.t of the vernacular command being interpreted. *)
 let interp ?proof ~atts ~st c =
-  let open Vernacinterp in
   vernac_pperr_endline (fun () -> str "interpreting: " ++ Ppvernac.pr_vernac_expr c);
   match c with
 
