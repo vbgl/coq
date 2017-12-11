@@ -2205,9 +2205,8 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
   let orig_program_mode = Flags.is_program_mode () in
   let rec control = function
   | VernacExpr v ->
-      let atts = { loc; locality = None; polymorphic = false; } in
-      aux ~atts orig_program_mode v
-  | VernacFail v -> with_fail st true (fun () -> control v)
+      let atts = { loc; locality = None; polymorphic = false; program = orig_program_mode; } in
+      aux ~atts v
   | VernacTimeout (n,v) ->
       current_timeout := Some n;
       control v
@@ -2216,22 +2215,22 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
   | VernacTime (_,v) ->
       System.with_time !Flags.time control v;
 
-  and aux ?polymorphism ~atts isprogcmd = function
+  and aux ?polymorphism ~atts = function
 
-    | VernacProgram c when not isprogcmd ->
-      aux ?polymorphism ~atts true c
+    | VernacProgram c when not atts.program ->
+      aux ?polymorphism ~atts:{ atts with program = true } c
 
     | VernacProgram _ ->
       user_err Pp.(str "Program mode specified twice")
 
     | VernacPolymorphic (b, c) when polymorphism = None ->
-      aux ~polymorphism:b ~atts:atts isprogcmd c
+      aux ~polymorphism:b ~atts:atts c
 
     | VernacPolymorphic (b, c) ->
       user_err Pp.(str "Polymorphism specified twice")
 
     | VernacLocal (b, c) when Option.is_empty atts.locality ->
-      aux ?polymorphism ~atts:{atts with locality = Some b} isprogcmd c
+      aux ?polymorphism ~atts:{atts with locality = Some b} c
 
     | VernacLocal _ ->
       user_err Pp.(str "Locality specified twice")
@@ -2242,14 +2241,14 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) =
       check_vernac_supports_locality c atts.locality;
       check_vernac_supports_polymorphism c polymorphism;
       let polymorphic = enforce_polymorphism polymorphism in
-      Obligations.set_program_mode isprogcmd;
+      Obligations.set_program_mode atts.program;
       try
         vernac_timeout begin fun () ->
           let atts = { atts with polymorphic } in
           if verbosely
           then Flags.verbosely (interp ?proof ~atts ~st) c
           else Flags.silently  (interp ?proof ~atts ~st) c;
-          if orig_program_mode || not !Flags.program_mode || isprogcmd then
+          if orig_program_mode || not !Flags.program_mode || atts.program then
             Flags.program_mode := orig_program_mode;
           ignore (Flags.use_polymorphic_flag ())
           end
