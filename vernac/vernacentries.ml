@@ -2226,8 +2226,8 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   let rec control : _ -> Vernacstate.t =
     function
   | VernacExpr v ->
-      let atts = { loc; locality = None; polymorphic = false; } in
-      aux ~atts orig_program_mode v
+      let atts = { loc; locality = None; polymorphic = false; program = orig_program_mode; } in
+      aux ~atts v
   | VernacFail v ->
       with_fail st true (fun () -> ignore (control v : Vernacstate.t));
       st
@@ -2239,23 +2239,23 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   | VernacTime (_,v) ->
       System.with_time !Flags.time control v
 
-  and aux ?polymorphism ~atts isprogcmd : _ -> Vernacstate.t =
+  and aux ?polymorphism ~atts : _ -> Vernacstate.t =
     function
 
-    | VernacProgram c when not isprogcmd ->
-      aux ?polymorphism ~atts true c
+    | VernacProgram c when not atts.program ->
+      aux ?polymorphism ~atts:{ atts with program = true } c
 
     | VernacProgram _ ->
       user_err Pp.(str "Program mode specified twice")
 
     | VernacPolymorphic (b, c) when polymorphism = None ->
-      aux ~polymorphism:b ~atts:atts isprogcmd c
+      aux ~polymorphism:b ~atts:atts c
 
     | VernacPolymorphic (b, c) ->
       user_err Pp.(str "Polymorphism specified twice")
 
     | VernacLocal (b, c) when Option.is_empty atts.locality ->
-      aux ?polymorphism ~atts:{atts with locality = Some b} isprogcmd c
+      aux ?polymorphism ~atts:{atts with locality = Some b} c
 
     | VernacLocal _ ->
       user_err Pp.(str "Locality specified twice")
@@ -2267,7 +2267,7 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
       check_vernac_supports_locality c atts.locality;
       check_vernac_supports_polymorphism c polymorphism;
       let polymorphic = enforce_polymorphism polymorphism in
-      Obligations.set_program_mode isprogcmd;
+      Obligations.set_program_mode atts.program;
       try
         vernac_timeout begin fun st ->
           let atts = { atts with polymorphic } in
@@ -2275,7 +2275,7 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
             (if verbosely then Flags.verbosely else Flags.silently)
               (interp ?proof ~atts ~st) c
           in
-          if orig_program_mode || not !Flags.program_mode || isprogcmd then
+          if orig_program_mode || not !Flags.program_mode || atts.program then
             Flags.program_mode := orig_program_mode;
           ignore (Flags.use_polymorphic_flag () : bool);
           st
