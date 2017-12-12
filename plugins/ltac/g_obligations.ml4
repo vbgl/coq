@@ -128,7 +128,7 @@ VERNAC COMMAND FUNCTIONAL EXTEND Set_Solver CLASSIFIED AS SIDEFF
     fun ~atts ~st -> begin
         let open Vernacexpr in
         set_default_tactic
-          (Locality.make_section_locality atts.locality)
+          (Locality.make_section_locality atts.local)
           (Tacintern.glob_tactic t);
         st
       end]

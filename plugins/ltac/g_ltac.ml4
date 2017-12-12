@@ -464,7 +464,7 @@ VERNAC COMMAND FUNCTIONAL EXTEND VernacTacticNotation
   [ VtSideff [], VtNow ] ->
   [ fun ~atts ~st -> let open Vernacexpr in
       let n = Option.default 0 n in
-      Tacentries.add_tactic_notation (Locality.make_module_locality atts.locality) n r e;
+      Tacentries.add_tactic_notation (Locality.make_module_locality atts.local) n r e;
       st
   ]
 END
@@ -509,7 +509,7 @@ VERNAC COMMAND FUNCTIONAL EXTEND VernacDeclareTacticDefinition
       | TacticRedefinition (Ident (_,r),_) -> r
       | TacticRedefinition (Qualid (_,q),_) -> snd(repr_qualid q)) l), VtLater
   ] -> [ fun ~atts ~st -> let open Vernacexpr in
-           Tacentries.register_ltac (Locality.make_module_locality atts.locality) l;
+           Tacentries.register_ltac (Locality.make_module_locality atts.local) l;
            st
   ]
 END

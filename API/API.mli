@@ -4159,7 +4159,7 @@ sig
 
   type atts = {
     loc : Loc.t option;
-    locality : bool option;
+    local : bool option;
     polymorphic : bool;
     program : bool;
   }

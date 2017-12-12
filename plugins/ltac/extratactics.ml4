@@ -329,14 +329,14 @@ VERNAC COMMAND FUNCTIONAL EXTEND HintResolveIffLR CLASSIFIED AS SIDEFF
     ":" preident_list(bl) ] ->
   [ fun ~atts ~st -> begin
         let open Vernacexpr in
-        add_hints_iff ?locality:atts.locality true lc n bl;
+        add_hints_iff ?locality:atts.local true lc n bl;
         st
       end
   ]
 | [ "Hint" "Resolve" "->" ne_global_list(lc) natural_opt(n) ] ->
   [ fun ~atts ~st -> begin
         let open Vernacexpr in
-        add_hints_iff ?locality:atts.locality true lc n ["core"];
+        add_hints_iff ?locality:atts.local true lc n ["core"];
         st
       end
   ]
@@ -347,14 +347,14 @@ VERNAC COMMAND FUNCTIONAL EXTEND HintResolveIffRL CLASSIFIED AS SIDEFF
     ":" preident_list(bl) ] ->
   [ fun ~atts ~st -> begin
         let open Vernacexpr in
-        add_hints_iff ?locality:atts.locality false lc n bl;
+        add_hints_iff ?locality:atts.local false lc n bl;
         st
       end
   ]
 | [ "Hint" "Resolve" "<-" ne_global_list(lc) natural_opt(n) ] ->
   [ fun ~atts ~st -> begin
         let open Vernacexpr in
-        add_hints_iff ?locality:atts.locality false lc n ["core"];
+        add_hints_iff ?locality:atts.local false lc n ["core"];
         st
       end
   ]

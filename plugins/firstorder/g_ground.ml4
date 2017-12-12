@@ -69,7 +69,7 @@ VERNAC COMMAND FUNCTIONAL EXTEND Firstorder_Set_Solver CLASSIFIED AS SIDEFF
 | [ "Set" "Firstorder" "Solver" tactic(t) ] -> [
     fun ~atts ~st -> let open Vernacexpr in
       set_default_solver
-        (Locality.make_section_locality atts.locality)
+        (Locality.make_section_locality atts.local)
         (Tacintern.glob_tactic t);
         st
   ]
