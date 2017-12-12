@@ -479,13 +479,13 @@ type vernac_expr =
   (* For extension *)
   | VernacExtend of extend_name * Genarg.raw_generic_argument list
 
-  (* Flags *)
-  | VernacProgram of vernac_expr
-  | VernacPolymorphic of bool * vernac_expr
-  | VernacLocal of bool * vernac_expr
+type vernac_flag =
+  | VernacProgram
+  | VernacPolymorphic of bool
+  | VernacLocal of bool
 
 type vernac_control =
-  | VernacExpr of vernac_expr
+  | VernacExpr of vernac_flag list * vernac_expr
    (* Control *)
   | VernacTime of vernac_control located
   | VernacRedirect of string * vernac_control located
