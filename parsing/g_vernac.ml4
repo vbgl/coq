@@ -64,6 +64,9 @@ let parse_compat_version ?(allow_old = true) = let open Flags in function
     CErrors.user_err ~hdr:"get_compat_version"
       Pp.(str "Unknown compatibility version \"" ++ str s ++ str "\".")
 
+let decorate_vernac f (f', v) =
+  List.append f f', v
+
 GEXTEND Gram
   GLOBAL: vernac_control gallina_ext noedit_mode subprf;
   vernac_control: FIRST
@@ -71,8 +74,29 @@ GEXTEND Gram
       | IDENT "Redirect"; s = ne_string; c = located_vernac -> VernacRedirect (s, c)
       | IDENT "Timeout"; n = natural; v = vernac_control -> VernacTimeout(n,v)
       | IDENT "Fail"; v = vernac_control -> VernacFail v
-      | (f, v) = vernac -> VernacExpr(f, v) ]
+      | (f, v) = decorated_vernac -> VernacExpr(f, v) ]
     ]
+  ;
+  decorated_vernac:
+    [[ f = decoration; v = vernac -> decorate_vernac f v
+     | v = vernac -> v
+     ]]
+  ;
+  decoration:
+    [[ "“"; f = attribute_list; "”" -> f ]]
+  ;
+  attribute_list:
+    [[ a = attribute -> a :: []
+      | a = attribute ; "," ; f = attribute_list -> a :: f
+    ]]
+  ;
+  attribute:
+    [[ IDENT "polymorphic" -> VernacPolymorphic true
+      | IDENT "monomorphic" -> VernacPolymorphic false
+     | IDENT "local" -> VernacLocal true
+     | IDENT "global" -> VernacLocal false
+     | IDENT "interactive" -> VernacProgram
+    ]]
   ;
   vernac:
     [ [ IDENT "Local"; (f, v) = vernac_poly -> (VernacLocal true :: f, v)
