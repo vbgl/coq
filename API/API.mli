@@ -4286,9 +4286,6 @@ sig
   | VernacProofMode of string
   | VernacToplevelControl of exn
   | VernacExtend of extend_name * Genarg.raw_generic_argument list
-  | VernacProgram of vernac_expr
-  | VernacPolymorphic of bool * vernac_expr
-  | VernacLocal of bool * vernac_expr
   and goal_selector =
     | SelectNth of int
     | SelectList of (int * int) list
@@ -4298,8 +4295,13 @@ sig
   and one_inductive_expr =
     ident_decl * Constrexpr.local_binder_expr list * Constrexpr.constr_expr option * constructor_expr list
 
+type vernac_flag =
+  | VernacProgram
+  | VernacPolymorphic of bool
+  | VernacLocal of bool
+
 type vernac_control =
-  | VernacExpr of vernac_expr
+  | VernacExpr of vernac_flag list * vernac_expr
    (* Control *)
   | VernacTime of vernac_control Loc.located
   | VernacRedirect of string * vernac_control Loc.located

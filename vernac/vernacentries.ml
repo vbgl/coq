@@ -1976,11 +1976,6 @@ let interp ?proof ~atts ~st c : Vernacstate.t =
   (* This one is possible to handle here *)
   | VernacAbort id    -> CErrors.user_err  (str "Abort cannot be used through the Load command")
 
-  (* Handled elsewhere *)
-  | VernacProgram _
-  | VernacPolymorphic _
-  | VernacLocal _ -> assert false
-
   (* Syntax *)
   | VernacSyntaxExtension (infix, sl) ->
       ret (vernac_syntax_extension atts infix) sl
@@ -2221,11 +2216,31 @@ let with_fail st b f =
 
 let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   let orig_program_mode = Flags.is_program_mode () in
+  let flags f atts =
+    List.fold_left
+      (fun (polymorphism, atts) f ->
+         match f with
+         | VernacProgram when not atts.program ->
+           (polymorphism, { atts with program = true })
+         | VernacProgram ->
+           user_err Pp.(str "Program mode specified twice")
+         | VernacPolymorphic b when polymorphism = None ->
+           (Some b, atts)
+         | VernacPolymorphic _ ->
+           user_err Pp.(str "Polymorphism specified twice")
+         | VernacLocal b when Option.is_empty atts.locality ->
+           (polymorphism, { atts with locality = Some b })
+         | VernacLocal _ ->
+           user_err Pp.(str "Locality specified twice")
+      )
+      (None, atts)
+      f
+  in
   let rec control : _ -> Vernacstate.t =
     function
-  | VernacExpr v ->
-      let atts = { loc; locality = None; polymorphic = false; program = orig_program_mode; } in
-      aux ~atts v
+  | VernacExpr (f, v) ->
+    let (polymorphism, atts) = flags f { loc; locality = None; polymorphic = false; program = orig_program_mode; } in
+    aux ~polymorphism ~atts v
   | VernacFail v ->
       with_fail st true (fun () -> ignore (control v : Vernacstate.t));
       st
@@ -2237,26 +2252,8 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   | VernacTime (_,v) ->
       System.with_time !Flags.time control v
 
-  and aux ?polymorphism ~atts : _ -> Vernacstate.t =
+  and aux ~polymorphism ~atts : _ -> Vernacstate.t =
     function
-
-    | VernacProgram c when not atts.program ->
-      aux ?polymorphism ~atts:{ atts with program = true } c
-
-    | VernacProgram _ ->
-      user_err Pp.(str "Program mode specified twice")
-
-    | VernacPolymorphic (b, c) when polymorphism = None ->
-      aux ~polymorphism:b ~atts:atts c
-
-    | VernacPolymorphic (b, c) ->
-      user_err Pp.(str "Polymorphism specified twice")
-
-    | VernacLocal (b, c) when Option.is_empty atts.locality ->
-      aux ?polymorphism ~atts:{atts with locality = Some b} c
-
-    | VernacLocal _ ->
-      user_err Pp.(str "Locality specified twice")
 
     | VernacLoad (_,fname) ->
       wrap_imperative_command (vernac_load control) fname st
