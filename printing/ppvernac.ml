@@ -137,8 +137,6 @@ open Decl_kinds
       | SearchAbout sl ->
 	 keyword "Search" ++ spc() ++ prlist_with_sep spc pr_search_about sl ++ pr_in_out_modules b
 
-  let pr_locality local = if local then keyword "Local" else keyword "Global"
-
   let pr_explanation (e,b,f) =
     let a = match e with
       | ExplByPos (n,_) -> anomaly (Pp.str "No more supported.")
@@ -1213,19 +1211,23 @@ open Decl_kinds
 
 let pr_vernac_flag =
   function
-  | VernacPolymorphic true -> keyword "Polymorphic"
-  | VernacPolymorphic false -> keyword "Monomorphic"
-  | VernacProgram -> keyword "Program"
-  | VernacLocal local -> pr_locality local
+  | VernacPolymorphic true -> str "polymorphic"
+  | VernacPolymorphic false -> str "monomorphic"
+  | VernacProgram -> str "interactive"
+  | VernacLocal true -> str "local"
+  | VernacLocal false -> str "global"
+  | VernacWithInstance -> str "instance"
 
   let rec pr_vernac_control v =
     let return = tag_vernac v in
     match v with
     | VernacExpr (f, v') ->
-      List.fold_right
-        (fun f a -> pr_vernac_flag f ++ spc() ++ a)
-        f
-        (pr_vernac_expr v' ++ sep_end v')
+      begin match f with
+      | [] -> (fun r -> r)
+      | x :: f -> (fun r ->
+          str "“" ++ pr_vernac_flag x ++ List.fold_right (fun f a -> str "," ++ pr_vernac_flag f ++ a) f (str "”" ++ r))
+      end
+      (pr_vernac_expr v' ++ sep_end v')
     | VernacTime (_,v) ->
       return (keyword "Time" ++ spc() ++ pr_vernac_control v)
     | VernacRedirect (s, (_,v)) ->

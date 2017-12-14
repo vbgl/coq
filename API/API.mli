@@ -4162,6 +4162,7 @@ sig
     local : bool option;
     polymorphic : bool;
     program : bool;
+    instance : bool;
   }
 
   type vernac_expr =
@@ -4299,6 +4300,7 @@ type vernac_flag =
   | VernacProgram
   | VernacPolymorphic of bool
   | VernacLocal of bool
+  | VernacWithInstance
 
 type vernac_control =
   | VernacExpr of vernac_flag list * vernac_expr

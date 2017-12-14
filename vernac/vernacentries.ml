@@ -1991,7 +1991,9 @@ let interp ?proof ~atts ~st c : Vernacstate.t =
 
   (* Gallina *)
   | VernacDefinition ((discharge,kind),lid,d) ->
-      ret (vernac_definition ~atts discharge kind lid) d
+    if atts.instance then
+      user_err (str "TODO")
+    else ret (vernac_definition ~atts discharge kind lid) d
   | VernacStartTheoremProof (k,l) -> ret (vernac_start_proof ~atts k) l
   | VernacEndProof e -> ret (vernac_end_proof ?proof) e
   | VernacExactProof c -> ret vernac_exact_proof c
@@ -2145,6 +2147,14 @@ let check_vernac_supports_polymorphism c p =
     | VernacExtend _ | VernacUniverse _ | VernacConstraint _) -> ()
   | Some _, _ -> user_err Pp.(str "This command does not support Polymorphism")
 
+(* Vernaculars that accept the “instance” attribute *)
+let check_vernac_supports_instance c f =
+  if f then begin
+    match c with
+    | VernacDefinition _ -> ()
+    | _ -> user_err Pp.(str "This command does not support the “instance” attribute")
+  end
+
 let enforce_polymorphism = function
   | None   -> Flags.is_universe_polymorphism ()
   | Some b -> Flags.make_polymorphic_flag b; b
@@ -2232,6 +2242,8 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
            (polymorphism, { atts with local = Some b })
          | VernacLocal _ ->
            user_err Pp.(str "Locality specified twice")
+         | VernacWithInstance ->
+           (polymorphism, { atts with instance = true; })
       )
       (None, atts)
       f
@@ -2239,7 +2251,7 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
   let rec control : _ -> Vernacstate.t =
     function
   | VernacExpr (f, v) ->
-    let (polymorphism, atts) = flags f { loc; local = None; polymorphic = false; program = orig_program_mode; } in
+    let (polymorphism, atts) = flags f { loc; local = None; polymorphic = false; program = orig_program_mode; instance = false; } in
     aux ~polymorphism ~atts v
   | VernacFail v ->
       with_fail st true (fun () -> ignore (control v : Vernacstate.t));
@@ -2261,6 +2273,7 @@ let interp ?(verbosely=true) ?proof ~st (loc,c) : Vernacstate.t =
     | c ->
       check_vernac_supports_locality c atts.local;
       check_vernac_supports_polymorphism c polymorphism;
+      check_vernac_supports_instance c atts.instance;
       let polymorphic = enforce_polymorphism polymorphism in
       Obligations.set_program_mode atts.program;
       try
