@@ -320,6 +320,7 @@ type atts = {
   polymorphic : bool;
   program : bool;
   instance : bool;
+  coercion : bool;
 }
 
 type vernac_implicit_status = Implicit | MaximallyImplicit | NotImplicit
@@ -485,6 +486,7 @@ type vernac_flag =
   | VernacPolymorphic of bool
   | VernacLocal of bool
   | VernacWithInstance
+  | VernacWithCoercion
 
 type vernac_control =
   | VernacExpr of vernac_flag list * vernac_expr

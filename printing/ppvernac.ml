@@ -1217,6 +1217,7 @@ let pr_vernac_flag =
   | VernacLocal true -> str "local"
   | VernacLocal false -> str "global"
   | VernacWithInstance -> str "instance"
+  | VernacWithCoercion -> str "coercion"
 
   let rec pr_vernac_control v =
     let return = tag_vernac v in

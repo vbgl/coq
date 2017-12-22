@@ -97,6 +97,7 @@ GEXTEND Gram
      | IDENT "global" -> VernacLocal false
      | IDENT "interactive" -> VernacProgram
      | IDENT "instance" -> VernacWithInstance
+     | IDENT "coercion" -> VernacWithCoercion
     ]]
   ;
   vernac:
