@@ -119,6 +119,11 @@ type 'a hint_info_gen =
 
 type hint_info_expr = constr_pattern_expr hint_info_gen
 
+type instance_attr = {
+  instance_binding_kind: Decl_kinds.binding_kind;
+  instance_hint: hint_info_expr;
+}
+
 type hints_expr =
   | HintsResolve of (hint_info_expr * bool * reference_or_constr) list
   | HintsImmediate of reference_or_constr list
@@ -199,7 +204,7 @@ type inductive_expr =
 type one_inductive_expr =
   ident_decl * local_binder_expr list * constr_expr option * constructor_expr list
 
-type typeclass_constraint = name_decl * Decl_kinds.binding_kind * constr_expr
+type typeclass_constraint = name_decl * constr_expr
 
 and typeclass_context = typeclass_constraint list
 
@@ -367,7 +372,7 @@ type nonrec vernac_expr =
       local_binder_expr list * (* super *)
 	typeclass_constraint * (* instance name, class name, params *)
 	(bool * constr_expr) option * (* props *)
-	hint_info_expr
+      instance_attr
 
   | VernacContext of local_binder_expr list
 

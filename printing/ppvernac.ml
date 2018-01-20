@@ -887,7 +887,7 @@ open Decl_kinds
               spc() ++ pr_class_rawexpr c2)
         )
 
-      | VernacInstance (abst, sup, (instid, bk, cl), props, info) ->
+      | VernacInstance (abst, sup, (instid, cl), props, info) ->
         return (
           hov 1 (
             (if abst then keyword "Declare" ++ spc () else mt ()) ++
@@ -897,8 +897,8 @@ open Decl_kinds
              | { v = Anonymous }, _ -> mt ()) ++
             pr_and_type_binders_arg sup ++
               str":" ++ spc () ++
-              (match bk with Implicit -> str "! " | Explicit -> mt ()) ++
-              pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info ++
+              (match info.instance_binding_kind with Implicit -> str "! " | Explicit -> mt ()) ++
+              pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info.instance_hint ++
               (match props with
                 | Some (true, { v = CRecord l}) -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
                 | Some (true,_) -> assert false

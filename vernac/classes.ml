@@ -129,13 +129,13 @@ let declare_instance_constant k info global imps ?hook id decl poly sigma term t
     id
 
 let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
-  ~program_mode poly ctx (instid, bk, cl) props ?(generalize=true)
-  ?(tac:unit Proofview.tactic option) ?hook pri =
+  ~program_mode poly ctx (instid, cl) props ?(generalize=true)
+  ?(tac:unit Proofview.tactic option) ?hook info =
   let env = Global.env() in
   let ({CAst.loc;v=instid}, pl) = instid in
   let sigma, decl = Univdecls.interp_univ_decl_opt env pl in
   let tclass, ids =
-    match bk with
+    match info.Vernacexpr.instance_binding_kind with
     | Decl_kinds.Implicit ->
 	Implicit_quantifiers.implicit_application Id.Set.empty ~allow_partial:false
 	  (fun avoid (clname, _) ->
@@ -203,7 +203,7 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
             (None,(termtype,univs),None), Decl_kinds.IsAssumption Decl_kinds.Logical)
         in
           Declare.declare_univ_binders (ConstRef cst) (Evd.universe_binders sigma);
-          instance_hook k pri global imps ?hook (ConstRef cst); id
+          instance_hook k info.Vernacexpr.instance_hint global imps ?hook (ConstRef cst); id
       end
     else (
       let props =
@@ -294,7 +294,7 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
       let termtype = to_constr sigma termtype in
       let term = Option.map (to_constr sigma) term in
         if not (Evd.has_undefined sigma) && not (Option.is_empty term) then
-	  declare_instance_constant k pri global imps ?hook id decl
+	  declare_instance_constant k info.Vernacexpr.instance_hint global imps ?hook id decl
             poly sigma (Option.get term) termtype
         else if program_mode || refine || Option.is_empty term then begin
 	  let kind = Decl_kinds.Global, poly, Decl_kinds.DefinitionBody Decl_kinds.Instance in
@@ -302,7 +302,7 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
 	      let hook vis gr _ =
 		let cst = match gr with ConstRef kn -> kn | _ -> assert false in
 		  Impargs.declare_manual_implicits false gr ~enriching:false [imps];
-		  Typeclasses.declare_instance (Some pri) (not global) (ConstRef cst)
+		  Typeclasses.declare_instance (Some info.Vernacexpr.instance_hint) (not global) (ConstRef cst)
 	      in
 	      let obls, constr, typ =
 		match term with 
@@ -328,7 +328,7 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
                 let sigma = Evd.reset_future_goals sigma in
                 Lemmas.start_proof id ~pl:decl kind sigma (EConstr.of_constr termtype)
 		(Lemmas.mk_hook
-                  (fun _ -> instance_hook k pri global imps ?hook));
+                  (fun _ -> instance_hook k info.Vernacexpr.instance_hint global imps ?hook));
                  (* spiwack: I don't know what to do with the status here. *)
 		if not (Option.is_empty term) then
                   let init_refine =

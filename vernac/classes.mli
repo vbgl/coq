@@ -49,7 +49,7 @@ val new_instance :
   ?generalize:bool ->
   ?tac:unit Proofview.tactic  ->
   ?hook:(Globnames.global_reference -> unit) ->
-  Vernacexpr.hint_info_expr ->
+  Vernacexpr.instance_attr ->
   Id.t
 
 (** Setting opacity *)
