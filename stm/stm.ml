@@ -2916,7 +2916,7 @@ let process_transaction ?(newtip=Stateid.fresh ()) ?(part_of_script=true)
               let bname = VCS.mk_branch_name x in
               let opacity_of_produced_term = function
                 (* This AST is ambiguous, hence we check it dynamically *)
-                | VernacInstance (false, _,_ , None, _) -> GuaranteesOpacity
+                | VernacInstance (_, _, None, _) -> GuaranteesOpacity
                 | _ -> Doesn'tGuaranteeOpacity in
               VCS.commit id (Fork (x,bname,opacity_of_produced_term (Vernacprop.under_control x.expr),[]));
               let proof_mode = default_proof_mode () in

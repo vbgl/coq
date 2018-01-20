@@ -653,7 +653,7 @@ GEXTEND Gram
 	 info = hint_info ;
        (bidi, props) = [ ":="; "{"; r = record_declaration; "}" -> true, Some r |
          ":="; c = lconstr -> false, Some c | -> false, None ] ->
-       VernacInstance (false,snd namesup,(fst namesup,t),props,
+       VernacInstance (snd namesup, (fst namesup,t), props,
          Vernacexpr.({ instance_binding_kind = expl ; instance_hint = info ; instance_bidi_infer = bidi }))
 
       | IDENT "Existing"; IDENT "Instance"; id = global;
@@ -832,7 +832,7 @@ GEXTEND Gram
       | IDENT "Declare"; IDENT "Instance"; namesup = instance_name; ":";
 	 expl = [ "!" -> Decl_kinds.Implicit | -> Decl_kinds.Explicit ] ; t = operconstr LEVEL "200";
 	 info = hint_info ->
-      VernacInstance (true, snd namesup, (fst namesup, t), None,
+     VernacDeclareInstance (snd namesup, (fst namesup, t),
        Vernacexpr.({ instance_binding_kind = expl ; instance_hint = info ; instance_bidi_infer = false }))
 
       (* System directory *)

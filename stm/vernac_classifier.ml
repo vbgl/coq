@@ -176,6 +176,7 @@ let classify_vernac e =
     | VernacContext _ (* TASSI: unsure *)
     | VernacProofMode _ -> VtSideff [], VtNow
     (* These are ambiguous *)
+    | VernacDeclareInstance _
     | VernacInstance _ -> VtUnknown, VtNow
     (* Stm will install a new classifier to handle these *)
     | VernacBack _ | VernacAbortAll

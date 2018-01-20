@@ -562,6 +562,25 @@ open Decl_kinds
     with Not_found ->
       hov 1 (str "TODO(" ++ str (fst s) ++ spc () ++ prlist_with_sep sep pr_arg cl ++ str ")")
 
+  let pp_instance v abst sup instid cl props info =
+    tag_vernac v (
+      hov 1 (
+        (if abst then keyword "Declare" ++ spc () else mt ()) ++
+        keyword "Instance" ++
+        (match instid with
+         | {loc; v = Name id}, l -> spc () ++ pr_ident_decl (CAst.(make ?loc id),l) ++ spc ()
+         | { v = Anonymous }, _ -> mt ()) ++
+        pr_and_type_binders_arg sup ++
+        str":" ++ spc () ++
+        (match info.instance_binding_kind with Implicit -> str "! " | Explicit -> mt ()) ++
+        pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info.instance_hint ++
+        (match props with
+         | Some { v = CRecord l } when info.instance_bidi_infer
+           -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
+         | Some p -> spc () ++ str":=" ++ spc () ++ pr_constr p
+         | None -> mt()))
+    )
+
   let pr_vernac_expr v =
     let return = tag_vernac v in
     match v with
@@ -887,24 +906,10 @@ open Decl_kinds
               spc() ++ pr_class_rawexpr c2)
         )
 
-      | VernacInstance (abst, sup, (instid, cl), props, info) ->
-        return (
-          hov 1 (
-            (if abst then keyword "Declare" ++ spc () else mt ()) ++
-            keyword "Instance" ++
-            (match instid with
-             | {loc; v = Name id}, l -> spc () ++ pr_ident_decl (CAst.(make ?loc id),l) ++ spc ()
-             | { v = Anonymous }, _ -> mt ()) ++
-            pr_and_type_binders_arg sup ++
-              str":" ++ spc () ++
-              (match info.instance_binding_kind with Implicit -> str "! " | Explicit -> mt ()) ++
-              pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info.instance_hint ++
-              (match props with
-                | Some { v = CRecord l } when info.instance_bidi_infer
-                  -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
-                | Some p -> spc () ++ str":=" ++ spc () ++ pr_constr p
-                | None -> mt()))
-        )
+      | VernacInstance (sup, (instid, cl), props, info) ->
+        pp_instance v false sup instid cl props info
+      | VernacDeclareInstance(sup, (instid, cl), info) ->
+        pp_instance v true sup instid cl None info
 
       | VernacContext l ->
         return (

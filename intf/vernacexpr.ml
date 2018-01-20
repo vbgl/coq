@@ -369,10 +369,13 @@ type nonrec vernac_expr =
 
   (* Type classes *)
   | VernacInstance of
-      bool * (* abstract instance *)
       local_binder_expr list * (* super *)
 	typeclass_constraint * (* instance name, class name, params *)
       constr_expr option * (* props *)
+      instance_attr
+  | VernacDeclareInstance of
+      local_binder_expr list * (* super *)
+      typeclass_constraint * (* instance name, class name, params *)
       instance_attr
 
   | VernacContext of local_binder_expr list
