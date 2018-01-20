@@ -371,10 +371,10 @@ type nonrec vernac_expr =
 
   | VernacContext of local_binder_expr list
 
-  | VernacDeclareInstances of
+  | VernacExistingInstances of
     (reference * hint_info_expr) list (* instances names, priorities and patterns *)
 
-  | VernacDeclareClass of reference (* inductive or definition name *)
+  | VernacExistingClass of reference (* inductive or definition name *)
 
   (* Modules and Module Types *)
   | VernacDeclareModule of bool option * lident *

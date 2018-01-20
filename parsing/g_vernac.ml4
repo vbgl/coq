@@ -657,15 +657,15 @@ GEXTEND Gram
 
       | IDENT "Existing"; IDENT "Instance"; id = global;
           info = hint_info ->
-	  VernacDeclareInstances [id, info]
+	  VernacExistingInstances [id, info]
 
       | IDENT "Existing"; IDENT "Instances"; ids = LIST1 global;
         pri = OPT [ "|"; i = natural -> i ] ->
          let info = { hint_priority = pri; hint_pattern = None } in
          let insts = List.map (fun i -> (i, info)) ids in
-	  VernacDeclareInstances insts
+	  VernacExistingInstances insts
 
-      | IDENT "Existing"; IDENT "Class"; is = global -> VernacDeclareClass is
+      | IDENT "Existing"; IDENT "Class"; is = global -> VernacExistingClass is
 
       (* Arguments *)
       | IDENT "Arguments"; qid = smart_global; 

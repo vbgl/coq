@@ -912,7 +912,7 @@ open Decl_kinds
             keyword "Context" ++ pr_and_type_binders_arg l)
         )
 
-      | VernacDeclareInstances insts ->
+      | VernacExistingInstances insts ->
          let pr_inst (id, info) =
            pr_reference id ++ pr_hint_info pr_constr_pattern_expr info
          in
@@ -922,7 +922,7 @@ open Decl_kinds
                  spc () ++ prlist_with_sep (fun () -> str", ") pr_inst insts)
         )
 
-      | VernacDeclareClass id ->
+      | VernacExistingClass id ->
         return (
           hov 1 (keyword "Existing" ++ spc () ++ keyword "Class" ++ spc () ++ pr_reference id)
         )

@@ -2031,8 +2031,8 @@ let interp ?proof ~atts ~st c =
   | VernacInstance (abst, sup, inst, props, info) ->
       vernac_instance ~atts abst sup inst props info
   | VernacContext sup -> vernac_context ~atts sup
-  | VernacDeclareInstances insts -> vernac_declare_instances ~atts insts
-  | VernacDeclareClass id -> vernac_declare_class id
+  | VernacExistingInstances insts -> vernac_declare_instances ~atts insts
+  | VernacExistingClass id -> vernac_declare_class id
 
   (* Solving *)
   | VernacSolveExistential (n,c) -> vernac_solve_existential n c
@@ -2121,7 +2121,7 @@ let check_vernac_supports_locality c l =
     | VernacDefinition _ | VernacFixpoint _ | VernacCoFixpoint _
     | VernacAssumption _ | VernacStartTheoremProof _
     | VernacCoercion _ | VernacIdentityCoercion _
-    | VernacInstance _ | VernacDeclareInstances _
+    | VernacInstance _ | VernacExistingInstances _
     | VernacDeclareMLModule _
     | VernacCreateHintDb _ | VernacRemoveHints _ | VernacHints _
     | VernacSyntacticDefinition _
@@ -2143,7 +2143,7 @@ let check_vernac_supports_polymorphism c p =
     | VernacAssumption _ | VernacInductive _
     | VernacStartTheoremProof _
     | VernacCoercion _ | VernacIdentityCoercion _
-    | VernacInstance _ | VernacDeclareInstances _
+    | VernacInstance _ | VernacExistingInstances _
     | VernacHints _ | VernacContext _
     | VernacExtend _ | VernacUniverse _ | VernacConstraint _) -> ()
   | Some _, _ -> user_err Pp.(str "This command does not support Polymorphism")

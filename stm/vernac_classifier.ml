@@ -152,7 +152,7 @@ let classify_vernac e =
     | VernacMemOption _ | VernacPrintOption _
     | VernacGlobalCheck _
     | VernacDeclareReduction _
-    | VernacDeclareClass _ | VernacDeclareInstances _
+    | VernacExistingClass _ | VernacExistingInstances _
     | VernacRegister _
     | VernacNameSectionHypSet _
     | VernacComments _ -> VtSideff [], VtLater
