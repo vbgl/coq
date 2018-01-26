@@ -85,14 +85,14 @@ Section Defs.
     Equivalence_Transitive :> Transitive R }.
 
   (** An Equivalence is a PER plus reflexivity. *)
-  
+
   Global Instance Equivalence_PER {R} `(E:Equivalence R) : PER R | 10 :=
-    { }. 
+    Build_PER _ _ _.
 
   (** An Equivalence is a PreOrder plus symmetry. *)
 
   Global Instance Equivalence_PreOrder {R} `(E:Equivalence R) : PreOrder R | 10 :=
-    { }.
+    Build_PreOrder _ _ _.
 
   (** We can now define antisymmetry w.r.t. an equivalence relation on the carrier. *)
   
