@@ -157,9 +157,9 @@ GEXTEND Gram
 	  test_plural_form loc kwd bl;
 	  VernacAssumption (stre, nl, bl)
       | d = def_token; id = ident_decl; b = def_body ->
-          VernacDefinition (d, name_of_ident_decl id, b)
+          VernacDefinition (d, name_of_ident_decl id, fst b, snd b)
       | IDENT "Let"; id = identref; b = def_body ->
-          VernacDefinition ((DoDischarge, Let), (lname_of_lident id, None), b)
+          VernacDefinition ((DoDischarge, Let), (lname_of_lident id, None), fst b, snd b)
       (* Gallina inductive declarations *)
       | cum = cumulativity_token; priv = private_token; f = finite_token;
         indl = LIST1 inductive_definition SEP "with" ->
@@ -269,11 +269,11 @@ GEXTEND Gram
       then
         (* FIXME: "red" will be applied to types in bl and Cast with remain *)
         let c = mkCLambdaN ~loc:!@loc bl c in
-	DefineBody ([], red, c, None)
+        [], DefineBody (red, c, None)
       else
         (match c with
-        | { CAst.v = CCast(c, CastConv t) } -> DefineBody (bl, red, c, Some t)
-        | _ -> DefineBody (bl, red, c, None))
+        | { CAst.v = CCast(c, CastConv t) } -> bl, DefineBody (red, c, Some t)
+        | _ -> bl, DefineBody (red, c, None))
     | bl = binders; ":"; t = lconstr; ":="; red = reduce; c = lconstr ->
         let ((bl, c), tyo) =
           if List.exists (function CLocalPattern _ -> true | _ -> false) bl
@@ -283,9 +283,9 @@ GEXTEND Gram
             (([],mkCLambdaN ~loc:!@loc bl c), None)
           else ((bl, c), Some t)
         in
-	DefineBody (bl, red, c, tyo)
+        bl, DefineBody (red, c, tyo)
     | bl = binders; ":"; t = lconstr ->
-        ProveBody (bl, t) ] ]
+        bl, ProveBody t ] ]
   ;
   reduce:
     [ [ IDENT "Eval"; r = red_expr; "in" -> Some r
@@ -629,12 +629,12 @@ GEXTEND Gram
 	  VernacCanonical (ByNotation ntn)
       | IDENT "Canonical"; IDENT "Structure"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-          VernacDefinition ((NoDischarge,CanonicalStructure),((CAst.make (Name s)),None),d)
+          VernacDefinition ((NoDischarge,CanonicalStructure),((CAst.make (Name s)),None), fst d, snd d)
 
       (* Coercions *)
       | IDENT "Coercion"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-          VernacDefinition ((NoDischarge,Coercion),((CAst.make (Name s)),None),d)
+          VernacDefinition ((NoDischarge,Coercion),((CAst.make (Name s)),None), fst d, snd d)
       | IDENT "Identity"; IDENT "Coercion"; f = identref; ":";
          s = class_rawexpr; ">->"; t = class_rawexpr ->
            VernacIdentityCoercion (f, s, t)

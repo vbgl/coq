@@ -710,7 +710,7 @@ open Decl_kinds
         )
 
       (* Gallina *)
-      | VernacDefinition ((discharge,kind),id,b) -> (* A verifier... *)
+      | VernacDefinition ((discharge, kind), id, bl, b) ->
         let pr_def_token dk =
           keyword (
             if Name.is_anonymous (fst id).v
@@ -725,13 +725,13 @@ open Decl_kinds
               keyword " in" ++ spc()
         in
         let pr_def_body = function
-          | DefineBody (bl,red,body,d) ->
+          | DefineBody (red, body, d) ->
             let ty = match d with
               | None -> mt()
               | Some ty -> spc() ++ str":" ++ pr_spc_lconstr ty
             in
             (pr_binders_arg bl,ty,Some (pr_reduce red ++ pr_lconstr body))
-          | ProveBody (bl,t) ->
+          | ProveBody t ->
             let typ u = if (fst id).v = Anonymous then (assert (bl = []); u) else (str" :" ++ u) in
             (pr_binders_arg bl, typ (pr_spc_lconstr t), None) in
         let (binds,typ,c) = pr_def_body b in

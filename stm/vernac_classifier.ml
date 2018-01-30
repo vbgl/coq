@@ -88,10 +88,10 @@ let classify_vernac e =
     | VernacUnsetOption (["Default";"Proof";"Using"])
     | VernacSetOption (["Default";"Proof";"Using"],_) -> VtSideff [], VtNow
     (* StartProof *)
-    | VernacDefinition ((Decl_kinds.DoDischarge,_),({v=i},_),ProveBody _) ->
+    | VernacDefinition ((Decl_kinds.DoDischarge,_),({v=i},_), _, ProveBody _) ->
       VtStartProof(default_proof_mode (),Doesn'tGuaranteeOpacity, idents_of_name i), VtLater
 
-    | VernacDefinition (_,({v=i},_),ProveBody _) ->
+    | VernacDefinition (_,({v=i},_), _, ProveBody _) ->
        let guarantee = if poly then Doesn'tGuaranteeOpacity else GuaranteesOpacity in
         VtStartProof(default_proof_mode (),guarantee, idents_of_name i), VtLater
     | VernacStartTheoremProof (_,l) ->
@@ -124,7 +124,7 @@ let classify_vernac e =
     | VernacAssumption (_,_,l) ->
         let ids = List.flatten (List.map (fun (_,(l,_)) -> List.map (fun (id, _) -> id.v) l) l) in
         VtSideff ids, VtLater
-    | VernacDefinition (_,({v=id},_),DefineBody _) -> VtSideff (idents_of_name id), VtLater
+    | VernacDefinition (_,({v=id},_), _, DefineBody _) -> VtSideff (idents_of_name id), VtLater
     | VernacInductive (_, _,_,l) ->
         let ids = List.map (fun (((_,({v=id},_)),_,_,_,cl),_) -> id :: match cl with
         | Constructors l -> List.map (fun (_,({v=id},_)) -> id) l

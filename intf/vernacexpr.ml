@@ -172,9 +172,8 @@ type name_decl = lname * universe_decl_expr option
 type sort_expr = Sorts.family
 
 type definition_expr =
-  | ProveBody of local_binder_expr list * constr_expr
-  | DefineBody of local_binder_expr list * Genredexpr.raw_red_expr option * constr_expr
-      * constr_expr option
+  | ProveBody of  constr_expr
+  | DefineBody of Genredexpr.raw_red_expr option * constr_expr * constr_expr option
 
 type fixpoint_expr =
     ident_decl * (lident option * recursion_order_expr) * local_binder_expr list * constr_expr * constr_expr option
@@ -341,7 +340,7 @@ type nonrec vernac_expr =
   | VernacNotationAddFormat of string * string * string
 
   (* Gallina *)
-  | VernacDefinition of (Decl_kinds.discharge * Decl_kinds.definition_object_kind) * name_decl * definition_expr
+  | VernacDefinition of (Decl_kinds.discharge * Decl_kinds.definition_object_kind) * name_decl * local_binder_expr list * definition_expr
   | VernacStartTheoremProof of Decl_kinds.theorem_kind * proof_expr list
   | VernacEndProof of proof_end
   | VernacExactProof of constr_expr

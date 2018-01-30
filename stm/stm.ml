@@ -565,7 +565,7 @@ end = struct (* {{{ *)
   let reachable id = reachable !vcs id
   let mk_branch_name { expr = x } = Branch.make
     (match Vernacprop.under_control x with
-    | VernacDefinition (_,({CAst.v=Name i},_),_) -> Id.to_string i
+    | VernacDefinition (_,({CAst.v=Name i},_), _, _) -> Id.to_string i
     | VernacStartTheoremProof (_,[({CAst.v=i},_),_]) -> Id.to_string i
     | _ -> "branch")
   let edit_branch = Branch.make "edit"
@@ -2892,7 +2892,7 @@ let process_transaction ?(newtip=Stateid.fresh ()) ?(part_of_script=true)
           (* We can't replay a Definition since universes may be differently
            * inferred.  This holds in Coq >= 8.5 *)
           let action = match Vernacprop.under_control x.expr with
-	    | VernacDefinition(_, _, DefineBody _) -> CherryPickEnv
+            | VernacDefinition(_, _, _, DefineBody _) -> CherryPickEnv
 	    | _ -> ReplayCommand x in
 	  VCS.propagate_sideff ~action;
           VCS.checkout_shallowest_proof_branch ();

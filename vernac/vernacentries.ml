@@ -472,7 +472,7 @@ let vernac_definition_hook p = function
 | SubClass -> Class.add_subclass_hook p
 | _ -> no_hook
 
-let vernac_definition ~atts discharge kind ({loc;v=id}, pl) def =
+let vernac_definition ~atts discharge kind ({loc;v=id}, pl) bl def =
   let local = enforce_locality_exp atts.locality discharge in
   let hook = vernac_definition_hook atts.polymorphic kind in
   let () =
@@ -490,10 +490,10 @@ let vernac_definition ~atts discharge kind ({loc;v=id}, pl) def =
     | Name n -> n
   in
   (match def with
-    | ProveBody (bl,t) ->   (* local binders, typ *)
+    | ProveBody t ->
       start_proof_and_print (local, atts.polymorphic, DefinitionBody kind)
         [(CAst.make ?loc name, pl), (bl, t)] hook
-    | DefineBody (bl,red_option,c,typ_opt) ->
+    | DefineBody (red_option, c, typ_opt) ->
       let red_option = match red_option with
           | None -> None
           | Some r ->
@@ -1989,8 +1989,8 @@ let interp ?proof ~atts ~st c =
       Metasyntax.add_notation_extra_printing_rule n k v
 
   (* Gallina *)
-  | VernacDefinition ((discharge,kind),lid,d) ->
-      vernac_definition ~atts discharge kind lid d
+  | VernacDefinition ((discharge,kind), lid, bl, d) ->
+      vernac_definition ~atts discharge kind lid bl d
   | VernacStartTheoremProof (k,l) -> vernac_start_proof ~atts k l
   | VernacEndProof e -> vernac_end_proof ?proof e
   | VernacExactProof c -> vernac_exact_proof c
