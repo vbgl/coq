@@ -745,7 +745,7 @@ let rec pretype k0 resolve_tc (tycon : type_constraint) (env : ExtraEnv.t) evdre
 	(* Bidirectional typechecking hint: 
 	   parameters of a constructor are completely determined
 	   by a typing constraint *)
-      if Flags.is_program_mode () && length > 0 && isConstruct !evdref fj.uj_val then
+      if Flags.is_bidi () && length > 0 && isConstruct !evdref fj.uj_val then
 	match tycon with
 	| None -> []
 	| Some ty ->

@@ -1819,7 +1819,7 @@ Module OrdProperties (M:S).
   Proof.
    red; intros (x,e) (a,e') (b,e'') H; red in H; simpl in *; destruct H.
    generalize (gtb_1 (x,e) (a,e'))(gtb_1 (x,e) (b,e''));
-    destruct (gtb (x,e) (a,e')); destruct (gtb (x,e) (b,e'')); auto.
+     destruct gtb; destruct gtb; auto.
    unfold O.ltk in *; simpl in *; intros.
    symmetry; rewrite H2.
    apply ME.eq_lt with a; auto.

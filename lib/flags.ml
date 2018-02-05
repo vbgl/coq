@@ -128,6 +128,8 @@ let is_polymorphic_inductive_cumulativity () = !polymorphic_inductive_cumulativi
 let program_mode = ref false
 let is_program_mode () = !program_mode
 
+let is_bidi () = true
+
 let warn = ref true
 let make_warn flag = warn := flag;  ()
 let if_warn f x = if !warn then f x
