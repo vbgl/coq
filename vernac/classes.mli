@@ -45,7 +45,7 @@ val new_instance :
   Decl_kinds.polymorphic ->
   local_binder_expr list ->
   Vernacexpr.typeclass_constraint ->
-  (bool * constr_expr) option ->
+  constr_expr option ->
   ?generalize:bool ->
   ?tac:unit Proofview.tactic  ->
   ?hook:(Globnames.global_reference -> unit) ->

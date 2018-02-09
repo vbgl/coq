@@ -1783,9 +1783,9 @@ let anew_instance global binders instance fields =
   let program_mode = Flags.is_program_mode () in
   let poly = Flags.is_universe_polymorphism () in
   new_instance ~program_mode poly
-    binders instance (Some (true, CAst.make @@ CRecord (fields)))
+    binders instance (Some (CAst.make @@ CRecord (fields)))
     ~global ~generalize:false ~refine:false
-    Vernacexpr.{ instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info }
+    Vernacexpr.{ instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info ; instance_bidi_infer = true }
 
 let declare_instance_refl global binders a aeq n lemma =
   let instance = declare_instance a aeq (add_suffix n "_Reflexive") "Coq.Classes.RelationClasses.Reflexive"
@@ -2015,9 +2015,9 @@ let add_morphism glob binders m s n =
   let tac = Tacinterp.interp (make_tactic "add_morphism_tactic") in
   let program_mode = Flags.is_program_mode () in
   ignore(new_instance ~program_mode ~global:glob poly binders instance
-           (Some (true, CAst.make @@ CRecord []))
+           (Some (CAst.make @@ CRecord []))
            ~generalize:false ~tac ~hook:(declare_projection n instance_id)
-           Vernacexpr. { instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info })
+           Vernacexpr. { instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info ; instance_bidi_infer = true })
 
 (** Bind to "rewrite" too *)
 

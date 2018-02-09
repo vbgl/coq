@@ -122,6 +122,7 @@ type hint_info_expr = constr_pattern_expr hint_info_gen
 type instance_attr = {
   instance_binding_kind: Decl_kinds.binding_kind;
   instance_hint: hint_info_expr;
+  instance_bidi_infer: bool;
 }
 
 type hints_expr =
@@ -371,7 +372,7 @@ type nonrec vernac_expr =
       bool * (* abstract instance *)
       local_binder_expr list * (* super *)
 	typeclass_constraint * (* instance name, class name, params *)
-	(bool * constr_expr) option * (* props *)
+      constr_expr option * (* props *)
       instance_attr
 
   | VernacContext of local_binder_expr list

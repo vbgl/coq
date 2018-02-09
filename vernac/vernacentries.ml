@@ -847,11 +847,11 @@ let vernac_identity_coercion ~atts id qids qidt =
 
 (* Type classes *)
 
-let vernac_instance ~atts abst sup inst props pri =
+let vernac_instance ~atts abst sup inst props info =
   let global = not (make_section_locality atts.locality) in
   Dumpglob.dump_constraint inst false "inst";
   let program_mode = Flags.is_program_mode () in
-  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup inst props pri)
+  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup inst props info)
 
 let vernac_context ~atts l =
   if not (Classes.context atts.polymorphic l) then Feedback.feedback Feedback.AddedAxiom

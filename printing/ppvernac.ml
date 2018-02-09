@@ -900,9 +900,9 @@ open Decl_kinds
               (match info.instance_binding_kind with Implicit -> str "! " | Explicit -> mt ()) ++
               pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info.instance_hint ++
               (match props with
-                | Some (true, { v = CRecord l}) -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
-                | Some (true,_) -> assert false
-                | Some (false,p) -> spc () ++ str":=" ++ spc () ++ pr_constr p
+                | Some { v = CRecord l } when info.instance_bidi_infer
+                  -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
+                | Some p -> spc () ++ str":=" ++ spc () ++ pr_constr p
                 | None -> mt()))
         )
 

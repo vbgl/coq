@@ -208,11 +208,11 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
     else (
       let props =
 	match props with
-	| Some (true, { CAst.v = CRecord fs }) ->
+        | Some { CAst.v = CRecord fs } when info.Vernacexpr.instance_bidi_infer ->
 	    if List.length fs > List.length k.cl_props then
 	      mismatched_props env' (List.map snd fs) k.cl_props;
 	    Some (Inl fs)
-	| Some (_, t) -> Some (Inr t)
+        | Some t -> Some (Inr t)
 	| None -> 
             if program_mode then Some (Inl [])
 	    else None
@@ -294,7 +294,7 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
       let termtype = to_constr sigma termtype in
       let term = Option.map (to_constr sigma) term in
         if not (Evd.has_undefined sigma) && not (Option.is_empty term) then
-	  declare_instance_constant k info.Vernacexpr.instance_hint global imps ?hook id decl
+          declare_instance_constant k info.Vernacexpr.instance_hint global imps ?hook id decl
             poly sigma (Option.get term) termtype
         else if program_mode || refine || Option.is_empty term then begin
 	  let kind = Decl_kinds.Global, poly, Decl_kinds.DefinitionBody Decl_kinds.Instance in
