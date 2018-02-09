@@ -438,6 +438,26 @@ let vernac_notation ~atts =
 (***********)
 (* Gallina *)
 
+(* Type classes *)
+
+let vernac_instance ~atts abst sup name body info =
+  let global = not (make_section_locality atts.locality) in
+  Dumpglob.dump_constraint name false "inst";
+  let program_mode = Flags.is_program_mode () in
+  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup name body info)
+
+let vernac_context ~atts l =
+  if not (Classes.context atts.polymorphic l) then Feedback.feedback Feedback.AddedAxiom
+
+let vernac_declare_instances ~atts insts =
+  let glob = not (make_section_locality atts.locality) in
+  List.iter (fun (id, info) -> Classes.existing_instance glob id (Some info)) insts
+
+let vernac_declare_class id =
+  Record.declare_existing_class (Nametab.global id)
+
+(* *)
+
 let start_proof_and_print k l hook =
   let inference_hook =
     if Flags.is_program_mode () then
@@ -472,9 +492,13 @@ let vernac_definition_hook p = function
 | SubClass -> Class.add_subclass_hook p
 | _ -> no_hook
 
-let vernac_definition ~atts discharge kind ({loc;v=id}, pl) bl def =
+let vernac_definition ~atts discharge kind name bl def =
+  match atts.instance with
+  | Some info -> vernac_instance ~atts false bl name def info
+  | None -> begin
   let local = enforce_locality_exp atts.locality discharge in
   let hook = vernac_definition_hook atts.polymorphic kind in
+  let { loc ; v=id }, pl = name in
   let () =
     match id with
     | Anonymous -> ()
@@ -501,6 +525,7 @@ let vernac_definition ~atts discharge kind ({loc;v=id}, pl) bl def =
             Some (snd (Hook.get f_interp_redexp env sigma r)) in
       ComDefinition.do_definition ~program_mode name
         (local, atts.polymorphic, kind) pl bl red_option c typ_opt hook)
+  end
 
 let vernac_start_proof ~atts kind l =
   let local = enforce_locality_exp atts.locality NoDischarge in
@@ -844,24 +869,6 @@ let vernac_identity_coercion ~atts id qids qidt =
   let target = cl_of_qualid qidt in
   let source = cl_of_qualid qids in
   Class.try_add_new_identity_coercion id ~local atts.polymorphic ~source ~target
-
-(* Type classes *)
-
-let vernac_instance ~atts abst sup name body info =
-  let global = not (make_section_locality atts.locality) in
-  Dumpglob.dump_constraint name false "inst";
-  let program_mode = Flags.is_program_mode () in
-  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup name body info)
-
-let vernac_context ~atts l =
-  if not (Classes.context atts.polymorphic l) then Feedback.feedback Feedback.AddedAxiom
-
-let vernac_declare_instances ~atts insts =
-  let glob = not (make_section_locality atts.locality) in
-  List.iter (fun (id, info) -> Classes.existing_instance glob id (Some info)) insts
-
-let vernac_declare_class id =
-  Record.declare_existing_class (Nametab.global id)
 
 (***********)
 (* Solving *)
@@ -2028,8 +2035,6 @@ let interp ?proof ~atts ~st c =
       vernac_identity_coercion ~atts id s t
 
   (* Type classes *)
-  | VernacInstance (inst, sup, body, info) ->
-      vernac_instance ~atts false sup inst body info
   | VernacDeclareInstance (sup, inst, t, info) ->
       vernac_instance ~atts true sup inst (ProveBody t) info
   | VernacContext sup -> vernac_context ~atts sup
@@ -2123,7 +2128,7 @@ let check_vernac_supports_locality c l =
     | VernacDefinition _ | VernacFixpoint _ | VernacCoFixpoint _
     | VernacAssumption _ | VernacStartTheoremProof _
     | VernacCoercion _ | VernacIdentityCoercion _
-    | VernacInstance _ | VernacDeclareInstance _ | VernacExistingInstances _
+    |  VernacDeclareInstance _ | VernacExistingInstances _
     | VernacDeclareMLModule _
     | VernacCreateHintDb _ | VernacRemoveHints _ | VernacHints _
     | VernacSyntacticDefinition _
@@ -2145,7 +2150,7 @@ let check_vernac_supports_polymorphism c p =
     | VernacAssumption _ | VernacInductive _
     | VernacStartTheoremProof _
     | VernacCoercion _ | VernacIdentityCoercion _
-    | VernacInstance _ | VernacDeclareInstance _ | VernacExistingInstances _
+    | VernacDeclareInstance _ | VernacExistingInstances _
     | VernacHints _ | VernacContext _
     | VernacExtend _ | VernacUniverse _ | VernacConstraint _) -> ()
   | Some _, _ -> user_err Pp.(str "This command does not support Polymorphism")
@@ -2215,32 +2220,36 @@ let with_fail st b f =
       | _ -> assert false
   end
 
+let attributes_of_flags f atts =
+  List.fold_left
+    (fun (polymorphism, atts) f ->
+       match f with
+       | VernacProgram when not atts.program ->
+         (polymorphism, { atts with program = true })
+       | VernacProgram ->
+         user_err Pp.(str "Program mode specified twice")
+       | VernacPolymorphic b when polymorphism = None ->
+         (Some b, atts)
+       | VernacPolymorphic _ ->
+         user_err Pp.(str "Polymorphism specified twice")
+       | VernacLocal b when Option.is_empty atts.locality ->
+         (polymorphism, { atts with locality = Some b })
+       | VernacLocal _ ->
+         user_err Pp.(str "Locality specified twice")
+       | VernacInstance i when Option.is_empty atts.instance ->
+         polymorphism, { atts with instance = Some i }
+       | VernacInstance _ ->
+         user_err Pp.(str "Instance specified twice")
+    )
+    (None, atts)
+    f
+
 let interp ?(verbosely=true) ?proof ~st (loc,c) =
   let orig_univ_poly = Flags.is_universe_polymorphism () in
   let orig_program_mode = Flags.is_program_mode () in
-  let flags f atts =
-    List.fold_left
-      (fun (polymorphism, atts) f ->
-         match f with
-         | VernacProgram when not atts.program ->
-           (polymorphism, { atts with program = true })
-         | VernacProgram ->
-           user_err Pp.(str "Program mode specified twice")
-         | VernacPolymorphic b when polymorphism = None ->
-           (Some b, atts)
-         | VernacPolymorphic _ ->
-           user_err Pp.(str "Polymorphism specified twice")
-         | VernacLocal b when Option.is_empty atts.locality ->
-           (polymorphism, { atts with locality = Some b })
-         | VernacLocal _ ->
-           user_err Pp.(str "Locality specified twice")
-      )
-      (None, atts)
-      f
-  in
   let rec control = function
   | VernacExpr (f, v) ->
-    let (polymorphism, atts) = flags f { loc; locality = None; polymorphic = false; program = orig_program_mode; } in
+    let (polymorphism, atts) = attributes_of_flags f { loc; locality = None; polymorphic = false; program = orig_program_mode; instance = None } in
     aux ~polymorphism ~atts v
   | VernacFail v -> with_fail st true (fun () -> control v)
   | VernacTimeout (n,v) ->

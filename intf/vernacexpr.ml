@@ -363,11 +363,6 @@ type nonrec vernac_expr =
   | VernacNameSectionHypSet of lident * section_subset_expr 
 
   (* Type classes *)
-  | VernacInstance of
-      name_decl * (* instance name *)
-      local_binder_expr list * (* super *)
-      definition_expr * (* class name, params, props *)
-      instance_attr
   | VernacDeclareInstance of
       local_binder_expr list * (* super *)
       name_decl * constr_expr * (* instance name, class name, params *)
@@ -475,6 +470,7 @@ type nonrec vernac_flag =
   | VernacProgram
   | VernacPolymorphic of bool
   | VernacLocal of bool
+  | VernacInstance of instance_attr
 
 type vernac_control =
   | VernacExpr of vernac_flag list * vernac_expr

@@ -15,6 +15,7 @@ type atts = {
   locality : bool option;
   polymorphic : bool;
   program : bool;
+  instance: Vernacexpr.instance_attr option;
 }
 
 type 'a vernac_command = 'a -> atts:atts -> st:Vernacstate.t -> Vernacstate.t

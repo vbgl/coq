@@ -55,7 +55,7 @@ let idents_of_name : Names.Name.t -> Names.Id.t list =
   | Names.Name n -> [n]
 
 let classify_vernac e =
-  let static_classifier ~poly e = match e with
+  let static_classifier ~poly ~instance e = match e with
     (* Univ poly compatibility: we run it now, so that we can just
      * look at Flags in stm.ml.  Would be nicer to have the stm
      * look at the entire dag to detect this option. *)
@@ -88,12 +88,13 @@ let classify_vernac e =
     | VernacUnsetOption (["Default";"Proof";"Using"])
     | VernacSetOption (["Default";"Proof";"Using"],_) -> VtSideff [], VtNow
     (* StartProof *)
-    | VernacDefinition ((Decl_kinds.DoDischarge,_),({v=i},_), _, ProveBody _) ->
-      VtStartProof(default_proof_mode (),Doesn'tGuaranteeOpacity, idents_of_name i), VtLater
+    | VernacDefinition ((Decl_kinds.DoDischarge,_),({v=i},_), _,ProveBody _) ->
+        VtStartProof(default_proof_mode (),Doesn'tGuaranteeOpacity, idents_of_name i), VtLater
 
-    | VernacDefinition (_,({v=i},_), _, ProveBody _) ->
+    | VernacDefinition (_,({v=i},_), _, ProveBody _) when not instance ->
        let guarantee = if poly then Doesn'tGuaranteeOpacity else GuaranteesOpacity in
         VtStartProof(default_proof_mode (),guarantee, idents_of_name i), VtLater
+    | VernacDefinition (_,({v=i},_), _, ProveBody _) -> VtUnknown, VtNow
     | VernacStartTheoremProof (_,l) ->
         let ids = List.map (fun (({v=i}, _), _) -> i) l in
        let guarantee = if poly then Doesn'tGuaranteeOpacity else GuaranteesOpacity in
@@ -122,9 +123,10 @@ let classify_vernac e =
         else VtSideff ids, VtLater
     (* Sideff: apply to all open branches. usually run on master only *)
     | VernacAssumption (_,_,l) ->
-        let ids = List.flatten (List.map (fun (_,(l,_)) -> List.map (fun (id, _) -> id.v) l) l) in
+        let ids = List.flatten (List.map (fun (_,(l,_)) -> List.map (fun ({v}, _) -> v) l) l) in
         VtSideff ids, VtLater
-    | VernacDefinition (_,({v=id},_), _, DefineBody _) -> VtSideff (idents_of_name id), VtLater
+    | VernacDefinition (_,({v=id},_),_, DefineBody _) when not instance -> VtSideff (idents_of_name id), VtLater
+    | VernacDefinition (_,({v=id},_),_, DefineBody _) -> VtUnknown, VtNow
     | VernacInductive (_, _,_,l) ->
         let ids = List.map (fun (((_,({v=id},_)),_,_,_,cl),_) -> id :: match cl with
         | Constructors l -> List.map (fun (_,({v=id},_)) -> id) l
@@ -175,9 +177,8 @@ let classify_vernac e =
     | VernacDeclareMLModule _
     | VernacContext _ (* TASSI: unsure *)
     | VernacProofMode _ -> VtSideff [], VtNow
-    (* These are ambiguous *)
-    | VernacDeclareInstance _
-    | VernacInstance _ -> VtUnknown, VtNow
+    (* VL: looks like VernacAssumption*)
+    | VernacDeclareInstance _ -> VtUnknown, VtNow
     (* Stm will install a new classifier to handle these *)
     | VernacBack _ | VernacAbortAll
     | VernacUndoTo _ | VernacUndo _
@@ -194,12 +195,10 @@ let classify_vernac e =
   in
   let rec static_control_classifier ~poly = function
     | VernacExpr (f, e) ->
-      let poly = List.fold_left (fun poly f ->
-          match f with
-          | VernacPolymorphic b -> b
-          | (VernacProgram | VernacLocal _) -> poly
-        ) poly f in
-      static_classifier ~poly e
+      let _, atts = Vernacentries.attributes_of_flags f Vernacinterp.{ loc = None ; locality = None ; polymorphic = poly ; program = false ; instance = None } in
+      let poly = atts.Vernacinterp.polymorphic in
+      let instance = Option.has_some atts.Vernacinterp.instance in
+      static_classifier ~poly ~instance e
     | VernacTimeout (_,e) -> static_control_classifier ~poly e
     | VernacTime (_,{v=e}) | VernacRedirect (_, {v=e}) ->
        static_control_classifier ~poly e

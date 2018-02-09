@@ -92,9 +92,9 @@ GEXTEND Gram
     (* Better to parse "." here: in case of failure (e.g. in coerce_to_var), *)
     (* "." is still in the stream and discard_to_dot works correctly         *)
     [ [ IDENT "Program"; g = gallina; "." -> ([VernacProgram], g)
-      | IDENT "Program"; g = gallina_ext; "." -> ([VernacProgram], g)
+      | IDENT "Program"; (flg, g) = gallina_ext; "." -> (VernacProgram :: flg, g)
       | g = gallina; "." -> ([], g)
-      | g = gallina_ext; "." -> ([], g)
+      | g = gallina_ext; "." -> g
       | c = command; "." -> ([], c)
       | c = syntax; "." -> ([], c)
       | c = subprf -> ([], c)
@@ -465,38 +465,38 @@ GEXTEND Gram
         IDENT "Module"; export = export_token; id = identref;
 	bl = LIST0 module_binder; sign = of_module_type;
 	body = is_module_expr ->
-	  VernacDefineModule (export, id, bl, sign, body)
+          [], VernacDefineModule (export, id, bl, sign, body)
       | IDENT "Module"; "Type"; id = identref;
 	bl = LIST0 module_binder; sign = check_module_types;
 	body = is_module_type ->
-	  VernacDeclareModuleType (id, bl, sign, body)
+          [], VernacDeclareModuleType (id, bl, sign, body)
       | IDENT "Declare"; IDENT "Module"; export = export_token; id = identref;
 	bl = LIST0 module_binder; ":"; mty = module_type_inl ->
-	  VernacDeclareModule (export, id, bl, mty)
+          [], VernacDeclareModule (export, id, bl, mty)
       (* Section beginning *)
-      | IDENT "Section"; id = identref -> VernacBeginSection id
-      | IDENT "Chapter"; id = identref -> VernacBeginSection id
+      | IDENT "Section"; id = identref -> [], VernacBeginSection id
+      | IDENT "Chapter"; id = identref -> [], VernacBeginSection id
 
       (* This end a Section a Module or a Module Type *)
-      | IDENT "End"; id = identref -> VernacEndSegment id
+      | IDENT "End"; id = identref -> [], VernacEndSegment id
 
       (* Naming a set of section hyps *)
       | IDENT "Collection"; id = identref; ":="; expr = section_subset_expr ->
-          VernacNameSectionHypSet (id, expr)
+          [], VernacNameSectionHypSet (id, expr)
 
       (* Requiring an already compiled module *)
       | IDENT "Require"; export = export_token; qidl = LIST1 global ->
-          VernacRequire (None, export, qidl)
+          [], VernacRequire (None, export, qidl)
       | IDENT "From" ; ns = global ; IDENT "Require"; export = export_token
 	; qidl = LIST1 global ->
-	VernacRequire (Some ns, export, qidl)
-      | IDENT "Import"; qidl = LIST1 global -> VernacImport (false,qidl)
-      | IDENT "Export"; qidl = LIST1 global -> VernacImport (true,qidl)
+          [], VernacRequire (Some ns, export, qidl)
+      | IDENT "Import"; qidl = LIST1 global -> [], VernacImport (false,qidl)
+      | IDENT "Export"; qidl = LIST1 global -> [], VernacImport (true,qidl)
       | IDENT "Include"; e = module_type_inl; l = LIST0 ext_module_expr ->
-	  VernacInclude(e::l)
+          [], VernacInclude(e::l)
       | IDENT "Include"; "Type"; e = module_type_inl; l = LIST0 ext_module_type ->
 	 warn_deprecated_include_type ~loc:!@loc ();
-	 VernacInclude(e::l) ] ]
+          [], VernacInclude(e::l) ] ]
   ;
   export_token:
     [ [ IDENT "Import" -> Some false
@@ -616,57 +616,58 @@ GEXTEND Gram
   gallina_ext:
     [ [ (* Transparent and Opaque *)
         IDENT "Transparent"; l = LIST1 smart_global ->
-          VernacSetOpacity (Conv_oracle.transparent, l)
+          [], VernacSetOpacity (Conv_oracle.transparent, l)
       | IDENT "Opaque"; l = LIST1 smart_global ->
-          VernacSetOpacity (Conv_oracle.Opaque, l)
+          [], VernacSetOpacity (Conv_oracle.Opaque, l)
       | IDENT "Strategy"; l =
           LIST1 [ v=strategy_level; "["; q=LIST1 smart_global; "]" -> (v,q)] ->
-            VernacSetStrategy l
+          [], VernacSetStrategy l
       (* Canonical structure *)
       | IDENT "Canonical"; IDENT "Structure"; qid = global ->
-	  VernacCanonical (AN qid)
+          [], VernacCanonical (AN qid)
       | IDENT "Canonical"; IDENT "Structure"; ntn = by_notation ->
-	  VernacCanonical (ByNotation ntn)
+          [], VernacCanonical (ByNotation ntn)
       | IDENT "Canonical"; IDENT "Structure"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-          VernacDefinition ((NoDischarge,CanonicalStructure),((CAst.make (Name s)),None), fst d, snd d)
+          [], VernacDefinition ((NoDischarge,CanonicalStructure),((CAst.make (Name s)),None), fst d, snd d)
 
       (* Coercions *)
       | IDENT "Coercion"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-          VernacDefinition ((NoDischarge,Coercion),((CAst.make (Name s)),None), fst d, snd d)
+          [], VernacDefinition ((NoDischarge,Coercion),((CAst.make (Name s)),None), fst d, snd d)
       | IDENT "Identity"; IDENT "Coercion"; f = identref; ":";
          s = class_rawexpr; ">->"; t = class_rawexpr ->
-           VernacIdentityCoercion (f, s, t)
+           [], VernacIdentityCoercion (f, s, t)
       | IDENT "Coercion"; qid = global; ":"; s = class_rawexpr; ">->";
          t = class_rawexpr ->
-          VernacCoercion (AN qid, s, t)
+          [], VernacCoercion (AN qid, s, t)
       | IDENT "Coercion"; ntn = by_notation; ":"; s = class_rawexpr; ">->";
          t = class_rawexpr ->
-          VernacCoercion (ByNotation ntn, s, t)
+          [], VernacCoercion (ByNotation ntn, s, t)
 
       | IDENT "Context"; c = binders ->
-	  VernacContext c
+          [], VernacContext c
 
       | IDENT "Instance"; (name, sup) = instance_name; ":";
 	 expl = [ "!" -> Decl_kinds.Implicit | -> Decl_kinds.Explicit ] ; t = operconstr LEVEL "200";
 	 info = hint_info ;
        (bidi, props) = [ ":="; "{"; r = record_declaration; "}" -> true, Some r |
          ":="; c = lconstr -> false, Some c | -> false, None ] ->
-       VernacInstance (name, sup, (match props with Some p -> DefineBody (None, p, Some t) | None -> ProveBody t),
-         Vernacexpr.({ instance_binding_kind = expl ; instance_hint = info ; instance_bidi_infer = bidi }))
+          [VernacInstance { instance_binding_kind = expl ; instance_hint = info ; instance_bidi_infer = bidi }],
+          VernacDefinition((NoDischarge, Instance), name, sup,
+                           (match props with Some p -> DefineBody (None, p, Some t) | None -> ProveBody t))
 
       | IDENT "Existing"; IDENT "Instance"; id = global;
           info = hint_info ->
-	  VernacExistingInstances [id, info]
+          [], VernacExistingInstances [id, info]
 
       | IDENT "Existing"; IDENT "Instances"; ids = LIST1 global;
         pri = OPT [ "|"; i = natural -> i ] ->
          let info = { hint_priority = pri; hint_pattern = None } in
          let insts = List.map (fun i -> (i, info)) ids in
-	  VernacExistingInstances insts
+          [], VernacExistingInstances insts
 
-      | IDENT "Existing"; IDENT "Class"; is = global -> VernacExistingClass is
+      | IDENT "Existing"; IDENT "Class"; is = global -> [], VernacExistingClass is
 
       (* Arguments *)
       | IDENT "Arguments"; qid = smart_global; 
@@ -690,35 +691,35 @@ GEXTEND Gram
          in
          let args = parse_args 0 (List.flatten args) in
          let more_implicits = Option.default [] more_implicits in
-         VernacArguments (qid, args, more_implicits, !slash_position, mods)
+         [], VernacArguments (qid, args, more_implicits, !slash_position, mods)
 
- 
+
      (* moved there so that camlp5 factors it with the previous rule *)
      | IDENT "Arguments"; IDENT "Scope"; qid = smart_global;
        "["; scl = LIST0 [ "_" -> None | sc = IDENT -> Some sc ]; "]" ->
 	warn_deprecated_arguments_scope ~loc:!@loc ();
-        VernacArgumentsScope (qid,scl)
+        [], VernacArgumentsScope (qid,scl)
 
       (* Implicit *)
       | IDENT "Implicit"; IDENT "Arguments"; qid = smart_global;
 	   pos = LIST0 [ "["; l = LIST0 implicit_name; "]" ->
 	     List.map (fun (id,b,f) -> (ExplByName id,b,f)) l ] ->
 	 warn_deprecated_implicit_arguments ~loc:!@loc ();
-	 VernacDeclareImplicits (qid,pos)
+          [], VernacDeclareImplicits (qid,pos)
 
       | IDENT "Implicit"; "Type"; bl = reserv_list ->
-	   VernacReserve bl
+          [], VernacReserve bl
 
       | IDENT "Implicit"; IDENT "Types"; bl = reserv_list ->
           test_plural_form_types loc "Implicit Types" bl;
-           VernacReserve bl
+          [], VernacReserve bl
 
       | IDENT "Generalizable"; 
 	   gen = [IDENT "All"; IDENT "Variables" -> Some []
 	     | IDENT "No"; IDENT "Variables" -> None
 	     | ["Variable" | IDENT "Variables"];
 		  idl = LIST1 identref -> Some idl ] ->
-	     VernacGeneralizable gen ] ]
+          [], VernacGeneralizable gen ] ]
   ;
   arguments_modifier:
     [ [ IDENT "simpl"; IDENT "nomatch" -> [`ReductionDontExposeCase]

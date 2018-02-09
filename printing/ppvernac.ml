@@ -911,8 +911,6 @@ open Decl_kinds
               spc() ++ pr_class_rawexpr c2)
         )
 
-      | VernacInstance (instid, sup, body, info) ->
-        pp_instance v false sup instid body info
       | VernacDeclareInstance(sup, instid, cl, info) ->
         pp_instance v true sup instid (ProveBody cl) info
 
@@ -1234,22 +1232,44 @@ open Decl_kinds
       | VernacEndSubproof ->
         return (str "}")
 
+let find_instance f =
+  let rec loop acc =
+    function
+    | [] -> None
+    | VernacInstance info :: tl -> Some (info, List.rev_append acc tl)
+    | f :: tl -> loop (f :: acc) tl
+  in loop [] f
+
 let pr_vernac_flag =
   function
   | VernacPolymorphic true -> keyword "Polymorphic"
   | VernacPolymorphic false -> keyword "Monomorphic"
   | VernacProgram -> keyword "Program"
   | VernacLocal local -> pr_locality local
+  | VernacInstance _ -> assert false
+        (* pp_instance v false sup instid body info *)
 
   let rec pr_vernac_control v =
     let return = tag_vernac v in
     match v with
     | VernacExpr (f, v') ->
-      List.fold_right
-        (fun f a -> pr_vernac_flag f ++ spc() ++ a)
-        f
-        (pr_vernac_expr v' ++ sep_end v')
-    | VernacTime (_,{v}) ->
+      begin match find_instance f with
+        | None ->
+          List.fold_right
+            (fun f a -> pr_vernac_flag f ++ spc() ++ a)
+            f
+            (pr_vernac_expr v' ++ sep_end v')
+        | Some (info, f) ->
+          begin match v' with
+          | VernacDefinition (_, instid, sup, body) ->
+          List.fold_right
+            (fun f a -> pr_vernac_flag f ++ spc() ++ a)
+            f
+            (pp_instance v' false sup instid body info)
+          | _ -> assert false
+          end
+      end
+    | VernacTime (_, {v}) ->
       return (keyword "Time" ++ spc() ++ pr_vernac_control v)
     | VernacRedirect (s, {v}) ->
       return (keyword "Redirect" ++ spc() ++ qs s ++ spc() ++ pr_vernac_control v)
