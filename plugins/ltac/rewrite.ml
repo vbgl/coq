@@ -1779,11 +1779,11 @@ let declare_an_instance n s args =
 
 let declare_instance a aeq n s = declare_an_instance n s [a;aeq]
 
-let anew_instance global binders instance fields =
+let anew_instance global binders (name, cl) fields =
   let program_mode = Flags.is_program_mode () in
   let poly = Flags.is_universe_polymorphism () in
   new_instance ~program_mode poly
-    binders instance (Some (CAst.make @@ CRecord (fields)))
+    binders name (Vernacexpr.DefineBody (None, CAst.make @@ CRecord fields, Some cl))
     ~global ~generalize:false ~refine:false
     Vernacexpr.{ instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info ; instance_bidi_infer = true }
 
@@ -2006,16 +2006,16 @@ let add_morphism glob binders m s n =
   init_setoid ();
   let poly = Flags.is_universe_polymorphism () in
   let instance_id = add_suffix n "_Proper" in
-  let instance =
-    (((CAst.make @@ Name instance_id),None),
+  let name = (CAst.make @@ Name instance_id),None in
+  let cl =
     CAst.make @@ CAppExpl (
-	     (None, Qualid (Loc.tag @@ Libnames.qualid_of_string "Coq.Classes.Morphisms.Proper"),None),
-	     [cHole; s; m]))
+      (None, Qualid (Loc.tag @@ Libnames.qualid_of_string "Coq.Classes.Morphisms.Proper"),None),
+      [cHole; s; m])
   in
   let tac = Tacinterp.interp (make_tactic "add_morphism_tactic") in
   let program_mode = Flags.is_program_mode () in
-  ignore(new_instance ~program_mode ~global:glob poly binders instance
-           (Some (CAst.make @@ CRecord []))
+  ignore(new_instance ~program_mode ~global:glob poly binders name
+           (Vernacexpr.DefineBody (None, CAst.make @@ CRecord [], Some cl))
            ~generalize:false ~tac ~hook:(declare_projection n instance_id)
            Vernacexpr. { instance_binding_kind = Explicit ; instance_hint = Hints.empty_hint_info ; instance_bidi_infer = true })
 

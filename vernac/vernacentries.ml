@@ -847,11 +847,11 @@ let vernac_identity_coercion ~atts id qids qidt =
 
 (* Type classes *)
 
-let vernac_instance ~atts abst sup inst props info =
+let vernac_instance ~atts abst sup name body info =
   let global = not (make_section_locality atts.locality) in
-  Dumpglob.dump_constraint inst false "inst";
+  Dumpglob.dump_constraint name false "inst";
   let program_mode = Flags.is_program_mode () in
-  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup inst props info)
+  ignore(Classes.new_instance ~program_mode ~abstract:abst ~global atts.polymorphic sup name body info)
 
 let vernac_context ~atts l =
   if not (Classes.context atts.polymorphic l) then Feedback.feedback Feedback.AddedAxiom
@@ -2028,10 +2028,10 @@ let interp ?proof ~atts ~st c =
       vernac_identity_coercion ~atts id s t
 
   (* Type classes *)
-  | VernacInstance (sup, inst, props, info) ->
-      vernac_instance ~atts false sup inst props info
-  | VernacDeclareInstance (sup, inst, info) ->
-      vernac_instance ~atts true sup inst None info
+  | VernacInstance (inst, sup, body, info) ->
+      vernac_instance ~atts false sup inst body info
+  | VernacDeclareInstance (sup, inst, t, info) ->
+      vernac_instance ~atts true sup inst (ProveBody t) info
   | VernacContext sup -> vernac_context ~atts sup
   | VernacExistingInstances insts -> vernac_declare_instances ~atts insts
   | VernacExistingClass id -> vernac_declare_class id

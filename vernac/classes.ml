@@ -129,10 +129,15 @@ let declare_instance_constant k info global imps ?hook id decl poly sigma term t
     id
 
 let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
-  ~program_mode poly ctx (instid, cl) props ?(generalize=true)
+  ~program_mode poly ctx instid body ?(generalize=true)
   ?(tac:unit Proofview.tactic option) ?hook info =
   let env = Global.env() in
   let ({CAst.loc;v=instid}, pl) = instid in
+  let cl = match body with
+    | Vernacexpr.ProveBody t
+    | Vernacexpr.DefineBody (_, _, Some t) -> t
+    | Vernacexpr.DefineBody (_, _, None) -> assert false
+  in
   let sigma, decl = Univdecls.interp_univ_decl_opt env pl in
   let tclass, ids =
     match info.Vernacexpr.instance_binding_kind with
@@ -207,13 +212,13 @@ let new_instance ?(abstract=false) ?(global=false) ?(refine= !refine_instance)
       end
     else (
       let props =
-	match props with
-        | Some { CAst.v = CRecord fs } when info.Vernacexpr.instance_bidi_infer ->
+        match body with
+        | Vernacexpr.DefineBody (_, { CAst.v = CRecord fs }, _) when info.Vernacexpr.instance_bidi_infer ->
 	    if List.length fs > List.length k.cl_props then
 	      mismatched_props env' (List.map snd fs) k.cl_props;
 	    Some (Inl fs)
-        | Some t -> Some (Inr t)
-	| None -> 
+        | Vernacexpr.DefineBody (_, t, _) -> Some (Inr t)
+        | Vernacexpr.ProveBody _ ->
             if program_mode then Some (Inl [])
 	    else None
       in

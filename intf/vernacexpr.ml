@@ -204,10 +204,6 @@ type inductive_expr =
 type one_inductive_expr =
   ident_decl * local_binder_expr list * constr_expr option * constructor_expr list
 
-type typeclass_constraint = name_decl * constr_expr
-
-and typeclass_context = typeclass_constraint list
-
 type proof_expr =
   ident_decl * (local_binder_expr list * constr_expr)
 
@@ -368,13 +364,13 @@ type nonrec vernac_expr =
 
   (* Type classes *)
   | VernacInstance of
+      name_decl * (* instance name *)
       local_binder_expr list * (* super *)
-	typeclass_constraint * (* instance name, class name, params *)
-      constr_expr option * (* props *)
+      definition_expr * (* class name, params, props *)
       instance_attr
   | VernacDeclareInstance of
       local_binder_expr list * (* super *)
-      typeclass_constraint * (* instance name, class name, params *)
+      name_decl * constr_expr * (* instance name, class name, params *)
       instance_attr
 
   | VernacContext of local_binder_expr list

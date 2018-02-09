@@ -562,7 +562,12 @@ open Decl_kinds
     with Not_found ->
       hov 1 (str "TODO(" ++ str (fst s) ++ spc () ++ prlist_with_sep sep pr_arg cl ++ str ")")
 
-  let pp_instance v abst sup instid cl props info =
+  let pp_instance v abst sup instid body info =
+    let cl = match body with
+      | DefineBody (_, _, Some t)
+      | ProveBody t -> t
+      | DefineBody (_, _, None) -> assert false
+    in
     tag_vernac v (
       hov 1 (
         (if abst then keyword "Declare" ++ spc () else mt ()) ++
@@ -574,11 +579,11 @@ open Decl_kinds
         str":" ++ spc () ++
         (match info.instance_binding_kind with Implicit -> str "! " | Explicit -> mt ()) ++
         pr_constr cl ++ pr_hint_info pr_constr_pattern_expr info.instance_hint ++
-        (match props with
-         | Some { v = CRecord l } when info.instance_bidi_infer
+        (match body with
+         | DefineBody (_, { v = CRecord l }, _) when info.instance_bidi_infer
            -> spc () ++ str":=" ++ spc () ++ str"{" ++ pr_record_body l ++ str "}"
-         | Some p -> spc () ++ str":=" ++ spc () ++ pr_constr p
-         | None -> mt()))
+         | DefineBody (_, p, _) -> spc () ++ str":=" ++ spc () ++ pr_constr p
+         | ProveBody _ -> mt()))
     )
 
   let pr_vernac_expr v =
@@ -906,10 +911,10 @@ open Decl_kinds
               spc() ++ pr_class_rawexpr c2)
         )
 
-      | VernacInstance (sup, (instid, cl), props, info) ->
-        pp_instance v false sup instid cl props info
-      | VernacDeclareInstance(sup, (instid, cl), info) ->
-        pp_instance v true sup instid cl None info
+      | VernacInstance (instid, sup, body, info) ->
+        pp_instance v false sup instid body info
+      | VernacDeclareInstance(sup, instid, cl, info) ->
+        pp_instance v true sup instid (ProveBody cl) info
 
       | VernacContext l ->
         return (
