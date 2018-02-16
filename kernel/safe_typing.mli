@@ -209,12 +209,8 @@ val mind_of_delta_kn_senv : safe_environment -> KerName.t -> MutInd.t
 
 (** {6 Retroknowledge / Native compiler } *)
 
-open Retroknowledge
-
-val register :
-  field -> GlobRef.t -> safe_transformer0
-
 val register_inline : Constant.t -> safe_transformer0
+val register_inductive : inductive -> CPrimitives.prim_ind -> safe_transformer0
 
 val set_strategy :
   safe_environment -> Names.Constant.t Names.tableKey -> Conv_oracle.level -> safe_environment

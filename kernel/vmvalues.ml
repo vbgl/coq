@@ -57,6 +57,7 @@ type structured_constant =
   | Const_b0 of tag
   | Const_univ_level of Univ.Level.t
   | Const_val of structured_values
+  | Const_uint of Uint63.t
 
 type reloc_table = (tag * int) array
 
@@ -100,7 +101,9 @@ let eq_structured_constant c1 c2 = match c1, c2 with
 | Const_univ_level l1 , Const_univ_level l2 -> Univ.Level.equal l1 l2
 | Const_univ_level _ , _ -> false
 | Const_val v1, Const_val v2 -> eq_structured_values v1 v2
-| Const_val _v1, _ -> false
+| Const_val _, _ -> false
+| Const_uint i1, Const_uint i2 -> Uint63.equal i1 i2
+| Const_uint _, _ -> false
 
 let hash_structured_constant c =
   let open Hashset.Combine in
@@ -110,6 +113,7 @@ let hash_structured_constant c =
   | Const_b0 t -> combinesmall 3 (Int.hash t)
   | Const_univ_level l -> combinesmall 4 (Univ.Level.hash l)
   | Const_val v -> combinesmall 5 (hash_structured_values v)
+  | Const_uint i -> combinesmall 6 (Uint63.hash i)
 
 let eq_annot_switch asw1 asw2 =
   let eq_ci ci1 ci2 =
@@ -142,6 +146,7 @@ let pp_struct_const = function
   | Const_b0 i -> Pp.int i
   | Const_univ_level l -> Univ.Level.pr l
   | Const_val _ -> Pp.str "(value)"
+  | Const_uint i -> Pp.str (Uint63.to_string i)
 
 (* Abstract data *)
 type vprod
@@ -413,6 +418,7 @@ let obj_of_str_const str =
   | Const_b0 tag -> Obj.repr tag
   | Const_univ_level l -> Obj.repr (Vuniv_level l)
   | Const_val v -> Obj.repr v
+  | Const_uint i -> Obj.repr i
 
 let val_of_block tag (args : structured_values array) =
   let nargs = Array.length args in
@@ -429,6 +435,8 @@ let val_of_str_const str = val_of_obj (obj_of_str_const str)
 let val_of_atom a = val_of_obj (obj_of_atom a)
 
 let val_of_int i = (Obj.magic i : values)
+
+let val_of_uint i = (Obj.magic i : values)
 
 let atom_of_proj kn v =
   let r = Obj.new_block proj_tag 2 in

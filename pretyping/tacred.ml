@@ -47,9 +47,16 @@ let error_not_evaluable r =
     (str "Cannot coerce" ++ spc () ++ Nametab.pr_global_env Id.Set.empty r ++
      spc () ++ str "to an evaluable reference.")
 
+(* FIXME we should rather get rid of the NotEvaluableConst exception *)
+let is_primitive env c =
+  let cb = lookup_constant c env in
+  match cb.Declarations.const_body with
+  | Declarations.Primitive _ -> true
+  | _ -> false
+
 let is_evaluable_const env cst =
-  is_transparent env (ConstKey cst) && 
-  evaluable_constant cst env
+  is_transparent env (ConstKey cst) &&
+    (evaluable_constant cst env || is_primitive env cst)
 
 let is_evaluable_var env id =
   is_transparent env (VarKey id) && evaluable_named id env

@@ -21,6 +21,7 @@ open CErrors
 open Util
 open Names
 open Constr
+open Declarations
 open Vars
 open Environ
 open CClosure
@@ -59,16 +60,23 @@ let compare_stack_shape stk1 stk2 =
         Int.equal bal 0 (* && c1.ci_ind  = c2.ci_ind *) && compare_rec 0 s1 s2
     | (Zfix(_,a1)::s1, Zfix(_,a2)::s2) ->
         Int.equal bal 0 && compare_rec 0 a1 a2 && compare_rec 0 s1 s2
+    | Znative(op1,_,rargs1, _kargs1)::s1, Znative(op2,_,rargs2, _kargs2)::s2 ->
+        bal=0 && op1=op2 && List.length rargs1=List.length rargs2 &&
+        compare_rec 0 s1 s2
     | [], _ :: _
-    | (Zproj _ | ZcaseT _ | Zfix _) :: _, _ -> false
+    | (Zproj _ | ZcaseT _ | Zfix _ | Znative _) :: _, _ -> false
   in
   compare_rec 0 stk1 stk2
+
+type lft_fconstr = lift * fconstr
 
 type lft_constr_stack_elt =
     Zlapp of (lift * fconstr) array
   | Zlproj of Projection.Repr.t * lift
   | Zlfix of (lift * fconstr) * lft_constr_stack
   | Zlcase of case_info * lift * fconstr * fconstr array
+  | Zlnative of
+     CPrimitives.t * pconstant * lft_fconstr list * lft_fconstr next_native_args
 and lft_constr_stack = lft_constr_stack_elt list
 
 let rec zlapp v = function
@@ -102,7 +110,10 @@ let pure_stack lfts stk =
                 let (lfx,pa) = pure_rec l a in
                 (l, Zlfix((lfx,fx),pa)::pstk)
             | (ZcaseT(ci,p,br,e),(l,pstk)) ->
-                (l,Zlcase(ci,l,mk_clos e p,Array.map (mk_clos e) br)::pstk))
+                (l,Zlcase(ci,l,mk_clos e p,Array.map (mk_clos e) br)::pstk)
+            | (Znative(op,c,rargs,kargs),(l,pstk)) ->
+                (l,Zlnative(op,c,List.map (fun t -> (l,t)) rargs,
+                            List.map (fun (k,t) -> (k,(l,t))) kargs)::pstk))
   in
   snd (pure_rec lfts stk)
 
@@ -127,10 +138,10 @@ let nf_betaiota env t =
 let whd_betaiotazeta env x =
   match kind x with
   | (Sort _|Var _|Meta _|Evar _|Const _|Ind _|Construct _|
-       Prod _|Lambda _|Fix _|CoFix _) -> x
+       Prod _|Lambda _|Fix _|CoFix _|Int _) -> x
     | App (c, _) ->
       begin match kind c with
-      | Ind _ | Construct _ | Evar _ | Meta _ | Const _ -> x
+      | Ind _ | Construct _ | Evar _ | Meta _ | Const _ | Int _ -> x
       | Sort _ | Rel _ | Var _ | Cast _ | Prod _ | Lambda _ | LetIn _ | App _
         | Case _ | Fix _ | CoFix _ | Proj _ ->
          whd_val (create_clos_infos betaiotazeta env) (create_tab ()) (inject x)
@@ -141,10 +152,10 @@ let whd_betaiotazeta env x =
 let whd_all env t =
   match kind t with
     | (Sort _|Meta _|Evar _|Ind _|Construct _|
-       Prod _|Lambda _|Fix _|CoFix _) -> t
+       Prod _|Lambda _|Fix _|CoFix _|Int _) -> t
     | App (c, _) ->
       begin match kind c with
-      | Ind _ | Construct _ | Evar _ | Meta _ -> t
+      | Ind _ | Construct _ | Evar _ | Meta _ | Int _ -> t
       | Sort _ | Rel _ | Var _ | Cast _ | Prod _ | Lambda _ | LetIn _ | App _
         | Const _ |Case _ | Fix _ | CoFix _ | Proj _ ->
          whd_val (create_clos_infos all env) (create_tab ()) (inject t)
@@ -155,10 +166,10 @@ let whd_all env t =
 let whd_allnolet env t =
   match kind t with
     | (Sort _|Meta _|Evar _|Ind _|Construct _|
-       Prod _|Lambda _|Fix _|CoFix _|LetIn _) -> t
+       Prod _|Lambda _|Fix _|CoFix _|LetIn _|Int _) -> t
     | App (c, _) ->
       begin match kind c with
-      | Ind _ | Construct _ | Evar _ | Meta _ | LetIn _ -> t
+      | Ind _ | Construct _ | Evar _ | Meta _ | LetIn _ | Int _ -> t
       | Sort _ | Rel _ | Var _ | Cast _ | Prod _ | Lambda _ | App _
         | Const _ | Case _ | Fix _ | CoFix _ | Proj _ ->
          whd_val (create_clos_infos allnolet env) (create_tab ()) (inject t)
@@ -308,6 +319,11 @@ let compare_stacks f fmind lft1 stk1 lft2 stk2 cuniv =
 		  raise NotConvertible;
 		let cu2 = f (l1,p1) (l2,p2) cu1 in
                 Array.fold_right2 (fun c1 c2 -> f (l1,c1) (l2,c2)) br1 br2 cu2
+       | (Zlnative(op1,_,rargs1,kargs1),Zlnative(op2,_,rargs2,kargs2)) ->
+         if not (CPrimitives.equal op1 op2) then raise NotConvertible else
+         let cu2 = List.fold_right2 f rargs1 rargs2 cu1 in
+         let fk (_,a1) (_,a2) cu = f a1 a2 cu in
+         List.fold_right2 fk kargs1 kargs2 cu2
             | _ -> assert false)
       | _ -> cuniv in
   if compare_stack_shape stk1 stk2 then
@@ -373,28 +389,45 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
     (* 2 constants, 2 local defined vars or 2 defined rels *)
     | (FFlex fl1, FFlex fl2) ->
       (try
-          let cuniv = conv_table_key infos.cnv_inf fl1 fl2 cuniv in
-           convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
+         let cuniv = conv_table_key infos.cnv_inf fl1 fl2 cuniv in
+         convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
        with NotConvertible | Univ.UniverseInconsistency _ ->
-           (* else the oracle tells which constant is to be expanded *)
+         (* else the oracle tells which constant is to be expanded *)
          let oracle = CClosure.oracle_of_infos infos.cnv_inf in
          let (app1,app2) =
+           let aux appr1 lft1 fl1 tab1 v1 appr2 lft2 fl2 tab2 v2 =
+             match unfold_reference infos.cnv_inf tab1 fl1 with
+             | Def def1 -> ((lft1, (def1, v1)), appr2)
+             | Primitive op when check_native_args op v1 ->
+               let c =
+                 match fl1 with ConstKey c -> c | _ -> assert false in
+               let rargs, a, nargs, v1 = get_native_args1 op c v1 in
+               ((lft1,
+                 whd_stack infos.cnv_inf tab1 a
+                   (Zupdate a::(Znative(op,c,rargs,nargs)::v1))),
+                appr2)
+             | Undef _ | OpaqueDef _ | Primitive _ ->
+               begin match unfold_reference infos.cnv_inf tab2 fl2 with
+                 | Def def2 ->
+                   (appr1, (lft2, whd_stack infos.cnv_inf tab2 def2 v2))
+                 | Primitive op when check_native_args op v2 ->
+                   let c =
+                     match fl2 with ConstKey c -> c | _ -> assert false in
+                   let rargs, a, nargs, v2 = get_native_args1 op c v2 in
+                   (appr1,
+                    (lft2,
+                     whd_stack infos.cnv_inf tab2 a
+                                         (Zupdate a::(Znative(op,c,rargs,nargs)::v2))))
+                             | _ -> raise NotConvertible
+                           end
+           in
            if Conv_oracle.oracle_order Univ.out_punivs oracle l2r fl1 fl2 then
-             match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
-             | Some def1 -> ((lft1, (def1, v1)), appr2)
-             | None ->
-               (match unfold_reference infos.cnv_inf infos.rgt_tab fl2 with
-               | Some def2 -> (appr1, (lft2, (def2, v2)))
-	       | None -> raise NotConvertible)
+             aux appr1 lft1 fl1 infos.lft_tab v1 appr2 lft2 fl2 infos.rgt_tab v2
            else
-             match unfold_reference infos.cnv_inf infos.rgt_tab fl2 with
-             | Some def2 -> (appr1, (lft2, (def2, v2)))
-             | None ->
-               (match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
-               | Some def1 -> ((lft1, (def1, v1)), appr2)
-	       | None -> raise NotConvertible) 
-	 in
-           eqappr cv_pb l2r infos app1 app2 cuniv)
+             let (app2,app1) = aux appr2 lft2 fl2 infos.rgt_tab v2 appr1 lft1 fl1 infos.lft_tab v1 in
+             (app1,app2)
+         in
+         eqappr cv_pb l2r infos app1 app2 cuniv)
 
     | (FProj (p1,c1), FProj (p2, c2)) ->
       (* Projections: prefer unfolding to first-order unification,
@@ -424,11 +457,19 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
       | None -> 
 	 (match t2 with 
 	  | FFlex fl2 ->
-            (match unfold_reference infos.cnv_inf infos.rgt_tab fl2 with
-              | Some def2 ->
-                 eqappr cv_pb l2r infos appr1 (lft2, (def2, v2)) cuniv
-              | None -> raise NotConvertible)
-	  | _ -> raise NotConvertible))
+     (match unfold_reference infos.cnv_inf infos.rgt_tab fl2 with
+      | Def def2 ->
+        eqappr cv_pb l2r infos appr1 (lft2, (def2, v2)) cuniv
+      | Primitive op when check_native_args op v2 ->
+        let c =
+          match fl2 with ConstKey c -> c | _ -> assert false in
+        let rargs, a, nargs, v2 = get_native_args1 op c v2 in
+        eqappr cv_pb l2r infos appr1
+         (lft2,
+          whd_stack infos.cnv_inf infos.rgt_tab a
+            (Zupdate a::(Znative(op,c,rargs,nargs)::v2))) cuniv
+      | _ -> raise NotConvertible)
+   | _ -> raise NotConvertible))
       
     | (t1, FProj (p2,c2)) ->
       (match unfold_projection infos.cnv_inf p2 with
@@ -437,10 +478,19 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
       | None -> 
 	 (match t1 with 
 	  | FFlex fl1 ->
-            (match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
-              | Some def1 ->
-                 eqappr cv_pb l2r infos (lft1, (def1, v1)) appr2 cuniv
-              | None -> raise NotConvertible)
+	     (match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
+             | Def def1 ->
+               eqappr cv_pb l2r infos (lft1, (def1, v1)) appr2 cuniv
+             | Primitive op when check_native_args op v1 ->
+               let c =
+                 match fl1 with ConstKey c -> c | _ -> assert false in
+               let rargs, a, nargs, v1 = get_native_args1 op c v1 in
+               eqappr cv_pb l2r infos
+               (lft1,
+                 whd_stack infos.cnv_inf infos.lft_tab a
+                   (Zupdate a::(Znative(op,c,rargs,nargs)::v1)))
+                appr2 cuniv
+             | Undef _ | OpaqueDef _ | Primitive _ -> raise NotConvertible)
 	  | _ -> raise NotConvertible))
       
     (* other constructors *)
@@ -487,8 +537,8 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
 	
     (* only one constant, defined var or defined rel *)
     | (FFlex fl1, c2)      ->
-       (match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
-	| Some def1 ->
+      begin match unfold_reference infos.cnv_inf infos.lft_tab fl1 with
+        | Def def1 ->
           (** By virtue of the previous case analyses, we know [c2] is rigid.
               Conversion check to rigid terms eventually implies full weak-head
               reduction, so instead of repeatedly performing small-step
@@ -496,32 +546,50 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
             let all = RedFlags.red_add_transparent all (RedFlags.red_transparent (info_flags infos.cnv_inf)) in
             let r1 = whd_stack (infos_with_reds infos.cnv_inf all) infos.lft_tab def1 v1 in
             eqappr cv_pb l2r infos (lft1, r1) appr2 cuniv
-	| None -> 
-	   match c2 with
+        | Primitive op when check_native_args op v1 ->
+          let c =
+            match fl1 with ConstKey c -> c | _ -> assert false in
+          let rargs, a, nargs, v1 = get_native_args1 op c v1 in
+          eqappr cv_pb l2r infos
+            (lft1, whd_stack infos.cnv_inf infos.lft_tab a
+               (Zupdate a::(Znative(op,c,rargs,nargs)::v1)))
+            appr2 cuniv
+        | _ ->
+          (match c2 with
            | FConstruct ((ind2,_j2),_u2) ->
-	      (try
-	      let v2, v1 =
-                eta_expand_ind_stack (info_env infos.cnv_inf) ind2 hd2 v2 (snd appr1)
-              in convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
-	      with Not_found -> raise NotConvertible)
-	   | _ -> raise NotConvertible)
-       
+             (try
+                let v2, v1 =
+                  eta_expand_ind_stack (info_env infos.cnv_inf) ind2 hd2 v2 (snd appr1)
+                in convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
+              with Not_found -> raise NotConvertible)
+           | _ -> raise NotConvertible)
+      end
+
     | (c1, FFlex fl2)      ->
        (match unfold_reference infos.cnv_inf infos.rgt_tab fl2 with
-        | Some def2 ->
+        | Def def2 ->
           (** Symmetrical case of above. *)
           let all = RedFlags.red_add_transparent all (RedFlags.red_transparent (info_flags infos.cnv_inf)) in
           let r2 = whd_stack (infos_with_reds infos.cnv_inf all) infos.rgt_tab def2 v2 in
           eqappr cv_pb l2r infos appr1 (lft2, r2) cuniv
-        | None -> 
-	   match c1 with
-           | FConstruct ((ind1,_j1),_u1) ->
- 	      (try let v1, v2 =
-                    eta_expand_ind_stack (info_env infos.cnv_inf) ind1 hd1 v1 (snd appr2)
-                   in convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
-	       with Not_found -> raise NotConvertible)
-	   | _ -> raise NotConvertible)
-       
+        | Primitive op when check_native_args op v2 ->
+          let c =
+            match fl2 with ConstKey c -> c | _ -> assert false in
+          let rargs, a, nargs, v2 = get_native_args1 op c v2 in
+          eqappr cv_pb l2r infos
+            appr1
+            (lft2, whd_stack infos.cnv_inf infos.rgt_tab a
+               (Zupdate a::(Znative(op,c,rargs,nargs)::v2)))
+                  cuniv
+        | _ ->
+          match c1 with
+          | FConstruct ((ind1,_j1),_u1) ->
+            (try let v1, v2 =
+                   eta_expand_ind_stack (info_env infos.cnv_inf) ind1 hd1 v1 (snd appr2)
+               in convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
+             with Not_found -> raise NotConvertible)
+          | _ -> raise NotConvertible)
+
     (* Inductive types:  MutInd MutConstruct Fix Cofix *)
     | (FInd (ind1,u1), FInd (ind2,u2)) ->
       if eq_ind ind1 ind2 then
@@ -602,13 +670,17 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
           convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
         else raise NotConvertible
 
+    | FInt i1, FInt i2 ->
+       if Uint63.equal i1 i2 then convert_stacks l2r infos lft1 lft2 v1 v2 cuniv
+       else raise NotConvertible
+
      (* Should not happen because both (hd1,v1) and (hd2,v2) are in whnf *)
      | ( (FLetIn _, _) | (FCaseT _,_) | (FApp _,_) | (FCLOS _,_) | (FLIFT _,_)
        | (_, FLetIn _) | (_,FCaseT _) | (_,FApp _) | (_,FCLOS _) | (_,FLIFT _)
        | (FLOCKED,_) | (_,FLOCKED) ) -> assert false
 
      | (FRel _ | FAtom _ | FInd _ | FFix _ | FCoFix _
-        | FProd _ | FEvar _), _ -> raise NotConvertible
+        | FProd _ | FEvar _ | FInt _), _ -> raise NotConvertible
 
 and convert_stacks l2r infos lft1 lft2 stk1 stk2 cuniv =
   compare_stacks

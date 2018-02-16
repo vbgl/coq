@@ -165,7 +165,8 @@ let label_of = function
 let fold_constr_with_full_binders g f n acc c =
   let open Context.Rel.Declaration in
   match Constr.kind c with
-  | Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _ | Construct _ -> acc
+  | Rel _ | Meta _ | Var _ | Sort _ | Const _ | Ind _ | Construct _
+    | Int _ -> acc
   | Cast (c,_, t) -> f n (f n acc c) t
   | Prod (na,t,c) -> f (g (LocalAssum (na,t)) n) (f n acc t) c
   | Lambda (na,t,c) -> f (g (LocalAssum (na,t)) n) (f n acc t) c

@@ -426,7 +426,7 @@ let ast_iter_rel f =
     | MLapp (a,l) -> iter n a; List.iter (iter n) l
     | MLcons (_,_,l) | MLtuple l ->  List.iter (iter n) l
     | MLmagic a -> iter n a
-    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom -> ()
+    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ -> ()
   in iter 0
 
 (*s Map over asts. *)
@@ -445,7 +445,7 @@ let ast_map f = function
   | MLcons (typ,c,l) -> MLcons (typ,c, List.map f l)
   | MLtuple l -> MLtuple (List.map f l)
   | MLmagic a -> MLmagic (f a)
-  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom as a -> a
+  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ as a -> a
 
 (*s Map over asts, with binding depth as parameter. *)
 
@@ -463,7 +463,7 @@ let ast_map_lift f n = function
   | MLcons (typ,c,l) -> MLcons (typ,c, List.map (f n) l)
   | MLtuple l -> MLtuple (List.map (f n) l)
   | MLmagic a -> MLmagic (f n a)
-  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom as a -> a
+  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ as a -> a
 
 (*s Iter over asts. *)
 
@@ -477,7 +477,7 @@ let ast_iter f = function
   | MLapp (a,l) -> f a; List.iter f l
   | MLcons (_,_,l) | MLtuple l -> List.iter f l
   | MLmagic a -> f a
-  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom  -> ()
+  | MLrel _ | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ -> ()
 
 (*S Operations concerning De Bruijn indices. *)
 
@@ -513,7 +513,7 @@ let nb_occur_match =
     | MLapp (a,l) -> List.fold_left (fun r a -> r+(nb k a)) (nb k a) l
     | MLcons (_,_,l) | MLtuple l -> List.fold_left (fun r a -> r+(nb k a)) 0 l
     | MLmagic a -> nb k a
-    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom -> 0
+    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ -> 0
   in nb 1
 
 (* Replace unused variables by _ *)
@@ -565,7 +565,7 @@ let dump_unused_vars a =
        let b' = ren env b in
        if b' == b then a else MLmagic b'
 
-    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom -> a
+    | MLglob _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ -> a
 
     and ren_branch env ((ids,p,b) as tr) =
       let occs = List.map (fun _ -> ref false) ids in
@@ -1398,7 +1398,7 @@ let rec ml_size = function
   | MLfix(_,_,f) -> ml_size_array f
   | MLletin (_,_,t) -> ml_size t
   | MLmagic t -> ml_size t
-  | MLglob _ | MLrel _ | MLexn _ | MLdummy _ | MLaxiom -> 0
+  | MLglob _ | MLrel _ | MLexn _ | MLdummy _ | MLaxiom | MLuint _ -> 0
 
 and ml_size_list l = List.fold_left (fun a t -> a + ml_size t) 0 l
 

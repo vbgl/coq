@@ -280,7 +280,9 @@ sig
   | Case of case_info * 'a * 'a array * Cst_stack.t
   | Proj of Projection.t * Cst_stack.t
   | Fix of ('a, 'a) pfixpoint * 'a t * Cst_stack.t
+  | Primitive of CPrimitives.t * (Constant.t * EInstance.t) * 'a t * CPrimitives.args_red * Cst_stack.t
   | Cst of cst_member * int * int list * 'a t * Cst_stack.t
+
   and 'a t = 'a member list
 
   exception IncompatibleFold2
@@ -309,6 +311,8 @@ sig
   val nth : 'a t -> int -> 'a
   val best_state : evar_map -> constr * constr t -> Cst_stack.t -> constr * constr t
   val zip : ?refold:bool -> evar_map -> constr * constr t -> constr
+  val check_native_args : CPrimitives.t -> 'a t -> bool
+  val get_next_primitive_args : CPrimitives.args_red -> 'a t -> CPrimitives.args_red * ('a t * 'a * 'a t) option
 end =
 struct
   open EConstr
@@ -337,7 +341,9 @@ struct
   | Case of case_info * 'a * 'a array * Cst_stack.t
   | Proj of Projection.t * Cst_stack.t
   | Fix of ('a, 'a) pfixpoint * 'a t * Cst_stack.t
+  | Primitive of CPrimitives.t * (Constant.t * EInstance.t) * 'a t * CPrimitives.args_red * Cst_stack.t
   | Cst of cst_member * int * int list * 'a t * Cst_stack.t
+
   and 'a t = 'a member list
 
   (* Debugging printer *)
@@ -353,8 +359,11 @@ struct
     | Proj (p,cst) ->
       str "ZProj(" ++ Constant.debug_print (Projection.constant p) ++ str ")"
     | Fix (f,args,cst) ->
-       str "ZFix(" ++ Termops.pr_fix pr_c f
-       ++ pr_comma () ++ pr pr_c args ++ str ")"
+      str "ZFix(" ++ Termops.pr_fix pr_c f
+      ++ pr_comma () ++ pr pr_c args ++ str ")"
+    | Primitive (p,c,args,kargs,cst_l) ->
+      str "ZPrimitive(" ++ str (CPrimitives.to_string p)
+      ++ pr_comma () ++ pr pr_c args ++ str ")"
     | Cst (mem,curr,remains,params,cst_l) ->
       str "ZCst(" ++ pr_cst_member pr_c mem ++ pr_comma () ++ int curr
       ++ pr_comma () ++
@@ -422,7 +431,7 @@ struct
         equal_cst_member c1 c2
           && equal_rec (List.rev params1) (List.rev params2)
           && equal_rec s1' s2'
-      | ((App _|Case _|Proj _|Fix _|Cst _)::_|[]), _ -> false
+      | ((App _|Case _|Proj _|Fix _|Cst _|Primitive _)::_|[]), _ -> false
     in equal_rec (List.rev sk1) (List.rev sk2)
 
   let compare_shape stk1 stk2 =
@@ -437,9 +446,11 @@ struct
 	Int.equal bal 0 && compare_rec 0 s1 s2
       | (Fix(_,a1,_)::s1, Fix(_,a2,_)::s2) ->
         Int.equal bal 0 && compare_rec 0 a1 a2 && compare_rec 0 s1 s2
+      | (Primitive(_,_,a1,_,_)::s1, Primitive(_,_,a2,_,_)::s2) ->
+        Int.equal bal 0 && compare_rec 0 a1 a2 && compare_rec 0 s1 s2
       | (Cst (_,_,_,p1,_)::s1, Cst (_,_,_,p2,_)::s2) ->
-	Int.equal bal 0 && compare_rec 0 p1 p2 && compare_rec 0 s1 s2
-      | (_,_) -> false in
+        Int.equal bal 0 && compare_rec 0 p1 p2 && compare_rec 0 s1 s2
+      | ((Case _|Proj _|Fix _|Cst _|Primitive _) :: _ | []) ,_ -> false in
     compare_rec 0 stk1 stk2
 
   exception IncompatibleFold2
@@ -461,7 +472,7 @@ struct
       | Cst (cst1,_,_,params1,_) :: q1, Cst (cst2,_,_,params2,_) :: q2 ->
         let o' = aux o (List.rev params1) (List.rev params2) in
         aux o' q1 q2
-      | (((App _|Case _|Proj _|Fix _| Cst _) :: _|[]), _) ->
+      | (((App _|Case _|Proj _|Fix _|Cst _|Primitive _) :: _|[]), _) ->
               raise IncompatibleFold2
     in aux o (List.rev sk1) (List.rev sk2)
 
@@ -475,7 +486,9 @@ struct
 				  Fix ((r,(na,Array.map f ty, Array.map f bo)),map f arg,alt)
 			       | Cst (cst,curr,remains,params,alt) ->
 				 Cst (cst,curr,remains,map f params,alt)
-  ) x
+                               | Primitive (p,c,args,kargs,cst_l) ->
+                                 Primitive(p,c, map f args, kargs, cst_l)
+    ) x
 
   let append_app_list l s =
     let a = Array.of_list l in
@@ -483,7 +496,7 @@ struct
 
   let rec args_size = function
     | App (i,_,j)::s -> j + 1 - i + args_size s
-    | (Case _|Fix _|Proj _|Cst _)::_ | [] -> 0
+    | (Case _|Fix _|Proj _|Cst _|Primitive _)::_ | [] -> 0
 
   let strip_app s =
     let rec aux out = function
@@ -506,7 +519,8 @@ struct
     in aux n [] s
 
   let not_purely_applicative args =
-    List.exists (function (Fix _ | Case _ | Proj _ | Cst _) -> true | _ -> false) args
+    List.exists (function (Fix _ | Case _ | Proj _ | Cst _) -> true
+                          | App _ | Primitive _ -> false) args
   let will_expose_iota args =
     List.exists
       (function (Fix (_,_,l) | Case (_,_,_,l) |
@@ -590,8 +604,25 @@ struct
   | f, (Proj (p,cst_l)::s) when refold ->
     zip (best_state sigma (mkProj (p,f),s) cst_l)
   | f, (Proj (p,_)::s) -> zip (mkProj (p,f),s)
+  | f, (Primitive (p,c,args,kargs,cst_l)::s) ->
+      zip (mkConstU c, args @ append_app [|f|] s)
   in
   zip s
+
+  (* Check if there is enough arguments on [stk] w.r.t. arity of [op] *)
+  let check_native_args op stk =
+    let nargs = CPrimitives.arity op in
+    let rargs = args_size stk in
+    nargs <= rargs
+
+  let get_next_primitive_args kargs stk =
+    let rec nargs = function
+      | [] -> 0
+      | CPrimitives.Kwhnf :: _ -> 0
+      | _ :: s -> 1 + nargs s
+    in
+    let n = nargs kargs in
+    (List.skipn (n+1) kargs, strip_n_app n stk)
 
 end
 
@@ -821,6 +852,172 @@ let fix_recarg ((recindices,bodynum),_) stack =
   with Not_found ->
     None
 
+module CNativeEntries =
+struct
+
+  type elem = EConstr.t
+  type args = EConstr.t array
+
+  let get = Array.get
+
+  let get_int e =
+    match Constr.kind (EConstr.Unsafe.to_constr (* FIXME *) e) with
+    | Int i -> i
+    | _ -> raise NativeDestKO
+
+  let dummy = mkRel 0
+  let current_retro = ref Retroknowledge.empty
+  let defined_int = ref false
+  let cint = ref dummy
+
+  let init_int retro =
+    match retro.Retroknowledge.retro_int63 with
+    | Some (cte, c) ->
+      defined_int := true;
+      cint := EConstr.of_constr c
+    | None -> defined_int := false
+
+  let defined_bool = ref false
+  let ctrue = ref dummy
+  let cfalse = ref dummy
+
+  let init_bool retro =
+    match retro.Retroknowledge.retro_bool with
+    | Some (ct,cf) ->
+      defined_bool := true;
+      ctrue := mkConstruct (fst ct);
+      cfalse := mkConstruct (fst cf)
+    | None -> defined_bool := false
+
+  let defined_carry = ref false
+  let cC0 = ref dummy
+  let cC1 = ref dummy
+
+  let init_carry retro =
+    match retro.Retroknowledge.retro_carry with
+    | Some(c0,c1) ->
+      defined_carry := true;
+      cC0 := mkConstruct (fst c0);
+      cC1 := mkConstruct (fst c1)
+    | None -> defined_carry := false
+
+  let defined_pair = ref false
+  let cPair = ref dummy
+
+  let init_pair retro =
+    match retro.Retroknowledge.retro_pair with
+    | Some c ->
+      defined_pair := true;
+      cPair := mkConstruct (fst c)
+    | None -> defined_pair := false
+
+  let defined_cmp = ref false
+  let cEq = ref dummy
+  let cLt = ref dummy
+  let cGt = ref dummy
+
+  let init_cmp retro =
+    match retro.Retroknowledge.retro_cmp with
+    | Some (cEq', cLt', cGt') ->
+      defined_cmp := true;
+      cEq := mkConstruct (fst cEq');
+      cLt := mkConstruct (fst cLt');
+      cGt := mkConstruct (fst cGt')
+    | None -> defined_cmp := false
+
+  let defined_refl = ref false
+
+  let crefl = ref dummy
+
+  let init_refl retro =
+    match retro.Retroknowledge.retro_refl with
+    | Some crefl' ->
+      defined_refl := true;
+      crefl := mkConstruct (fst crefl')
+    | None -> defined_refl := false
+
+  let init env =
+    current_retro := retroknowledge env;
+    init_int !current_retro;
+    init_bool !current_retro;
+    init_carry !current_retro;
+    init_pair !current_retro;
+    init_cmp !current_retro;
+    init_refl !current_retro
+
+  let check_env env =
+    if not (!current_retro == retroknowledge env) then init env
+
+  let check_int env =
+    check_env env;
+    assert (!defined_int)
+
+  let check_bool env =
+    check_env env;
+    assert (!defined_bool)
+
+  let check_carry env =
+    check_env env;
+    assert (!defined_carry && !defined_int)
+
+  let check_pair env =
+    check_env env;
+    assert (!defined_pair && !defined_int)
+
+  let check_cmp env =
+    check_env env;
+    assert (!defined_cmp)
+
+  let check_refl env =
+    check_env env;
+    assert (!defined_refl && !defined_int)
+
+  let is_refl e =
+    match Constr.kind (EConstr.Unsafe.to_constr (* FIXME *) e) with
+    | App(f,_) when Constr.isConstruct f -> true
+    | _ -> false
+
+  let mk_int_refl env e =
+    check_refl env;
+    mkApp(!crefl,[|!cint;e|])
+
+  let mkInt env i =
+    check_int env;
+    mkInt i
+
+  let mkBool env b =
+    check_bool env;
+    if b then !ctrue else !cfalse
+
+  let mkCarry env b e =
+    check_carry env;
+    mkApp ((if b then !cC1 else !cC0),[|!cint;e|])
+
+  let mkIntPair env e1 e2 =
+    check_pair env;
+    mkApp(!cPair, [|!cint;!cint;e1;e2|])
+
+  let mkLt env =
+    check_cmp env;
+    !cLt
+
+  let mkEq env =
+    check_cmp env;
+    !cEq
+
+  let mkGt env =
+    check_cmp env;
+    !cGt
+
+  let mkClos id t body s =
+    substl (Array.to_list s) (EConstr.of_constr (Constr.mkLambda(id,t,body)))
+
+end
+
+module CredNative = RedNative(CNativeEntries)
+
+
+
 (** Generic reduction function with environment
 
     Here is where unfolded constant are stored in order to be
@@ -887,46 +1084,52 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
          (lazy (EConstr.to_constr sigma (Stack.zip sigma (x,stack))));
       if CClosure.RedFlags.red_set flags (CClosure.RedFlags.fCONST c) then
        let u' = EInstance.kind sigma u in
-       (match constant_opt_value_in env (c, u') with
-	| None -> fold ()
-	| Some body ->
+       (try
+          let body = constant_value_in env (c, u') in
           let body = EConstr.of_constr body in
-	   if not tactic_mode
-	   then whrec (if refold then Cst_stack.add_cst (mkConstU const) cst_l else cst_l)
-		      (body, stack)
-	   else (* Looks for ReductionBehaviour *)
-	     match ReductionBehaviour.get (Globnames.ConstRef c) with
-	     | None -> whrec (Cst_stack.add_cst (mkConstU const) cst_l) (body, stack)
-	     | Some (recargs, nargs, flags) ->
-		if (List.mem `ReductionNeverUnfold flags
-		    || (nargs > 0 && Stack.args_size stack < nargs))
-		then fold ()
-		else (* maybe unfolds *)
-		  if List.mem `ReductionDontExposeCase flags then
-		    let app_sk,sk = Stack.strip_app stack in
-		    let (tm',sk'),cst_l' =
-		      whrec (Cst_stack.add_cst (mkConstU const) cst_l) (body, app_sk)
-		    in
-		    let rec is_case x = match EConstr.kind sigma x with
-		      | Lambda (_,_, x) | LetIn (_,_,_, x) | Cast (x, _,_) -> is_case x
-		      | App (hd, _) -> is_case hd
-		      | Case _ -> true
-		      | _ -> false in
-		    if equal_stacks sigma (x, app_sk) (tm', sk')
-		       || Stack.will_expose_iota sk'
-		       || is_case tm'
-		      then fold ()
-		      else whrec cst_l' (tm', sk' @ sk)
-		  else match recargs with
-		  |[] -> (* if nargs has been specified *)
-			 (* CAUTION : the constant is NEVER refold
-                            (even when it hides a (co)fix) *)
-		    whrec cst_l (body, stack)
-		  |curr::remains -> match Stack.strip_n_app curr stack with
-		    | None -> fold ()
-		    | Some (bef,arg,s') ->
-		      whrec Cst_stack.empty 
-			(arg,Stack.Cst(Stack.Cst_const (fst const, u'),curr,remains,bef,cst_l)::s')
+          if not tactic_mode
+          then whrec (if refold then Cst_stack.add_cst (mkConstU const) cst_l else cst_l)
+              (body, stack)
+          else (* Looks for ReductionBehaviour *)
+            match ReductionBehaviour.get (Globnames.ConstRef c) with
+            | None -> whrec (Cst_stack.add_cst (mkConstU const) cst_l) (body, stack)
+            | Some (recargs, nargs, flags) ->
+              if (List.mem `ReductionNeverUnfold flags
+                  || (nargs > 0 && Stack.args_size stack < nargs))
+              then fold ()
+              else (* maybe unfolds *)
+              if List.mem `ReductionDontExposeCase flags then
+                let app_sk,sk = Stack.strip_app stack in
+                let (tm',sk'),cst_l' =
+                  whrec (Cst_stack.add_cst (mkConstU const) cst_l) (body, app_sk)
+                in
+                let rec is_case x = match EConstr.kind sigma x with
+                  | Lambda (_,_, x) | LetIn (_,_,_, x) | Cast (x, _,_) -> is_case x
+                  | App (hd, _) -> is_case hd
+                  | Case _ -> true
+                  | _ -> false in
+                if equal_stacks sigma (x, app_sk) (tm', sk')
+                || Stack.will_expose_iota sk'
+                || is_case tm'
+                then fold ()
+                else whrec cst_l' (tm', sk' @ sk)
+              else match recargs with
+                |[] -> (* if nargs has been specified *)
+                  (* CAUTION : the constant is NEVER refold
+                                          (even when it hides a (co)fix) *)
+                  whrec cst_l (body, stack)
+                |curr::remains -> match Stack.strip_n_app curr stack with
+                              | None -> fold ()
+                              | Some (bef,arg,s') ->
+                                whrec Cst_stack.empty
+                                        (arg,Stack.Cst(Stack.Cst_const (fst const, u'),curr,remains,bef,cst_l)::s')
+        with NotEvaluableConst (IsPrimitive p) when Stack.check_native_args p stack ->
+          let kargs = CPrimitives.kind p in
+          let (kargs,o) = Stack.get_next_primitive_args kargs stack in
+          (* Should not fail thanks to [check_native_args] *)
+          let (before,a,after) = Option.get o in
+          whrec Cst_stack.empty (a,Stack.Primitive(p,const,before,kargs,cst_l)::after)
+           | NotEvaluableConst _ -> fold ()
        ) else fold ()
     | Proj (p, c) when CClosure.RedFlags.red_projection flags p ->
       (let npars = Projection.npars p in
@@ -1055,6 +1258,30 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
 	|_ -> fold ()
       else fold ()
 
+    | Int i ->
+      begin match Stack.strip_app stack with
+       | (_, Stack.Primitive(p,kn,rargs,kargs,cst_l')::s) ->
+         let more_to_reduce = List.exists (fun k -> CPrimitives.Kwhnf = k) kargs in
+         if more_to_reduce then
+           let (kargs,o) = Stack.get_next_primitive_args kargs s in
+           (* Should not fail because Primitive is put on the stack only if fully applied *)
+           let (before,a,after) = Option.get o in
+           whrec Cst_stack.empty (a,Stack.Primitive(p,kn,rargs @ Stack.append_app [|x|] before,kargs,cst_l')::after)
+         else
+           let n = List.length kargs in
+           let (args,s) = Stack.strip_app s in
+           let (args,extra_args) =
+             try List.chop n args
+             with List.IndexOutOfRange -> (args,[]) (* FIXME probably useless *)
+           in
+           let args = Array.of_list (Option.get (Stack.list_of_app_stack (rargs @ Stack.append_app [|x|] args))) in
+             begin match CredNative.red_prim env p args with
+               | Some t -> whrec cst_l' (t,s)
+               | None -> ((mkApp (mkConstU kn, args), s), cst_l)
+             end
+       | _ -> fold ()
+      end
+
     | Rel _ | Var _ | LetIn _ | Proj _ -> fold ()
     | Sort _ | Ind _ | Prod _ -> fold ()
   in
@@ -1133,7 +1360,8 @@ let local_whd_state_gen flags sigma =
 	|_ -> s
       else s
 
-    | Rel _ | Var _ | Sort _ | Prod _ | LetIn _ | Const _  | Ind _ | Proj _ -> s
+    | Rel _ | Var _ | Sort _ | Prod _ | LetIn _ | Const _  | Ind _ | Proj _
+      | Int _ -> s
 
   in
   whrec
@@ -1582,7 +1810,7 @@ let whd_betaiota_deltazeta_for_iota_state ts env sigma csts s =
 	if isConstruct sigma t_o then
           whrec Cst_stack.empty (Stack.nth stack_o (Projection.npars p + Projection.arg p), stack'')
 	else s,csts'
-      |_, ((Stack.App _|Stack.Cst _) :: _|[]) -> s,csts'
+      |_, ((Stack.App _|Stack.Cst _|Stack.Primitive _) :: _|[]) -> s,csts'
   in whrec csts s
 
 let find_conclusion env sigma =

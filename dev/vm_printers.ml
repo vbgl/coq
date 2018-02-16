@@ -85,7 +85,7 @@ and ppwhd whd =
   | Vatom_stk(a,s) ->
       open_hbox();ppatom a;close_box();
       print_string"@";ppstack s
-  | Vuniv_level lvl -> Feedback.msg_notice (Univ.Level.pr lvl)
+  | Vuniv_level lvl -> Feedback.msg_notice (Univ.Level.pr lvl) (* FIXME *)
 
 and ppvblock b =
   open_hbox();

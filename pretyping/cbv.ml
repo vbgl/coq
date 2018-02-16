@@ -38,6 +38,10 @@ open Esubst
  *          the bindings S, and then applied to args. Here again,
  *          weak reduction.
  *  CONSTR(c,args) is the constructor [c] applied to [args].
+ *  PRIMITIVE(cop,args) represent a particial application of
+ *          a primitive, or a fully applied primitive
+ *          which does not reduce.
+ *          cop is the constr representing op.
  *
  *)
 type cbv_value =
@@ -48,6 +52,7 @@ type cbv_value =
   | FIXP of fixpoint * cbv_value subs * cbv_value array
   | COFIXP of cofixpoint * cbv_value subs * cbv_value array
   | CONSTR of constructor Univ.puniverses * cbv_value array
+  | PRIMITIVE of CPrimitives.t * constr * cbv_value array
 
 (* type of terms with a hole. This hole can appear only under App or Case.
  *   TOP means the term is considered without context
@@ -90,6 +95,9 @@ let rec shift_value n = function
       COFIXP (cofix,subs_shft (n,s), Array.map (shift_value n) args)
   | CONSTR (c,args) ->
       CONSTR (c, Array.map (shift_value n) args)
+  | PRIMITIVE(op,c,args) ->
+      PRIMITIVE(op,c,Array.map (shift_value n) args)
+
 let shift_value n v =
   if Int.equal n 0 then v else shift_value n v
 
@@ -109,10 +117,11 @@ let contract_cofixp env (i,(_,_,bds as bodies)) =
   let n = Array.length bds in
   subs_cons(Array.init n make_body, env), bds.(i)
 
-let make_constr_ref n = function
+let make_constr_ref n k t =
+  match k with
   | RelKey p -> mkRel (n+p)
-  | VarKey id -> mkVar id
-  | ConstKey cst -> mkConstU cst
+  | VarKey id -> t
+  | ConstKey cst -> t
 
 (* Adds an application list. Collapse APPs! *)
 let stack_app appl stack =
@@ -154,7 +163,8 @@ let strip_appl head stack =
     | FIXP (fix,env,app) -> (FIXP(fix,env,[||]), stack_app app stack)
     | COFIXP (cofix,env,app) -> (COFIXP(cofix,env,[||]), stack_app app stack)
     | CONSTR (c,app) -> (CONSTR(c,[||]), stack_app app stack)
-    | _ -> (head, stack)
+    | PRIMITIVE(op,c,app) -> (PRIMITIVE(op,c,[||]), stack_app app stack)
+    | VAL _ | STACK _ | CBN _ | LAM _ -> (head, stack)
 
 
 (* Tests if fixpoint reduction is possible. *)
@@ -177,6 +187,184 @@ let cofixp_reducible flgs _ stk =
       | _ -> false
   else
     false
+
+(* Reduction of primitives *)
+
+module VNativeEntries =
+  struct
+
+    type elem = cbv_value
+    type args = cbv_value array
+
+    let get = Array.get
+
+    let get_int e =
+      match e with
+      | VAL(_, ci) ->
+          (match kind ci with
+          | Int i -> i
+          | _ -> raise Environ.NativeDestKO)
+      | _ -> raise Environ.NativeDestKO
+
+    let dummy = VAL (0,mkRel 0)
+
+    let current_retro = ref Retroknowledge.empty
+    let defined_int = ref false
+    let vint = ref dummy
+
+    let init_int retro =
+      match retro.Retroknowledge.retro_int63 with
+      | Some (cte, c) ->
+          defined_int := true;
+          vint := VAL(0,c)
+      | None -> defined_int := false
+
+    let defined_bool = ref false
+    let vtrue = ref dummy
+    let vfalse = ref dummy
+
+    let init_bool retro =
+      match retro.Retroknowledge.retro_bool with
+      | Some (ct,cf) ->
+        defined_bool := true;
+        vtrue := CONSTR(ct,[||]);
+        vfalse := CONSTR(cf,[||])
+      | None -> defined_bool :=false
+
+    let dummy_construct =
+      let did = Id.of_string "dummy" in
+      let dp = DirPath.make [did] in
+      let mind =
+        MutInd.make2 (Names.MPfile dp) (Names.Label.make "dummy") in
+      (((mind ,0),0), Univ.Instance.empty)
+
+    let defined_carry = ref false
+    let cC0 = ref dummy_construct
+    let cC1 = ref dummy_construct
+
+    let init_carry retro =
+      match retro.Retroknowledge.retro_carry with
+      | Some(c0,c1) ->
+        defined_carry := true;
+        cC0 := c0;
+        cC1 := c1
+      | None -> defined_carry := false
+
+    let defined_pair = ref false
+    let cPair = ref dummy_construct
+
+    let init_pair retro =
+      match retro.Retroknowledge.retro_pair with
+      | Some c ->
+        defined_pair := true;
+        cPair := c
+      | None -> defined_pair := false
+
+    let defined_cmp = ref false
+    let vEq = ref dummy
+    let vLt = ref dummy
+    let vGt = ref dummy
+
+    let init_cmp retro =
+      match retro.Retroknowledge.retro_cmp with
+      | Some (cEq, cLt, cGt) ->
+          defined_cmp := true;
+          vEq := CONSTR(cEq,[||]);
+          vLt := CONSTR(cLt,[||]);
+          vGt := CONSTR(cGt,[||])
+      | None -> defined_cmp := false
+
+    let defined_refl = ref false
+
+    let crefl = ref dummy_construct
+
+    let init_refl retro =
+      match retro.Retroknowledge.retro_refl with
+      | Some crefl' ->
+          defined_refl := true;
+          crefl := crefl'
+      | None -> defined_refl := false
+
+    let init env =
+      current_retro := Environ.retroknowledge env;
+      init_int !current_retro;
+      init_bool !current_retro;
+      init_carry !current_retro;
+      init_pair !current_retro;
+      init_cmp !current_retro;
+      init_refl !current_retro
+
+    let check_env env =
+      if not (!current_retro == Environ.retroknowledge env) then init env
+
+    let check_int env =
+      check_env env;
+      assert (!defined_int)
+
+    let check_bool env =
+      check_env env;
+      assert (!defined_bool)
+
+    let check_carry env =
+      check_env env;
+      assert (!defined_carry && !defined_int)
+
+    let check_pair env =
+      check_env env;
+      assert (!defined_pair && !defined_int)
+
+    let check_cmp env =
+      check_env env;
+      assert (!defined_cmp)
+
+    let check_refl env =
+      check_env env;
+      assert (!defined_refl && !defined_int)
+
+    let is_refl e =
+      match e with
+      | CONSTR(_,_) -> true
+      | _ -> false
+
+    let mk_int_refl env e =
+      check_refl env;
+      CONSTR(!crefl,[|!vint;e|])
+
+    let mkInt env i =
+      check_int env;
+      VAL(0, mkInt i)
+
+    let mkBool env b =
+      check_bool env;
+      if b then !vtrue else !vfalse
+
+    let mkCarry env b e =
+      check_carry env;
+      CONSTR((if b then !cC1 else !cC0), [|!vint;e|])
+
+    let mkIntPair env e1 e2 =
+      check_pair env;
+      CONSTR(!cPair, [|!vint;!vint;e1;e2|])
+
+    let mkLt env =
+      check_cmp env;
+      !vLt
+
+    let mkEq env =
+      check_cmp env;
+      !vEq
+
+    let mkGt env =
+      check_cmp env;
+      !vGt
+
+    let mkClos id t body s =
+      LAM(1,[id,t],body, Esubst.subs_cons (s,Esubst.subs_id 0))
+
+  end
+
+module VredNative = Environ.RedNative(VNativeEntries)
+
 
 let debug_cbv = ref false
 let _ = Goptions.declare_bool_option {
@@ -223,6 +411,8 @@ and reify_value = function (* reduction under binders *)
     mkApp (apply_env env cofix, Array.map reify_value args)
   | CONSTR (c,args) ->
       mkApp(mkConstructU c, Array.map reify_value args)
+  | PRIMITIVE(op,c,args) ->
+      mkApp(c, Array.map reify_value args)
 
 and apply_env env t =
   match kind t with
@@ -275,14 +465,14 @@ let rec norm_head info env t stack =
         | Inl (0,v)      -> strip_appl v stack
         | Inl (n,v)      -> strip_appl (shift_value n v) stack
         | Inr (n,None)   -> (VAL(0, mkRel n), stack)
-        | Inr (n,Some p) -> norm_head_ref (n-p) info env stack (RelKey p))
+        | Inr (n,Some p) -> norm_head_ref (n-p) info env stack (RelKey p) t)
 
-  | Var id -> norm_head_ref 0 info env stack (VarKey id)
+  | Var id -> norm_head_ref 0 info env stack (VarKey id) t
 
   | Const sp ->
     Reductionops.reduction_effect_hook (env_of_infos info.infos) info.sigma
       (fst sp) (lazy (reify_stack t stack));
-    norm_head_ref 0 info env stack (ConstKey sp)
+    norm_head_ref 0 info env stack (ConstKey sp) t
 
   | LetIn (_, b, _, c) ->
       (* zeta means letin are contracted; delta without zeta means we *)
@@ -313,22 +503,23 @@ let rec norm_head info env t stack =
   | Construct c -> (CONSTR(c, [||]), stack)
 
   (* neutral cases *)
-  | (Sort _ | Meta _ | Ind _) -> (VAL(0, t), stack)
+  | (Sort _ | Meta _ | Ind _ | Int _) -> (VAL(0, t), stack)
   | Prod _ -> (CBN(t,env), stack)
 
-and norm_head_ref k info env stack normt =
+and norm_head_ref k info env stack normt t =
   if red_set_ref (info_flags info.infos) normt then
     match ref_value_cache info.infos info.tab normt with
-      | Some body ->
+      | Declarations.Def body ->
          if !debug_cbv then Feedback.msg_debug Pp.(str "Unfolding " ++ debug_pr_key normt);
          strip_appl (shift_value k body) stack
-      | None ->
+      | Declarations.Primitive op -> (PRIMITIVE(op,t,[||]),stack)
+      | Declarations.OpaqueDef _ | Declarations.Undef _ ->
          if !debug_cbv then Feedback.msg_debug Pp.(str "Not unfolding " ++ debug_pr_key normt);
-         (VAL(0,make_constr_ref k normt),stack)
+         (VAL(0,make_constr_ref k normt t),stack)
   else
     begin
       if !debug_cbv then Feedback.msg_debug Pp.(str "Not unfolding " ++ debug_pr_key normt);
-      (VAL(0,make_constr_ref k normt),stack)
+      (VAL(0,make_constr_ref k normt t),stack)
     end
 
 (* cbv_stack_term performs weak reduction on constr t under the subs
@@ -390,6 +581,28 @@ and cbv_stack_value info env = function
     | (COFIXP(cofix,env,[||]), APP(appl,TOP)) -> COFIXP(cofix,env,appl)
     | (CONSTR(c,[||]), APP(appl,TOP)) -> CONSTR(c,appl)
 
+    (* primitive apply to arguments *)
+    | (PRIMITIVE(op,c,[||]), APP(appl,stk)) ->
+      let nargs = CPrimitives.arity op in
+      let len = Array.length appl in
+      if nargs <= len then
+        let args =
+          if len = nargs then appl
+          else Array.sub appl 0 nargs in
+        let stk =
+          if nargs < len then
+            stack_app (Array.sub appl nargs (len - nargs)) stk
+          else stk in
+        match VredNative.red_prim (info_env info.infos) op args with
+        | Some (CONSTR (c, args)) ->
+          (* args must be moved to the stack to allow future reductions *)
+          cbv_stack_value info env (CONSTR(c, [||]), stack_app args stk)
+        | Some v ->  cbv_stack_value info env (v,stk)
+        | None -> mkSTACK(PRIMITIVE(op,c,args), stk)
+      else (* partical application *)
+              (assert (stk = TOP);
+               PRIMITIVE(op,c,appl))
+
     (* definitely a value *)
     | (head,stk) -> mkSTACK(head, stk)
 
@@ -446,6 +659,8 @@ and cbv_norm_value info = function (* reduction under binders *)
          Array.map (cbv_norm_value info) args)
   | CONSTR (c,args) ->
       mkApp(mkConstructU c, Array.map (cbv_norm_value info) args)
+  | PRIMITIVE(op,c,args) ->
+      mkApp(c,Array.map (cbv_norm_value info) args)
 
 (* with profiling *)
 let cbv_norm infos constr =

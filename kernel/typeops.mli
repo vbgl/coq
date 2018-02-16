@@ -103,3 +103,13 @@ val type_of_constant_in : env -> pconstant -> types
 
 (** Check that hyps are included in env and fails with error otherwise *)
 val check_hyps_inclusion : env -> ('a -> constr) -> 'a -> Constr.named_context -> unit
+
+val check_primitive_type : env -> CPrimitives.op_or_type -> types -> unit
+
+(** Types for primitives *)
+
+val type_of_int : env -> types
+val judge_of_int : env -> Uint63.t -> unsafe_judgment
+
+val type_of_prim_type : env -> CPrimitives.prim_type -> types
+val type_of_prim : env -> CPrimitives.t -> types

@@ -78,7 +78,7 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
         match cb.const_universes, ctx with
         | Monomorphic_const _, None ->
           let c',cst = match cb.const_body with
-            | Undef _ | OpaqueDef _ ->
+            | Undef _ | OpaqueDef _ | Primitive _ (* FIXME *) ->
               let j = Typeops.infer env' c in
               let typ = cb.const_type in
               let cst' = Reduction.infer_conv_leq env' (Environ.universes env')
@@ -97,7 +97,7 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
           (** Terms are compared in a context with De Bruijn universe indices *)
 	  let env' = Environ.push_context ~strict:false (Univ.AUContext.repr uctx) env in
 	  let cst = match cb.const_body with
-	    | Undef _ | OpaqueDef _ ->
+            | Undef _ | OpaqueDef _ | Primitive _ (* FIXME *) ->
 	      let j = Typeops.infer env' c in
 	      let typ = cb.const_type in
 	      let cst' = Reduction.infer_conv_leq env' (Environ.universes env')

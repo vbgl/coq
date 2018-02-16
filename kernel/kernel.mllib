@@ -1,5 +1,6 @@
 Names
-Uint31
+Uint63
+CPrimitives
 Univ
 UGraph
 Esubst
@@ -18,7 +19,6 @@ Opaqueproof
 Declarations
 Entries
 Nativevalues
-CPrimitives
 Declareops
 Retroknowledge
 Conv_oracle

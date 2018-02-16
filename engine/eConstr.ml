@@ -73,8 +73,10 @@ let mkFix f = of_kind (Fix f)
 let mkCoFix f = of_kind (CoFix f)
 let mkProj (p, c) = of_kind (Proj (p, c))
 let mkArrow t1 t2 = of_kind (Prod (Anonymous, t1, t2))
+let mkInt i = of_kind (Int i)
 
 let applist (f, arg) = mkApp (f, Array.of_list arg)
+let applistc f arg = mkApp (f, Array.of_list arg)
 
 let isRel sigma c = match kind sigma c with Rel _ -> true | _ -> false
 let isVar sigma c = match kind sigma c with Var _ -> true | _ -> false
@@ -287,7 +289,7 @@ let map_return_predicate f ci p =
 
 let map_gen userview sigma f c = match kind sigma c with
   | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _
-    | Construct _) -> c
+    | Construct _ | Int _) -> c
   | Cast (b,k,t) ->
       let b' = f b in
       let t' = f t in
@@ -350,7 +352,7 @@ let map = map_gen false
 
 let map_with_binders sigma g f l c0 = match kind sigma c0 with
   | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _
-    | Construct _) -> c0
+    | Construct _ | Int _) -> c0
   | Cast (c, k, t) ->
     let c' = f l c in
     let t' = f l t in
@@ -405,7 +407,7 @@ let map_with_binders sigma g f l c0 = match kind sigma c0 with
 
 let iter sigma f c = match kind sigma c with
   | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _
-    | Construct _) -> ()
+    | Construct _ | Int _) -> ()
   | Cast (c,_,t) -> f c; f t
   | Prod (_,t,c) -> f t; f c
   | Lambda (_,t,c) -> f t; f c
@@ -421,7 +423,7 @@ let iter_with_full_binders sigma g f n c =
   let open Context.Rel.Declaration in
   match kind sigma c with
   | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _
-    | Construct _) -> ()
+    | Construct _ | Int _) -> ()
   | Cast (c,_,t) -> f n c; f n t
   | Prod (na,t,c) -> f n t; f (g (LocalAssum (na, t)) n) c
   | Lambda (na,t,c) -> f n t; f (g (LocalAssum (na, t)) n) c
@@ -444,7 +446,7 @@ let iter_with_binders sigma g f n c =
 
 let fold sigma f acc c = match kind sigma c with
   | (Rel _ | Meta _ | Var _   | Sort _ | Const _ | Ind _
-    | Construct _) -> acc
+    | Construct _ | Int _) -> acc
   | Cast (c,_,t) -> f (f acc c) t
   | Prod (_,t,c) -> f (f acc t) c
   | Lambda (_,t,c) -> f (f acc t) c

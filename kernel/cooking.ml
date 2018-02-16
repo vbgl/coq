@@ -155,7 +155,7 @@ type recipe = { from : constant_body; info : Opaqueproof.cooking_info }
 type inline = bool
 
 type result = {
-  cook_body : constant_def;
+  cook_body : constr Mod_subst.substituted constant_def;
   cook_type : types;
   cook_universes : constant_universes;
   cook_inline : inline;
@@ -168,6 +168,7 @@ let on_body ml hy f = function
   | OpaqueDef o ->
     OpaqueDef (Opaqueproof.discharge_direct_opaque ~cook_constr:f
                  { Opaqueproof.modlist = ml; abstract = hy } o)
+  | Primitive op -> Primitive op
 
 let expmod_constr_subst cache modlist subst c =
   let subst = Univ.make_instance_subst subst in

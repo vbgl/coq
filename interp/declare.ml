@@ -62,7 +62,7 @@ let open_constant i ((sp,kn), obj) =
     let con = Global.constant_of_delta_kn kn in
     Nametab.push (Nametab.Exactly i) sp (ConstRef con);
     match (Global.lookup_constant con).const_body with
-    | (Def _ | Undef _) -> ()
+    | (Def _ | Undef _ | Primitive _) -> ()
     | OpaqueDef lc ->
         match Opaqueproof.get_constraints (Global.opaque_tables ()) lc with
         | Some f when Future.is_val f ->
@@ -451,6 +451,9 @@ let assumption_message id =
   the type of the object than to the name of the object (see
   discussion on coqdev: "Chapter 4 of the Reference Manual", 8/10/2015) *)
   Flags.if_verbose Feedback.msg_info (Id.print id ++ str " is declared")
+
+let register_message id =
+  Flags.if_verbose Feedback.msg_info (Id.print id ++ str " is registered")
 
 (** Monomorphic universes need to survive sections. *)
 

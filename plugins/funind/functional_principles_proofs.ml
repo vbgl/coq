@@ -702,6 +702,7 @@ let build_proof
         let sigma = project g in
 (*      observe (str "proving on " ++ Printer.pr_lconstr_env (pf_env g) term);*)
 	match EConstr.kind sigma dyn_infos.info with
+    | Int _ -> user_err Pp.(str "integers not handled yet") (* FIXME *)
 	  | Case(ci,ct,t,cb) ->
 	      let do_finalize_t dyn_info' =
 		fun g ->
@@ -774,6 +775,7 @@ let build_proof
 	      let f,args = decompose_app sigma dyn_infos.info in
 	      begin
 		match EConstr.kind sigma f with
+      | Int _ -> user_err Pp.(str "integer cannot be applied")
 		  | App _ -> assert false (* we have collected all the app in decompose_app *)
 		  | Proj _ -> assert false (*FIXME*)
 		  | Var _ | Construct _ | Rel _ | Evar _ | Meta _  | Ind _ | Sort _ | Prod _ ->
