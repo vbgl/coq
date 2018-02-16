@@ -232,6 +232,10 @@ type extend_name =
 type register_kind =
   | RegisterInline
   | RegisterCoqlib of qualid
+  | RegisterInductive of CPrimitives.prim_ind
+
+type bullet = Proof_bullet.t
+[@@ocaml.deprecated "Alias type, please use [Proof_bullet.t]"]
 
 (** {6 Types concerning the module layer} *)
 
@@ -373,6 +377,7 @@ type nonrec vernac_expr =
   | VernacSearch of searchable * Goal_select.t option * search_restriction
   | VernacLocate of locatable
   | VernacRegister of qualid * register_kind
+  | VernacPrimitive of lident * CPrimitives.op_or_type
   | VernacComments of comment list
 
   (* Proof management *)

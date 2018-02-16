@@ -28,8 +28,9 @@ open Util
 open Pp
 open Names
 open Constr
-open Vars
+open Declarations
 open Environ
+open Vars
 open Esubst
 
 let stats = ref false
@@ -306,6 +307,7 @@ and fterm =
   | FProd of Name.t * fconstr * fconstr
   | FLetIn of Name.t * fconstr * fconstr * constr * fconstr subs
   | FEvar of existential * fconstr subs
+  | FInt of Uint63.t
   | FLIFT of int * fconstr
   | FCLOS of constr * fconstr subs
   | FLOCKED
@@ -338,19 +340,22 @@ type clos_infos = {
   i_flags : reds;
   i_cache : infos_cache }
 
-type clos_tab = fconstr KeyTable.t
+type clos_tab = fconstr constant_def KeyTable.t
 
 let info_flags info = info.i_flags
 let info_env info = info.i_cache.i_env
 
 (**********************************************************************)
 (* The type of (machine) stacks (= lambda-bar-calculus' contexts)     *)
+type 'a next_native_args = (CPrimitives.arg_kind * 'a) list
 
 type stack_member =
   | Zapp of fconstr array
   | ZcaseT of case_info * constr * constr array * fconstr subs
   | Zproj of Projection.Repr.t
   | Zfix of fconstr * stack
+  | Znative of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
+       (* operator, constr def, arguments already seen (in rev order), next arguments *)
   | Zshift of int
   | Zupdate of fconstr
 
@@ -361,7 +366,7 @@ let append_stack v s =
   if Int.equal (Array.length v) 0 then s else
   match s with
   | Zapp l :: s -> Zapp (Array.append v l) :: s
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] ->
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] ->
     Zapp v :: s
 
 (* Collapse the shifts in the stack *)
@@ -369,13 +374,13 @@ let zshift n s =
   match (n,s) with
       (0,_) -> s
     | (_,Zshift(k)::s) -> Zshift(n+k)::s
-    | (_,(ZcaseT _ | Zproj _ | Zfix _ | Zapp _ | Zupdate _) :: _) | _,[] -> Zshift(n)::s
+    | (_,(ZcaseT _ | Zproj _ | Zfix _ | Zapp _ | Zupdate _ | Znative _) :: _) | _,[] -> Zshift(n)::s
 
 let rec stack_args_size = function
   | Zapp v :: s -> Array.length v + stack_args_size s
   | Zshift(_)::s -> stack_args_size s
   | Zupdate(_)::s -> stack_args_size s
-  | (ZcaseT _ | Zproj _ | Zfix _) :: _ | [] -> 0
+  | (ZcaseT _ | Zproj _ | Zfix _ | Znative _) :: _ | [] -> 0
 
 (* When used as an argument stack (only Zapp can appear) *)
 let rec decomp_stack = function
@@ -385,12 +390,12 @@ let rec decomp_stack = function
         | 1 -> Some (v.(0), s)
         | _ ->
             Some (v.(0), (Zapp (Array.sub v 1 (Array.length v - 1)) :: s)))
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] -> None
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] -> None
 let array_of_stack s =
   let rec stackrec = function
   | [] -> []
   | Zapp args :: s -> args :: (stackrec s)
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ -> assert false
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ -> assert false
   in Array.concat (stackrec s)
 let rec stack_assign s p c = match s with
   | Zapp args :: s ->
@@ -401,7 +406,7 @@ let rec stack_assign s p c = match s with
         (let nargs = Array.copy args in
          nargs.(p) <- c;
          Zapp nargs :: s)
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] -> s
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] -> s
 let rec stack_tail p s =
   if Int.equal p 0 then s else
     match s with
@@ -409,20 +414,20 @@ let rec stack_tail p s =
 	  let q = Array.length args in
 	  if p >= q then stack_tail (p-q) s
 	  else Zapp (Array.sub args p (q-p)) :: s
-      | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] -> failwith "stack_tail"
+      | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] -> failwith "stack_tail"
 let rec stack_nth s p = match s with
   | Zapp args :: s ->
       let q = Array.length args in
       if p >= q then stack_nth s (p-q)
       else args.(p)
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] -> raise Not_found
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] -> raise Not_found
 
 (* Lifting. Preserves sharing (useful only for cell with norm=Red).
    lft_fconstr always create a new cell, while lift_fconstr avoids it
    when the lift is 0. *)
 let rec lft_fconstr n ft =
   match ft.term with
-    | (FInd _|FConstruct _|FFlex(ConstKey _|VarKey _)) -> ft
+    | (FInd _|FConstruct _|FFlex(ConstKey _|VarKey _)|FInt _) -> ft
     | FRel i -> {norm=Norm;term=FRel(i+n)}
     | FLambda(k,tys,f,e) -> {norm=Cstr; term=FLambda(k,tys,f,subs_shft(n,e))}
     | FFix(fx,e) -> {norm=Cstr; term=FFix(fx,subs_shft(n,e))}
@@ -454,7 +459,7 @@ let compact_stack head stk =
         (** The stack contains [Zupdate] marks only if in sharing mode *)
         let _ = update ~share:true m h'.norm h'.term in
         strip_rec depth s
-    | ((ZcaseT _ | Zproj _ | Zfix _ | Zapp _) :: _ | []) as stk -> zshift depth stk
+    | ((ZcaseT _ | Zproj _ | Zfix _ | Zapp _ | Znative _) :: _ | []) as stk -> zshift depth stk
   in
   strip_rec 0 stk
 
@@ -490,6 +495,7 @@ let mk_clos e t =
     | Meta _ | Sort _ ->  { norm = Norm; term = FAtom t }
     | Ind kn -> { norm = Norm; term = FInd kn }
     | Construct kn -> { norm = Cstr; term = FConstruct kn }
+    | Int i -> {norm = Cstr; term = FInt i}
     | (CoFix _|Lambda _|Fix _|Prod _|Evar _|App _|Case _|Cast _|LetIn _|Proj _) ->
         {norm = Red; term = FCLOS(t,e)}
 
@@ -508,32 +514,34 @@ let mk_clos_vect env v = match v with
 
 let ref_value_cache ({ i_cache = cache; _ }) tab ref =
   try
-    Some (KeyTable.find tab ref)
+    KeyTable.find tab ref
   with Not_found ->
-  try
-    let body =
-      match ref with
-        | RelKey n ->
-          let open! Context.Rel.Declaration in
-          let i = n - 1 in
-          let (d, _) =
-            try Range.get cache.i_env.env_rel_context.env_rel_map i
-            with Invalid_argument _ -> raise Not_found
-          in
-          begin match d with
-          | LocalAssum _ -> raise Not_found
-          | LocalDef (_, t, _) -> lift n t
-          end
-        | VarKey id -> assoc_defined id cache.i_env
-        | ConstKey cst -> constant_value_in cache.i_env cst
+    let v =
+      try
+        let body =
+          match ref with
+          | RelKey n ->
+            let open! Context.Rel.Declaration in
+            let i = n - 1 in
+            let (d, _) =
+              try Range.get cache.i_env.env_rel_context.env_rel_map i
+              with Invalid_argument _ -> raise Not_found
+            in
+            begin match d with
+              | LocalAssum _ -> raise Not_found
+              | LocalDef (_, t, _) -> lift n t
+            end
+          | VarKey id -> assoc_defined id cache.i_env
+          | ConstKey cst -> constant_value_in cache.i_env cst
+        in
+        Def (inject body)
+      with
+      | NotEvaluableConst (IsPrimitive op) (* Const *) -> Primitive op
+      | Not_found (* List.assoc *)
+      | NotEvaluableConst _ (* Const *)
+        -> Undef None
     in
-    let v = inject body in
-    KeyTable.add tab ref v;
-    Some v
-  with
-    | Not_found (* List.assoc *)
-    | NotEvaluableConst _ (* Const *)
-      -> None
+    KeyTable.add tab ref v; v
 
 (* The inverse of mk_clos: move back to constr *)
 let rec to_constr lfts v =
@@ -599,6 +607,10 @@ let rec to_constr lfts v =
       let subs = comp_subs lfts env in
         mkEvar(ev,Array.map (fun a -> subst_constr subs a) args)
     | FLIFT (k,a) -> to_constr (el_shft k lfts) a
+
+    | FInt i ->
+       Constr.mkInt i
+
     | FCLOS (t,env) ->
       if is_subs_id env && is_lift_id lfts then t
       else
@@ -647,6 +659,10 @@ let rec zip m stk =
     | Zupdate(rf)::s ->
       (** The stack contains [Zupdate] marks only if in sharing mode *)
         zip (update ~share:true rf m.norm m.term) s
+    | Znative(_op,c,rargs,kargs)::s ->
+      let args = List.rev_append rargs (m::List.map snd kargs) in
+      let f = {norm = Red;term = FFlex (ConstKey c)} in
+      zip {norm=neutr m.norm; term = FApp (f, Array.of_list args)} s
 
 let fapp_stack (m,stk) = zip m stk
 
@@ -668,7 +684,7 @@ let strip_update_shift_app_red head stk =
     | Zupdate(m)::s ->
       (** The stack contains [Zupdate] marks only if in sharing mode *)
         strip_rec rstk (update ~share:true m h.norm h.term) depth s
-    | ((ZcaseT _ | Zproj _ | Zfix _) :: _ | []) as stk ->
+    | ((ZcaseT _ | Zproj _ | Zfix _ | Znative _) :: _ | []) as stk ->
       (depth,List.rev rstk, stk)
   in
   strip_rec [] head 0 stk
@@ -696,7 +712,7 @@ let get_nth_arg head n stk =
     | Zupdate(m)::s ->
         (** The stack contains [Zupdate] mark only if in sharing mode *)
         strip_rec rstk (update ~share:true m h.norm h.term) n s
-    | ((ZcaseT _ | Zproj _ | Zfix _) :: _ | []) as s -> (None, List.rev rstk @ s) in
+    | ((ZcaseT _ | Zproj _ | Zfix _ | Znative _) :: _ | []) as s -> (None, List.rev rstk @ s) in
   strip_rec [] head n stk
 
 (* Beta reduction: look for an applied argument in the stack.
@@ -718,16 +734,62 @@ let rec get_args n tys f e = function
         else (* more lambdas *)
           let etys = List.skipn na tys in
           get_args (n-na) etys f (subs_cons(l,e)) s
-    | ((ZcaseT _ | Zproj _ | Zfix _) :: _ | []) as stk ->
+    | ((ZcaseT _ | Zproj _ | Zfix _ | Znative _) :: _ | []) as stk ->
       (Inr {norm=Cstr;term=FLambda(n,tys,f,e)}, stk)
 
 (* Eta expansion: add a reference to implicit surrounding lambda at end of stack *)
 let rec eta_expand_stack = function
   | (Zapp _ | Zfix _ | ZcaseT _ | Zproj _
-	| Zshift _ | Zupdate _ as e) :: s ->
+        | Zshift _ | Zupdate _ | Znative _ as e) :: s ->
       e :: eta_expand_stack s
   | [] ->
       [Zshift 1; Zapp [|{norm=Norm; term= FRel 1}|]]
+
+(* Get the arguments of a native operator *)
+let rec skip_native_args rargs nargs =
+  match nargs with
+  | (kd, a) :: nargs' ->
+      if kd = CPrimitives.Kwhnf then rargs, nargs
+      else skip_native_args (a::rargs) nargs'
+  | [] -> rargs, []
+
+let get_native_args op c stk =
+  let kargs = CPrimitives.kind op in
+  let rec get_args rnargs kargs args =
+    match kargs, args with
+    | kd::kargs, a::args -> get_args ((kd,a)::rnargs) kargs args
+    | _, _ -> rnargs, kargs, args in
+  let rec strip_rec rnargs h depth kargs = function
+    | Zshift k :: s ->
+      strip_rec (List.map (fun (kd,f) -> kd,lift_fconstr k f) rnargs)
+        (lift_fconstr k h) (depth+k) kargs s
+    | Zapp args :: s' ->
+      begin match get_args rnargs kargs (Array.to_list args) with
+        | rnargs, [], [] ->
+          (skip_native_args [] (List.rev rnargs), s')
+        | rnargs, [], eargs ->
+          (skip_native_args [] (List.rev rnargs),
+           Zapp (Array.of_list eargs) :: s')
+        | rnargs, kargs, _ ->
+          strip_rec rnargs {norm = h.norm;term=FApp(h, args)} depth kargs s'
+      end
+    | Zupdate(m) :: s ->
+      strip_rec rnargs (update ~share:true m h.norm h.term) depth  kargs s
+    | (Znative _ | ZcaseT _ | Zproj _ | Zfix _) :: _ | [] -> assert false
+  in strip_rec [] {norm = Red;term = FFlex(ConstKey c)} 0 kargs stk
+
+let get_native_args1 op c stk =
+  match get_native_args op c stk with
+  | ((rargs, (kd,a):: nargs), stk) ->
+      assert (kd = CPrimitives.Kwhnf);
+      (rargs, a, nargs, stk)
+  | _ -> assert false
+
+let check_native_args op stk =
+  let nargs = CPrimitives.arity op in
+  let rargs = stack_args_size stk in
+  nargs <= rargs
+
 
 (* Iota reduction: extract the arguments to be passed to the Case
    branches *)
@@ -735,7 +797,7 @@ let rec reloc_rargs_rec depth = function
   | Zapp args :: s ->
     Zapp (lift_fconstr_vect depth args) :: reloc_rargs_rec depth s
   | Zshift(k)::s -> if Int.equal k depth then s else reloc_rargs_rec (depth-k) s
-  | ((ZcaseT _ | Zproj _ | Zfix _ | Zupdate _) :: _ | []) as stk -> stk
+  | ((ZcaseT _ | Zproj _ | Zfix _ | Zupdate _ | Znative _) :: _ | []) as stk -> stk
 
 let reloc_rargs depth stk =
   if Int.equal depth 0 then stk else reloc_rargs_rec depth stk
@@ -752,7 +814,7 @@ let rec try_drop_parameters depth n = function
     | [] ->
 	if Int.equal n 0 then []
 	else raise Not_found
-    | (ZcaseT _ | Zproj _ | Zfix _ | Zupdate _) :: _ -> assert false
+    | (ZcaseT _ | Zproj _ | Zfix _ | Zupdate _ | Znative _) :: _ -> assert false
 	(* strip_update_shift_app only produces Zapp and Zshift items *)
 
 let drop_parameters depth n argstk =
@@ -797,7 +859,7 @@ let rec project_nth_arg n = function
       let q = Array.length args in
 	if n >= q then project_nth_arg (n - q) s
 	else (* n < q *) args.(n)
-  | (ZcaseT _ | Zproj _ | Zfix _ | Zupdate _ | Zshift _) :: _ | [] -> assert false
+  | (ZcaseT _ | Zproj _ | Zfix _ | Zupdate _ | Zshift _ | Znative _) :: _ | [] -> assert false
       (* After drop_parameters we have a purely applicative stack *)
 
 
@@ -854,7 +916,7 @@ let rec knh info m stk =
 
 (* cases where knh stops *)
     | (FFlex _|FLetIn _|FConstruct _|FEvar _|
-       FCoFix _|FLambda _|FRel _|FAtom _|FInd _|FProd _) ->
+       FCoFix _|FLambda _|FRel _|FAtom _|FInd _|FProd _|FInt _) ->
         (m, stk)
 
 (* The same for pure terms *)
@@ -868,7 +930,7 @@ and knht info e t stk =
     | Cast(a,_,_) -> knht info e a stk
     | Rel n -> knh info (clos_rel e n) stk
     | Proj (p, c) -> knh info { norm = Red; term = FProj (p, mk_clos e c) } stk
-    | (Ind _|Const _|Construct _|Var _|Meta _ | Sort _) -> (mk_clos e t, stk)
+    | (Ind _|Const _|Construct _|Var _|Meta _ | Sort _ | Int _) -> (mk_clos e t, stk)
     | CoFix cfx -> { norm = Cstr; term = FCoFix (cfx,e) }, stk
     | Lambda _ -> { norm = Cstr; term = mk_lambda e t }, stk
     | Prod (n, t, c) ->
@@ -877,6 +939,178 @@ and knht info e t stk =
       { norm = Red; term = FLetIn (n, mk_clos e b, mk_clos e t, c, e) }, stk
     | Evar ev -> { norm = Red; term = FEvar (ev, e) }, stk
 
+let inject c = mk_clos (subs_id 0) c
+
+(************************************************************************)
+(* Reduction of Native operators                                        *)
+
+module FNativeEntries =
+  struct
+    type elem = fconstr
+    type args = fconstr array
+
+    let get = Array.get
+
+    let get_int e =
+      match [@ocaml.warning "-4"] e.term with
+      | FInt i -> i
+      | _ -> raise NativeDestKO
+
+    let dummy = {norm = Norm; term = FRel 0}
+
+    let current_retro = ref Retroknowledge.empty
+    let defined_int = ref false
+    let fint = ref dummy
+
+    let init_int retro =
+      match retro.Retroknowledge.retro_int63 with
+      | Some (cte, _) ->
+        defined_int := true;
+        fint := { norm = Norm; term = FFlex (ConstKey cte) }
+      | None -> defined_int := false
+
+    let defined_bool = ref false
+    let ftrue = ref dummy
+    let ffalse = ref dummy
+
+    let init_bool retro =
+      match retro.Retroknowledge.retro_bool with
+      | Some (ct,cf) ->
+        defined_bool := true;
+        ftrue := { norm = Cstr; term = FConstruct ct };
+        ffalse := { norm = Cstr; term = FConstruct cf }
+      | None -> defined_bool :=false
+
+    let defined_carry = ref false
+    let fC0 = ref dummy
+    let fC1 = ref dummy
+
+    let init_carry retro =
+      match retro.Retroknowledge.retro_carry with
+      | Some(c0,c1) ->
+        defined_carry := true;
+        fC0 := { norm = Cstr; term = FConstruct c0 };
+        fC1 := { norm = Cstr; term = FConstruct c1 }
+      | None -> defined_carry := false
+
+    let defined_pair = ref false
+    let fPair = ref dummy
+
+    let init_pair retro =
+      match retro.Retroknowledge.retro_pair with
+      | Some c ->
+        defined_pair := true;
+        fPair := { norm = Cstr; term = FConstruct c }
+      | None -> defined_pair := false
+
+    let defined_cmp = ref false
+    let fEq = ref dummy
+    let fLt = ref dummy
+    let fGt = ref dummy
+
+    let init_cmp retro =
+      match retro.Retroknowledge.retro_cmp with
+      | Some (cEq, cLt, cGt) ->
+        defined_cmp := true;
+        fEq := { norm = Cstr; term = FConstruct cEq };
+        fLt := { norm = Cstr; term = FConstruct cLt };
+        fGt := { norm = Cstr; term = FConstruct cGt }
+      | None -> defined_cmp := false
+
+    let defined_refl = ref false
+
+    let frefl = ref dummy
+
+    let init_refl retro =
+      match retro.Retroknowledge.retro_refl with
+      | Some crefl ->
+        defined_refl := true;
+        frefl := { norm = Cstr; term = FConstruct crefl }
+      | None -> defined_refl := false
+
+    let init env =
+      current_retro := retroknowledge env;
+      init_int !current_retro;
+      init_bool !current_retro;
+      init_carry !current_retro;
+      init_pair !current_retro;
+      init_cmp !current_retro;
+      init_refl !current_retro
+
+    let check_env env =
+      if not (!current_retro == retroknowledge env) then init env
+
+    let check_int env =
+      check_env env;
+      assert (!defined_int)
+
+    let check_bool env =
+      check_env env;
+      assert (!defined_bool)
+
+    let check_carry env =
+      check_env env;
+      assert (!defined_carry && !defined_int)
+
+    let check_pair env =
+      check_env env;
+      assert (!defined_pair && !defined_int)
+
+    let check_cmp env =
+      check_env env;
+      assert (!defined_cmp)
+
+    let check_refl env =
+      check_env env;
+      assert (!defined_refl && !defined_int)
+
+    (* TODO check this *)
+    let is_refl e =
+      match [@ocaml.warning "-4"] e.term with
+      | FApp({norm = _; term = FConstruct _},_) -> true
+      | _ -> false
+
+    let mk_int_refl env e =
+      check_refl env;
+      {norm = Cstr;
+       term = FApp (!frefl,[|!fint;e|])}
+
+    let mkInt env i =
+      check_int env;
+      { norm = Norm; term = FInt i }
+
+    let mkBool env b =
+      check_bool env;
+      if b then !ftrue else !ffalse
+
+    let mkCarry env b e =
+      check_carry env;
+      {norm = Cstr;
+       term = FApp ((if b then !fC1 else !fC0),[|!fint;e|])}
+
+    let mkIntPair env e1 e2 =
+      check_pair env;
+      { norm = Cstr; term = FApp(!fPair, [|!fint;!fint;e1;e2|]) }
+
+    let mkLt env =
+      check_cmp env;
+      !fLt
+
+    let mkEq env =
+      check_cmp env;
+      !fEq
+
+    let mkGt env =
+      check_cmp env;
+      !fGt
+
+    let mkClos id t body s =
+      { norm = Cstr;
+        term = FLambda(1,[id,t],body, Esubst.subs_cons(s,Esubst.subs_id 0)) }
+
+  end
+
+module FredNative = RedNative(FNativeEntries)
 
 (************************************************************************)
 
@@ -889,16 +1123,21 @@ let rec knr info tab m stk =
         | Inr lam, s -> (lam,s))
   | FFlex(ConstKey (kn,_ as c)) when red_set info.i_flags (fCONST kn) ->
       (match ref_value_cache info tab (ConstKey c) with
-          Some v -> kni info tab v stk
-        | None -> (set_norm m; (m,stk)))
+        | Def v -> kni info tab v stk
+        | Primitive op when check_native_args op stk ->
+          let rargs, a, nargs, stk = get_native_args1 op c stk in
+          kni info tab a (Znative(op,c,rargs,nargs)::stk)
+        | Undef _ | OpaqueDef _ | Primitive _ -> (set_norm m; (m,stk)))
   | FFlex(VarKey id) when red_set info.i_flags (fVAR id) ->
       (match ref_value_cache info tab (VarKey id) with
-          Some v -> kni info tab v stk
-        | None -> (set_norm m; (m,stk)))
+        | Def v -> kni info tab v stk
+        | Primitive _ -> assert false
+        | OpaqueDef _ | Undef _ -> (set_norm m; (m,stk)))
   | FFlex(RelKey k) when red_set info.i_flags fDELTA ->
       (match ref_value_cache info tab (RelKey k) with
-          Some v -> kni info tab v stk
-        | None -> (set_norm m; (m,stk)))
+        | Def v -> kni info tab v stk
+        | Primitive _ -> assert false
+        | OpaqueDef _ | Undef _ -> (set_norm m; (m,stk)))
   | FConstruct((_ind,c),_u) ->
      let use_match = red_set info.i_flags fMATCH in
      let use_fix = red_set info.i_flags fFIX in
@@ -924,13 +1163,32 @@ let rec knr info tab m stk =
         | (_, args, (((ZcaseT _|Zproj _)::_) as stk')) ->
             let (fxe,fxbd) = contract_fix_vect m.term in
             knit info tab fxe fxbd (args@stk')
-        | (_,args, ((Zapp _ | Zfix _ | Zshift _ | Zupdate _) :: _ | [] as s)) -> (m,args@s))
+        | (_,args, ((Zapp _ | Zfix _ | Zshift _ | Zupdate _ | Znative _) :: _ | [] as s)) -> (m,args@s))
   | FLetIn (_,v,_,bd,e) when red_set info.i_flags fZETA ->
       knit info tab (subs_cons([|v|],e)) bd stk
   | FEvar(ev,env) ->
       (match info.i_cache.i_sigma ev with
           Some c -> knit info tab env c stk
         | None -> (m,stk))
+  | FInt _ ->
+    (match [@ocaml.warning "-4"] strip_update_shift_app m stk with
+     | (_, _, Znative(op,c,rargs,nargs)::s) ->
+       let (rargs, nargs) = skip_native_args (m::rargs) nargs in
+       begin match nargs with
+         | [] ->
+           let args = Array.of_list (List.rev rargs) in
+           begin match FredNative.red_prim (info_env info) op args with
+             | Some m -> kni info tab m s
+             | None ->
+               let f = {norm = Whnf; term = FFlex (ConstKey c)} in
+               let m = {norm = Whnf; term = FApp(f,args)} in
+               (m,s)
+           end
+         | (kd,a)::nargs ->
+           assert (kd = CPrimitives.Kwhnf);
+           kni info tab a (Znative(op,c,rargs,nargs)::s)
+             end
+     | (_, _, s) -> (m, s))
   | FLOCKED | FRel _ | FAtom _ | FFlex (RelKey _ | ConstKey _ | VarKey _) | FInd _ | FApp _ | FProj _
     | FFix _ | FCoFix _ | FCaseT _ | FLambda _ | FProd _ | FLetIn _ | FLIFT _
     | FCLOS _ -> (m, stk)
@@ -967,6 +1225,12 @@ let rec zip_term zfun m stk =
         zip_term zfun (lift n m) s
     | Zupdate(_rf)::s ->
         zip_term zfun m s
+    | Znative(_,c,rargs, kargs)::s ->
+        let kargs = List.map (fun (_,a) -> zfun a) kargs in
+        let args =
+          List.fold_left (fun args a -> zfun a ::args) (m::kargs) rargs in
+        let h = mkApp (mkConstU c, Array.of_list args) in
+        zip_term zfun h s
 
 (* Computes the strong normal form of a term.
    1- Calls kni
@@ -1012,7 +1276,7 @@ and norm_head info tab m =
       | FProj (p,c) ->
           mkProj (p, kl info tab c)
       | FLOCKED | FRel _ | FAtom _ | FFlex _ | FInd _ | FConstruct _
-        | FApp _ | FCaseT _ | FLIFT _ | FCLOS _ -> term_of_fconstr m
+        | FApp _ | FCaseT _ | FLIFT _ | FCLOS _ | FInt _ -> term_of_fconstr m
 
 (* Initialization and then normalization *)
 
@@ -1055,9 +1319,9 @@ let unfold_reference info tab key =
   | ConstKey (kn,_) ->
     if red_set info.i_flags (fCONST kn) then
       ref_value_cache info tab key
-    else None
+    else Undef None
   | VarKey i ->
     if red_set info.i_flags (fVAR i) then
       ref_value_cache info tab key
-    else None
+    else Undef None
   | RelKey _ -> ref_value_cache info tab key

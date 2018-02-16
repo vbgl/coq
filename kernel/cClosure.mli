@@ -10,6 +10,7 @@
 
 open Names
 open Constr
+open Declarations
 open Environ
 open Esubst
 
@@ -125,6 +126,7 @@ type fterm =
   | FProd of Name.t * fconstr * fconstr
   | FLetIn of Name.t * fconstr * fconstr * constr * fconstr subs
   | FEvar of existential * fconstr subs
+  | FInt of Uint63.t
   | FLIFT of int * fconstr
   | FCLOS of constr * fconstr subs
   | FLOCKED
@@ -133,12 +135,15 @@ type fterm =
   s A [stack] is a context of arguments, arguments are pushed by
    [append_stack] one array at a time but popped with [decomp_stack]
    one by one *)
+type 'a next_native_args = (CPrimitives.arg_kind * 'a) list
 
 type stack_member =
   | Zapp of fconstr array
   | ZcaseT of case_info * constr * constr array * fconstr subs
   | Zproj of Projection.Repr.t
   | Zfix of fconstr * stack
+  | Znative of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
+       (* operator, constr def, reduced arguments rev, next arguments *)
   | Zshift of int
   | Zupdate of fconstr
 
@@ -146,6 +151,10 @@ and stack = stack_member list
 
 val empty_stack : stack
 val append_stack : fconstr array -> stack -> stack
+
+val check_native_args : CPrimitives.t -> stack -> bool
+val get_native_args1 : CPrimitives.t -> pconstant -> stack ->
+  fconstr list * fconstr * fconstr next_native_args * stack
 
 val decomp_stack : stack -> (fconstr * stack) option
 val array_of_stack : stack -> fconstr array
@@ -216,7 +225,7 @@ val eta_expand_ind_stack : env -> inductive -> fconstr -> stack ->
 (** Conversion auxiliary functions to do step by step normalisation *)
 
 (** [unfold_reference] unfolds references in a [fconstr] *)
-val unfold_reference : clos_infos -> clos_tab -> table_key -> fconstr option
+val unfold_reference : clos_infos -> clos_tab -> table_key -> fconstr constant_def
 
 (***********************************************************************
   i This is for lazy debug *)

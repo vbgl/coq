@@ -1172,6 +1172,15 @@ open Pputils
           hov 2
             (keyword "Register Inline" ++ spc() ++ pr_qualid qid)
         )
+      | VernacRegister(qid,RegisterInductive r) ->
+         hov 2
+             (keyword "Register Inductive" ++ pr_qualid qid ++
+                str "as" ++ spc() ++ str (CPrimitives.prim_ind_to_string r))
+      | VernacPrimitive(id,r) ->
+         hov 2
+             (keyword "Primitive" ++ spc() ++ pr_lident id ++ spc() ++
+                str ":=" ++ spc() ++
+                str (CPrimitives.op_or_type_to_string r))
       | VernacComments l ->
         return (
           hov 2

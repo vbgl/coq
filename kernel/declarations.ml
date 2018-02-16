@@ -47,10 +47,11 @@ type inline = int option
     transparent body, or an opaque one *)
 
 (* Global declarations (i.e. constants) can be either: *)
-type constant_def =
+type 'a constant_def =
   | Undef of inline                       (** a global assumption *)
-  | Def of constr Mod_subst.substituted   (** or a transparent global definition *)
+  | Def of 'a                             (** or a transparent global definition *)
   | OpaqueDef of Opaqueproof.opaque       (** or an opaque global definition *)
+  | Primitive of CPrimitives.t            (** or a primitive operation *)
 
 type constant_universes =
   | Monomorphic_const of Univ.ContextSet.t
@@ -74,7 +75,7 @@ type typing_flags = {
  * the OpaqueDef *)
 type constant_body = {
     const_hyps : Constr.named_context; (** New: younger hyp at top *)
-    const_body : constant_def;
+    const_body : Constr.t Mod_subst.substituted constant_def; (* FIXME ? *)
     const_type : types;
     const_body_code : Cemitcodes.to_patch_substituted option;
     const_universes : constant_universes;
@@ -287,7 +288,7 @@ and module_type_body = unit generic_module_body
 
 and _ module_retroknowledge =
 | ModBodyRK :
-  Retroknowledge.action list -> module_implementation module_retroknowledge
+  (Retroknowledge.action * Constr.t) list -> module_implementation module_retroknowledge
 | ModTypeRK : unit module_retroknowledge
 
 (** Extra invariants :

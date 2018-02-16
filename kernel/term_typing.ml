@@ -92,10 +92,41 @@ let infer_declaration (type a) ~(trust : a trust) env (dcl : a constant_entry) =
         cook_context = ctx;
       }
 
+  (** We suppose that Primitives are never universe polymorphic *)
+  | PrimitiveEntry ((t,uctx),op_t) ->
+      let env = match uctx with
+        | Monomorphic_const_entry uctx -> push_context_set ~strict:true uctx env
+        | Polymorphic_const_entry uctx -> push_context ~strict:false uctx env
+      in
+      let j = infer env t in
+      check_primitive_type env op_t t;
+      let cd =
+        match op_t with
+        | CPrimitives.OT_op op -> Declarations.Primitive op
+        | CPrimitives.OT_type _ -> Undef None in
+   let usubst, univs =
+     abstract_constant_universes uctx
+   in
+   let c = Typeops.assumption_of_judgment env j in
+   let t = Constr.hcons (Vars.subst_univs_level_constr usubst c) in
+  { Cooking.cook_body = cd;
+    cook_type = t;
+    cook_universes = univs;
+    cook_inline = false;
+    cook_context = None
+  }
+
   (** Definition [c] is opaque (Qed), non polymorphic and with a specified type,
       so we delay the typing and hash consing of its body.
       Remark: when the universe quantification is given explicitly, we could
       delay even in the polymorphic case.  *)
+
+(** Definition is opaque (Qed) and non polymorphic with known type, so we delay
+the typing and hash consing of its body.
+
+TODO: if the universe quantification is given explicitly, we could delay even in
+the polymorphic case
+  *)
   | DefinitionEntry ({ const_entry_type = Some typ;
                        const_entry_opaque = true;
                        const_entry_universes = Monomorphic_const_entry univs; _ } as c) ->
@@ -234,7 +265,7 @@ let build_constant_declaration _kn env result =
            we must look at the body NOW, if any *)
         let ids_typ = global_vars_set env typ in
         let ids_def = match def with
-        | Undef _ -> Id.Set.empty
+        | Undef _ | Primitive _ -> Id.Set.empty
         | Def cs -> global_vars_set env (Mod_subst.force_constr cs)
         | OpaqueDef lc ->
             let vars =
@@ -254,7 +285,7 @@ let build_constant_declaration _kn env result =
         (* We use the declared set and chain a check of correctness *)
         sort declared,
         match def with
-        | Undef _ as x -> x (* nothing to check *)
+        | Undef _ | Primitive _ as x -> x (* nothing to check *)
         | Def cs as x ->
             let ids_typ = global_vars_set env typ in
             let ids_def = global_vars_set env (Mod_subst.force_constr cs) in
@@ -311,6 +342,7 @@ let translate_local_def env _id centry =
   if Option.is_empty decl.cook_context && !Flags.record_aux_file then begin
     match decl.cook_body with
     | Undef _ -> ()
+    | Primitive _ -> ()
     | Def _ -> ()
     | OpaqueDef lc ->
        let ids_typ = global_vars_set env typ in
@@ -331,7 +363,7 @@ let translate_local_def env _id centry =
         the body by virtue of the typing of [Entries.section_def_entry]. *)
     let () = assert (Univ.ContextSet.is_empty cst) in
     p
-  | Undef _ -> assert false
+  | Undef _ | Primitive _ -> assert false
   in
   c, typ
 

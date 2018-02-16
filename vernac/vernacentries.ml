@@ -1966,17 +1966,17 @@ let vernac_register qid r =
     user_err Pp.(str "Cannot register a primitive while in proof editing mode.");
   match r with
   | RegisterInline ->
-    if not (isConstRef gr) then
-      user_err Pp.(str "Register inline: a constant is expected");
-    Global.register_inline (destConstRef gr)
+    begin match gr with
+    | ConstRef c -> Global.register_inline c
+    | _ -> CErrors.user_err (Pp.str "Register Inline: expecting a constant")
+    end
+  | RegisterInductive pind ->
+    begin match gr with
+    | IndRef ind -> Global.register_inductive ind pind
+    | _ -> CErrors.user_err (Pp.str "Register Inductive: expecting an inductive type")
+    end
   | RegisterCoqlib n ->
-    let path, id = Libnames.repr_qualid n in
-    if DirPath.equal path Retroknowledge.int31_path
-    then
-      let f = Retroknowledge.(KInt31 (int31_field_of_string (Id.to_string id))) in
-      Global.register f gr
-    else
-      Coqlib.register_ref (Libnames.string_of_qualid n) gr
+    Coqlib.register_ref (Libnames.string_of_qualid n) gr
 
 (********************)
 (* Proof management *)
@@ -2240,6 +2240,7 @@ let interp ?proof ~atts ~st c =
   | VernacLocate l -> unsupported_attributes atts;
     Feedback.msg_notice @@ vernac_locate l
   | VernacRegister (qid, r) -> unsupported_attributes atts; vernac_register qid r
+  | VernacPrimitive (id, prim) -> unsupported_attributes atts; ComAssumption.do_primitive id prim
   | VernacComments l -> unsupported_attributes atts;
     Flags.if_verbose Feedback.msg_info (str "Comments ok\n")
 

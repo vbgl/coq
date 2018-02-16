@@ -119,7 +119,7 @@ let empty_env = {
     env_universes = UGraph.initial_universes;
     env_engagement = PredicativeSet };
   env_typing_flags = Declareops.safe_flags Conv_oracle.empty;
-  retroknowledge = Retroknowledge.initial_retroknowledge;
+  retroknowledge = Retroknowledge.empty;
   indirect_pterms = Opaqueproof.empty_opaquetab }
 
 
@@ -409,7 +409,10 @@ let constant_type env (kn,u) =
   let csts = Univ.AUContext.instantiate u uctx in
   (subst_instance_constr u cb.const_type, csts)
 
-type const_evaluation_result = NoBody | Opaque
+type const_evaluation_result =
+  | NoBody
+  | Opaque
+  | IsPrimitive of CPrimitives.t
 
 exception NotEvaluableConst of const_evaluation_result
 
@@ -420,14 +423,14 @@ let constant_value_and_type env (kn, u) =
   let b' = match cb.const_body with
     | Def l_body -> Some (subst_instance_constr u (Mod_subst.force_constr l_body))
     | OpaqueDef _ -> None
-    | Undef _ -> None
+    | Undef _ | Primitive _ -> None
   in
   b', subst_instance_constr u cb.const_type, cst
 
 let body_of_constant_body env cb =
   let otab = opaque_tables env in
   match cb.const_body with
-  | Undef _ ->
+  | Undef _ | Primitive _ ->
      None
   | Def c ->
      Some (Mod_subst.force_constr c, Declareops.constant_polymorphic_context cb)
@@ -451,6 +454,7 @@ let constant_value_in env (kn,u) =
 	subst_instance_constr u b
     | OpaqueDef _ -> raise (NotEvaluableConst Opaque)
     | Undef _ -> raise (NotEvaluableConst NoBody)
+    | Primitive p -> raise (NotEvaluableConst (IsPrimitive p))
 
 let constant_opt_value_in env cst =
   try Some (constant_value_in env cst)
@@ -462,7 +466,7 @@ let evaluable_constant kn env =
     match cb.const_body with
     | Def _ -> true
     | OpaqueDef _ -> false
-    | Undef _ -> false
+    | Undef _ | Primitive _ -> false
 
 let polymorphic_constant cst env =
   Declareops.constant_is_polymorphic (lookup_constant cst env)
@@ -706,25 +710,198 @@ let is_type_in_type env r =
    note that the "consistent" register function is available in the module
    Safetyping, Environ only synchronizes the proactive and the reactive parts*)
 
+(* Reduction of native operators *)
+open CPrimitives
 open Retroknowledge
 
-(* lifting of the "get" functions works also for "mem"*)
-let retroknowledge f env =
-  f env.retroknowledge
+let retroknowledge env = env.retroknowledge
 
-let registered env field =
-    retroknowledge mem env field
-
-let register_one env field entry =
-  { env with retroknowledge = Retroknowledge.add_field env.retroknowledge field entry }
-
-(* [register env field entry] may register several fields when needed *)
-let register env field gr =
-  match field with
-  | KInt31 Int31Type ->
-    let i31c = match gr with
-      | GlobRef.IndRef i31t -> GlobRef.ConstructRef (i31t, 1)
-      | _ -> anomaly ~label:"Environ.register" (Pp.str "should be an inductive type.")
+let add_retroknowledge env (pt,c) =
+  match pt with
+  | Retro_type PT_int63 ->
+    let cte = destConst c in
+    let retro = retroknowledge env in
+    let retro =
+      match retro.retro_int63 with
+      | None -> { retro with retro_int63 = Some (cte,c) }
+      | Some(cte',_) -> assert (cte = cte'); retro in
+    { env with retroknowledge = retro }
+  | Retro_ind pit ->
+    let (ind,u) = destInd c in
+    let retro = retroknowledge env in
+    let retro =
+      match pit with
+      | PIT_bool ->
+        let r =
+          match retro.retro_bool with
+          | None -> (((ind,1),u), ((ind,2),u))
+          | Some ((((ind',_),_),_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with Retroknowledge.retro_bool = Some r }
+      | PIT_carry ->
+        let r =
+          match retro.retro_carry with
+          | None -> (((ind,1), u), ((ind,2),u))
+          | Some ((((ind',_),_),_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with retro_carry = Some r }
+      | PIT_pair ->
+        let r =
+          match retro.retro_pair with
+          | None -> ((ind,1),u)
+          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with retro_pair = Some r }
+      | PIT_cmp ->
+        let r =
+          match retro.retro_cmp with
+          | None -> (((ind,1), u), ((ind,2),u), ((ind,3),u))
+          | Some ((((ind',_),_),_,_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with retro_cmp = Some r }
+      | PIT_eq ->
+        let r =
+          match retro.retro_refl with
+          | None -> ((ind,1),u)
+          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with retro_refl = Some r }
     in
-    register_one (register_one env (KInt31 Int31Constructor) i31c) field gr
-  | field -> register_one env field gr
+    { env with retroknowledge = retro }
+  | Retro_inline ->
+    let (kn, _univs) = destConst c in
+    let (cb,r) = Cmap_env.find kn env.env_globals.env_constants in
+    let cb = {cb with const_inline_code = true} in
+    let new_constants =
+      Cmap_env.add kn (cb,r) env.env_globals.env_constants in
+    let new_globals =
+      { env.env_globals with
+        env_constants = new_constants } in
+    { env with env_globals = new_globals }
+
+exception NativeDestKO
+
+module type RedNativeEntries =
+  sig
+    type elem
+    type args
+
+    val get : args -> int -> elem
+    val get_int :  elem -> Uint63.t
+    val is_refl : elem -> bool
+    val mk_int_refl : env -> elem -> elem
+    val mkInt : env -> Uint63.t -> elem
+    val mkBool : env -> bool -> elem
+    val mkCarry : env -> bool -> elem -> elem (* true if carry *)
+    val mkIntPair : env -> elem -> elem -> elem
+    val mkLt : env -> elem
+    val mkEq : env -> elem
+    val mkGt : env -> elem
+    val mkClos : Name.t -> constr -> constr -> elem array -> elem
+
+  end
+
+module type RedNative =
+ sig
+   type elem
+   type args
+   val red_prim : env -> CPrimitives.t -> args -> elem option
+ end
+
+module RedNative (E:RedNativeEntries) :
+  RedNative with type elem = E.elem
+  with type args = E.args =
+struct
+  type elem = E.elem
+  type args = E.args
+
+  let get_int args i = E.get_int (E.get args i)
+
+  let get_int1 args = get_int args 0
+
+  let get_int2 args = get_int args 0, get_int args 1
+
+  let get_int3 args =
+    get_int args 0, get_int args 1, get_int args 2
+
+  let red_prim_aux env op args =
+    let open CPrimitives in
+    match op with
+    | Int63head0      ->
+      let i = get_int1 args in E.mkInt env (Uint63.head0 i)
+    | Int63tail0      ->
+      let i = get_int1 args in E.mkInt env (Uint63.tail0 i)
+    | Int63add        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.add i1 i2)
+    | Int63sub        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.sub i1 i2)
+    | Int63mul        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.mul i1 i2)
+    | Int63div        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.div i1 i2)
+    | Int63mod        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.rem i1 i2)
+    | Int63lsr        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.l_sr i1 i2)
+    | Int63lsl        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.l_sl i1 i2)
+    | Int63land       ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.l_and i1 i2)
+    | Int63lor        ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.l_or i1 i2)
+    | Int63lxor       ->
+      let i1, i2 = get_int2 args in E.mkInt env (Uint63.l_xor i1 i2)
+    | Int63addc       ->
+      let i1, i2 = get_int2 args in
+      let s = Uint63.add i1 i2 in
+      E.mkCarry env (Uint63.lt s i1) (E.mkInt env s)
+    | Int63subc       ->
+      let i1, i2 = get_int2 args in
+      let s = Uint63.sub i1 i2 in
+      E.mkCarry env (Uint63.lt i1 i2) (E.mkInt env s)
+    | Int63addCarryC  ->
+      let i1, i2 = get_int2 args in
+      let s = Uint63.add (Uint63.add i1 i2) (Uint63.of_int 1) in
+      E.mkCarry env (Uint63.le s i1) (E.mkInt env s)
+    | Int63subCarryC  ->
+      let i1, i2 = get_int2 args in
+      let s = Uint63.sub (Uint63.sub i1 i2) (Uint63.of_int 1) in
+      E.mkCarry env (Uint63.le i1 i2) (E.mkInt env s)
+    | Int63mulc       ->
+      let i1, i2 = get_int2 args in
+      let (h, l) = Uint63.mulc i1 i2 in
+      E.mkIntPair env (E.mkInt env h) (E.mkInt env l)
+    | Int63diveucl    ->
+      let i1, i2 = get_int2 args in
+      let q,r = Uint63.div i1 i2, Uint63.rem i1 i2 in
+      E.mkIntPair env (E.mkInt env q) (E.mkInt env r)
+    | Int63div21      ->
+      let i1, i2, i3 = get_int3 args in
+      let q,r = Uint63.div21 i1 i2 i3 in
+      E.mkIntPair env (E.mkInt env q) (E.mkInt env r)
+    | Int63addMulDiv  ->
+      let p, i, j = get_int3 args in
+      E.mkInt env
+        (Uint63.l_or
+           (Uint63.l_sl i p)
+           (Uint63.l_sr j (Uint63.sub (Uint63.of_int Uint63.uint_size) p)))
+    | Int63eq         ->
+      let i1, i2 = get_int2 args in
+      E.mkBool env (Uint63.equal i1 i2)
+    | Int63lt         ->
+      let i1, i2 = get_int2 args in
+      E.mkBool env (Uint63.lt i1 i2)
+    | Int63le         ->
+      let i1, i2 = get_int2 args in
+      E.mkBool env (Uint63.le i1 i2)
+    | Int63compare    ->
+      let i1, i2 = get_int2 args in
+      begin match Uint63.compare i1 i2 with
+        | x when x < 0 ->  E.mkLt env
+        | 0 -> E.mkEq env
+        | _ -> E.mkGt env
+      end
+
+  let red_prim env p args =
+    try
+      let r =
+        red_prim_aux env p args
+      in Some r
+    with NativeDestKO -> None
+
+end

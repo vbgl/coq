@@ -225,9 +225,12 @@ let v_oracle =
 let v_pol_arity =
   v_tuple "polymorphic_arity" [|List(Opt v_level);v_univ|]
 
+let v_primitive =
+  v_enum "primitive" 24
+
 let v_cst_def =
   v_sum "constant_def" 0
-    [|[|Opt Int|]; [|v_cstr_subst|]; [|v_lazy_constr|]|]
+    [|[|Opt Int|]; [|v_cstr_subst|]; [|v_lazy_constr|]; [|v_primitive|]|]
 
 let v_typing_flags =
   v_tuple "typing_flags" [|v_bool; v_bool; v_oracle; v_bool; v_bool; v_bool|]

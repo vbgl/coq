@@ -191,11 +191,15 @@ val type_in_type_constant : Constant.t -> env -> bool
 
 (** {6 ... } *)
 (** [constant_value env c] raises [NotEvaluableConst Opaque] if
-   [c] is opaque and [NotEvaluableConst NoBody] if it has no
-   body and [NotEvaluableConst IsProj] if [c] is a projection 
+   [c] is opaque, [NotEvaluableConst NoBody] if it has no
+   body, [NotEvaluableConst IsProj] if [c] is a projection,
+   [NotEvaluableConst (IsPrimitive p)] if [c] is primitive [p]
    and [Not_found] if it does not exist in [env] *)
 
-type const_evaluation_result = NoBody | Opaque
+type const_evaluation_result =
+  | NoBody
+  | Opaque
+  | IsPrimitive of CPrimitives.t
 exception NotEvaluableConst of const_evaluation_result
 
 val constant_type : env -> Constant.t puniverses -> types constrained
@@ -324,13 +328,42 @@ val is_polymorphic : env -> Names.GlobRef.t -> bool
 val is_template_polymorphic : env -> GlobRef.t -> bool
 val is_type_in_type : env -> GlobRef.t -> bool
 
-open Retroknowledge
-(** functions manipulating the retroknowledge 
-    @author spiwack *)
-
-val registered : env -> field -> bool
-
-val register : env -> field -> GlobRef.t -> env
-
 (** Native compiler *)
 val no_link_info : link_info
+
+(** {5 Reduction of primitive} *)
+val retroknowledge : env -> Retroknowledge.retroknowledge
+val add_retroknowledge : env -> Retroknowledge.action * constr -> env
+
+exception NativeDestKO (* Should be raised by get_* functions on failure *)
+
+module type RedNativeEntries =
+  sig
+    type elem
+    type args
+
+    val get : args -> int -> elem
+    val get_int :  elem -> Uint63.t
+    val is_refl : elem -> bool
+    val mk_int_refl : env -> elem -> elem
+    val mkInt : env -> Uint63.t -> elem
+    val mkBool : env -> bool -> elem
+    val mkCarry : env -> bool -> elem -> elem (* true if carry *)
+    val mkIntPair : env -> elem -> elem -> elem
+    val mkLt : env -> elem
+    val mkEq : env -> elem
+    val mkGt : env -> elem
+    val mkClos : Name.t -> constr -> constr -> elem array -> elem
+  end
+
+module type RedNative =
+ sig
+   type elem
+   type args
+   val red_prim : env -> CPrimitives.t -> args -> elem option
+ end
+
+module RedNative :
+  functor (E:RedNativeEntries) ->
+    RedNative with type elem = E.elem
+    with type args = E.args
