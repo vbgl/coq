@@ -14,6 +14,7 @@ Require Import NaryFunctions.
 Require Import Wf_nat.
 Require Export ZArith.
 Require Export DoubleType.
+Require Int63.
 
 Local Unset Elimination Schemes.
 
@@ -44,18 +45,11 @@ Definition digits31 t := Eval compute in nfun digits size t.
 
 Inductive int31 : Type := I31 : digits31 int31.
 
-(* spiwack: Registration of the type of integers, so that the matchs in
-   the functions below perform dynamic decompilation (otherwise some segfault
-   occur when they are applied to one non-closed term and one closed term). *)
-Register digits as int31.bits.
-Register int31 as int31.type.
-
 Scheme int31_ind := Induction for int31 Sort Prop.
 Scheme int31_rec := Induction for int31 Sort Set.
 Scheme int31_rect := Induction for int31 Sort Type.
 
 Declare Scope int31_scope.
-Declare ML Module "int31_syntax_plugin".
 Delimit Scope int31_scope with int31.
 Bind Scope int31_scope with int31.
 Local Open Scope int31_scope.
@@ -351,22 +345,6 @@ Definition lor31 n m := phi_inv (Z.lor (phi n) (phi m)).
 Definition land31 n m := phi_inv (Z.land (phi n) (phi m)).
 Definition lxor31 n m := phi_inv (Z.lxor (phi n) (phi m)).
 
-Register add31 as int31.plus.
-Register add31c as int31.plusc.
-Register add31carryc as int31.pluscarryc.
-Register sub31 as int31.minus.
-Register sub31c as int31.minusc.
-Register sub31carryc as int31.minuscarryc.
-Register mul31 as int31.times.
-Register mul31c as int31.timesc.
-Register div3121 as int31.div21.
-Register div31 as int31.diveucl.
-Register compare31 as int31.compare.
-Register addmuldiv31 as int31.addmuldiv.
-Register lor31 as int31.lor.
-Register land31 as int31.land.
-Register lxor31 as int31.lxor.
-
 Definition lnot31 n := lxor31 Tn n.
 Definition ldiff31 n m := land31 n (lnot31 m).
 
@@ -491,5 +469,9 @@ Definition tail031 (i:int31) :=
     end)
    i On.
 
-Register head031 as int31.head0.
-Register tail031 as int31.tail0.
+Notation "'0'" := On : int31_scope.
+Notation "'1'" := In : int31_scope.
+Notation "'90'" := (phi_inv 90%Z) : int31_scope.
+Notation "'96'" := (phi_inv 96%Z) : int31_scope.
+Notation "'318'" := (phi_inv 318%Z) : int31_scope.
+Notation "'611'" := (phi_inv 611%Z) : int31_scope.

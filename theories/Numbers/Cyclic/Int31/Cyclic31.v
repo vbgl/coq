@@ -32,7 +32,7 @@ Section Basics.
 
  (** * Basic results about [iszero], [shiftl], [shiftr] *)
 
- Lemma iszero_eq0 : forall x, iszero x = true -> x=0.
+ Lemma iszero_eq0 : forall x, iszero x = true -> x = On.
  Proof.
  destruct x; simpl; intros.
  repeat
@@ -42,7 +42,7 @@ Section Basics.
  reflexivity.
  Qed.
 
- Lemma iszero_not_eq0 : forall x, iszero x = false -> x<>0.
+ Lemma iszero_not_eq0 : forall x, iszero x = false -> x <> On.
  Proof.
  intros x H Eq; rewrite Eq in H; simpl in *; discriminate.
  Qed.
@@ -60,7 +60,7 @@ Section Basics.
  Qed.
 
  Lemma twice_zero : forall x,
-  twice x = 0 <-> twice_plus_one x = 1.
+  twice x = On <-> twice_plus_one x = In.
  Proof.
  destruct x; simpl in *; split;
  intro H; injection H; intros; subst; auto.
@@ -93,19 +93,19 @@ Section Basics.
  intros; now f_equal.
  Qed.
 
- Lemma nshiftr_n_0 : forall n, nshiftr 0 n = 0.
+ Lemma nshiftr_n_0 : forall n, nshiftr On n = On.
  Proof.
  induction n; simpl; auto.
  rewrite IHn; auto.
  Qed.
 
- Lemma nshiftr_size : forall x, nshiftr x size = 0.
+ Lemma nshiftr_size : forall x, nshiftr x size = On.
  Proof.
  destruct x; simpl; auto.
  Qed.
 
  Lemma nshiftr_above_size : forall k x, size<=k ->
-  nshiftr x k = 0.
+  nshiftr x k = On.
  Proof.
  intros.
  replace k with ((k-size)+size)%nat by omega.
@@ -130,19 +130,19 @@ Section Basics.
  intros n; elim n; simpl; intros; now f_equal.
  Qed.
 
- Lemma nshiftl_n_0 : forall n, nshiftl 0 n = 0.
+ Lemma nshiftl_n_0 : forall n, nshiftl On n = On.
  Proof.
  induction n; simpl; auto.
  rewrite IHn; auto.
  Qed.
 
- Lemma nshiftl_size : forall x, nshiftl x size = 0.
+ Lemma nshiftl_size : forall x, nshiftl x size = On.
  Proof.
  destruct x; simpl; auto.
  Qed.
 
  Lemma nshiftl_above_size : forall k x, size<=k ->
-  nshiftl x k = 0.
+  nshiftl x k = On.
  Proof.
  intros.
  replace k with ((k-size)+size)%nat by omega.
@@ -166,13 +166,13 @@ Section Basics.
  (** More advanced results about [nshiftr] *)
 
  Lemma nshiftr_predsize_0_firstl : forall x,
-  nshiftr x (pred size) = 0 -> firstl x = D0.
+  nshiftr x (pred size) = On -> firstl x = D0.
  Proof.
  destruct x; compute; intros H; injection H; intros; subst; auto.
  Qed.
 
  Lemma nshiftr_0_propagates : forall n p x, n <= p ->
-  nshiftr x n = 0 -> nshiftr x p = 0.
+  nshiftr x n = On -> nshiftr x p = On.
  Proof.
  intros.
  replace p with ((p-n)+n)%nat by omega.
@@ -182,7 +182,7 @@ Section Basics.
  Qed.
 
  Lemma nshiftr_0_firstl : forall n x, n < size ->
-  nshiftr x n = 0 -> firstl x = D0.
+  nshiftr x n = On -> firstl x = D0.
  Proof.
  intros.
  apply nshiftr_predsize_0_firstl.
@@ -194,7 +194,7 @@ Section Basics.
  (** Not used for the moment. Are they really useful ? *)
 
  Lemma int31_ind_sneakl : forall P : int31->Prop,
-  P 0 ->
+  P On ->
   (forall x d, P x -> P (sneakl d x)) ->
   forall x, P x.
  Proof.
@@ -211,7 +211,7 @@ Section Basics.
  Qed.
 
  Lemma int31_ind_twice : forall P : int31->Prop,
-  P 0 ->
+  P On ->
   (forall x, P x -> P (twice x)) ->
   (forall x, P x -> P (twice_plus_one x)) ->
   forall x, P x.
@@ -280,7 +280,7 @@ Section Basics.
 
  Definition recrbis := recrbis_aux size.
 
- Hypothesis case0_caserec : caserec D0 0 case0 = case0.
+ Hypothesis case0_caserec : caserec D0 On case0 = case0.
 
  Lemma recrbis_aux_equiv : forall n x,
    recrbis_aux n A case0 caserec x = recr_aux n A case0 caserec x.
@@ -288,8 +288,9 @@ Section Basics.
  induction n; simpl; auto; intros.
  case_eq (iszero x); intros; [ | f_equal; auto ].
  rewrite (iszero_eq0 _ H); simpl; auto.
- replace (recrbis_aux n A case0 caserec 0) with case0; auto.
- clear H IHn; induction n; simpl; congruence.
+ fold On.
+ replace (recrbis_aux n A case0 caserec On) with case0; auto.
+ clear H IHn; induction n; simpl; fold On; congruence.
  Qed.
 
  Lemma recrbis_equiv : forall x,
@@ -770,7 +771,7 @@ Section Basics.
  intros.
  case_eq (iszero x); intros.
  rewrite (iszero_eq0 _ H0) in *; simpl in *.
- change (incr 0) with 1 in H.
+ change (incr On) with In in H.
  symmetry; rewrite twice_zero; auto.
  case_eq (firstr x); intros.
  rewrite incr_eqn1 in H; auto.
@@ -884,7 +885,7 @@ Section Basics.
   end.
 
  Lemma p2ibis_bounded : forall n p,
-  nshiftr (snd (p2ibis n p)) n = 0.
+  nshiftr (snd (p2ibis n p)) n = On.
  Proof.
  induction n.
  simpl; intros; auto.
@@ -910,7 +911,7 @@ Section Basics.
  destruct i; simpl in *; rewrite H; auto.
 
  rewrite nshiftr_S_tail; auto.
- replace (shiftr In) with 0; auto.
+ replace (shiftr In) with On; auto.
  apply nshiftr_n_0.
  Qed.
 
@@ -1119,32 +1120,32 @@ End Basics.
 Instance int31_ops : ZnZ.Ops int31 :=
 {
  digits      := 31%positive; (* number of digits *)
- zdigits     := 31; (* number of digits *)
+ zdigits     := phi_inv 31; (* number of digits *)
  to_Z        := phi; (* conversion to Z *)
  of_pos      := positive_to_int31; (* positive -> N*int31 :  p => N,i
                                       where p = N*2^31+phi i *)
  head0       := head031;  (* number of head 0 *)
  tail0       := tail031;  (* number of tail 0 *)
- zero        := 0;
- one         := 1;
+ zero        := On;
+ one         := In;
  minus_one   := Tn; (* 2^31 - 1 *)
  compare     := compare31;
- eq0         := fun i => match i ?= 0 with Eq => true | _ => false end;
- opp_c       := fun i => 0 -c i;
+ eq0         := fun i => match i ?= On with Eq => true | _ => false end;
+ opp_c       := fun i => On -c i;
  opp         := opp31;
- opp_carry   := fun i => 0-i-1;
- succ_c      := fun i => i +c 1;
+ opp_carry   := fun i => On -i -In;
+ succ_c      := fun i => i +c In;
  add_c       := add31c;
  add_carry_c := add31carryc;
- succ        := fun i => i + 1;
+ succ        := fun i => i + In;
  add         := add31;
- add_carry   := fun i j => i + j + 1;
- pred_c      := fun i => i -c 1;
+ add_carry   := fun i j => i + j + In;
+ pred_c      := fun i => i -c In;
  sub_c       := sub31c;
  sub_carry_c := sub31carryc;
- pred        := fun i => i - 1;
+ pred        := fun i => i - In;
  sub         := sub31;
- sub_carry   := fun i j => i - j - 1;
+ sub_carry   := fun i j => i - j - In;
  mul_c       := mul31c;
  mul         := mul31;
  square_c    := fun x => x *c x;
@@ -1159,13 +1160,13 @@ Instance int31_ops : ZnZ.Ops int31 :=
  add_mul_div := addmuldiv31;
  pos_mod     := (* modulo 2^p *)
   fun p i =>
-  match p ?= 31 with
-    | Lt => addmuldiv31 p 0 (addmuldiv31 (31-p) i 0)
+  match p ?= phi_inv 31 with
+    | Lt => addmuldiv31 p On (addmuldiv31 (phi_inv 31 - p) i On)
     | _ => i
   end;
  is_even      :=
-  fun i => let (_,r) := i/2 in
-  match r ?= 0 with Eq => true | _ => false end;
+  fun i => let (_,r) := i / Twon in
+  match r ?= On with Eq => true | _ => false end;
  sqrt2       := sqrt312;
  sqrt        := sqrt31;
  lor         := lor31;
@@ -1195,7 +1196,7 @@ Section Int31_Specs.
  Notation "[|| x ||]" :=
    (zn2z_to_Z wB phi x)  (at level 0, x at level 99).
 
- Lemma spec_zdigits : [| 31 |] = 31.
+ Lemma spec_zdigits : [| phi_inv 31 |] = 31.
  Proof.
   reflexivity.
  Qed.
@@ -1205,12 +1206,12 @@ Section Int31_Specs.
   auto with zarith.
  Qed.
 
- Lemma spec_0   : [| 0 |] = 0.
+ Lemma spec_0   : [| On |] = 0.
  Proof.
   reflexivity.
  Qed.
 
- Lemma spec_1   : [| 1 |] = 1.
+ Lemma spec_1   : [| In |] = 1.
  Proof.
   reflexivity.
  Qed.
@@ -1244,7 +1245,7 @@ Section Int31_Specs.
   [ rewrite phi_phi_inv; auto | now apply H1 | now apply H1].
  Qed.
 
- Lemma spec_succ_c : forall x, [+|add31c x 1|] = [|x|] + 1.
+ Lemma spec_succ_c : forall x, [+|add31c x In|] = [|x|] + 1.
  Proof.
  intros; apply spec_add_c.
  Qed.
@@ -1274,14 +1275,14 @@ Section Int31_Specs.
  Qed.
 
  Lemma spec_add_carry :
-	 forall x y, [|x+y+1|] = ([|x|] + [|y|] + 1) mod wB.
+         forall x y, [|x+y+In|] = ([|x|] + [|y|] + 1) mod wB.
  Proof.
  unfold add31; intros.
  repeat rewrite phi_phi_inv.
  apply Zplus_mod_idemp_l.
  Qed.
 
- Lemma spec_succ : forall x, [|x+1|] = ([|x|] + 1) mod wB.
+ Lemma spec_succ : forall x, [|x+In|] = ([|x|] + 1) mod wB.
  Proof.
  intros; rewrite <- spec_1; apply spec_add.
  Qed.
@@ -1332,39 +1333,39 @@ Section Int31_Specs.
  Qed.
 
  Lemma spec_sub_carry :
-   forall x y, [|x-y-1|] = ([|x|] - [|y|] - 1) mod wB.
+   forall x y, [|x-y-In|] = ([|x|] - [|y|] - 1) mod wB.
  Proof.
  unfold sub31; intros.
  repeat rewrite phi_phi_inv.
  apply Zminus_mod_idemp_l.
  Qed.
 
- Lemma spec_opp_c : forall x, [-|sub31c 0 x|] = -[|x|].
+ Lemma spec_opp_c : forall x, [-|sub31c On x|] = -[|x|].
  Proof.
  intros; apply spec_sub_c.
  Qed.
 
- Lemma spec_opp : forall x, [|0 - x|] = (-[|x|]) mod wB.
+ Lemma spec_opp : forall x, [|On - x|] = (-[|x|]) mod wB.
  Proof.
  intros; apply phi_phi_inv.
  Qed.
 
- Lemma spec_opp_carry : forall x, [|0 - x - 1|] = wB - [|x|] - 1.
+ Lemma spec_opp_carry : forall x, [|On - x - In|] = wB - [|x|] - 1.
  Proof.
  unfold sub31; intros.
  repeat rewrite phi_phi_inv.
- change [|1|] with 1; change [|0|] with 0.
+ change [|In|] with 1; change [|On|] with 0.
  rewrite <- (Z_mod_plus_full (0-[|x|]) 1 wB).
  rewrite Zminus_mod_idemp_l.
  rewrite Zmod_small; generalize (phi_bounded x); lia.
  Qed.
 
- Lemma spec_pred_c : forall x, [-|sub31c x 1|] = [|x|] - 1.
+ Lemma spec_pred_c : forall x, [-|sub31c x In|] = [|x|] - 1.
  Proof.
  intros; apply spec_sub_c.
  Qed.
 
- Lemma spec_pred : forall x, [|x-1|] = ([|x|] - 1) mod wB.
+ Lemma spec_pred : forall x, [|x-In|] = ([|x|] - 1) mod wB.
  Proof.
  intros; apply spec_sub.
  Qed.
@@ -1669,7 +1670,7 @@ Section Int31_Specs.
        [|ZnZ.pos_mod p w|] = [|w|] mod (2 ^ [|p|]).
  Proof.
  unfold int31_ops, ZnZ.pos_mod, compare31.
- change [|31|] with 31%Z.
+ change [|phi_inv 31|] with 31%Z.
  assert (forall w p, 31<=p -> [|w|] = [|w|] mod 2^p).
   intros.
   generalize (phi_bounded w).
@@ -1683,17 +1684,17 @@ Section Int31_Specs.
     apply H; change ([|p|]>31)%Z in H0; auto with zarith ].
  change ([|p|]<31) in H0.
  rewrite spec_add_mul_div by auto with zarith.
- change [|0|] with 0%Z; rewrite Z.mul_0_l, Z.add_0_l.
+ change [|On|] with 0%Z; rewrite Z.mul_0_l, Z.add_0_l.
  generalize (phi_bounded p)(phi_bounded w); intros.
  assert (31-[|p|]<wB).
   apply Z.le_lt_trans with 31%Z; auto with zarith.
   compute; auto.
- assert ([|31-p|]=31-[|p|]).
+ assert ([|phi_inv 31-p|]=31-[|p|]).
   unfold sub31; rewrite phi_phi_inv.
-  change [|31|] with 31%Z.
+  change [|phi_inv 31|] with 31%Z.
   apply Zmod_small; auto with zarith.
  rewrite spec_add_mul_div by (rewrite H4; auto with zarith).
- change [|0|] with 0%Z; rewrite Zdiv_0_l, Z.add_0_r.
+ change [|On|] with 0%Z; rewrite Zdiv_0_l, Z.add_0_r.
  rewrite H4.
  apply shift_unshift_mod_2; simpl; auto with zarith.
  Qed.
@@ -1765,7 +1766,7 @@ Section Int31_Specs.
  rewrite (iszero_eq0 _ H0) in H; discriminate.
  Qed.
 
- Lemma phi_nz : forall x, 0 < [|x|] <-> x <> 0%int31.
+ Lemma phi_nz : forall x, 0 < [|x|] <-> x <> On.
  Proof.
  split; intros.
  red; intro; subst x; discriminate.
@@ -1776,11 +1777,11 @@ Section Int31_Specs.
  Qed.
 
  Lemma spec_head0  : forall x,  0 < [|x|] ->
-	 wB/ 2 <= 2 ^ ([|head031 x|]) * [|x|] < wB.
+         wB/ 2 <= 2 ^ ([|head031 x|]) * [|x|] < wB.
  Proof.
  intros.
  rewrite head031_equiv.
- assert (nshiftl x size = 0%int31).
+ assert (nshiftl x size = On).
   apply nshiftl_size.
  revert x H H0.
  unfold size at 2 5.
@@ -1878,7 +1879,7 @@ Section Int31_Specs.
  Proof.
  intros.
  rewrite tail031_equiv.
- assert (nshiftr x size = 0%int31).
+ assert (nshiftr x size = On).
   apply nshiftr_size.
  revert x H H0.
  induction size.
@@ -1988,7 +1989,7 @@ Section Int31_Specs.
  Lemma sqrt31_step_def rec i j:
    sqrt31_step rec i j =
    match (fst (i/j) ?= j)%int31 with
-     Lt => rec i (fst ((j + fst(i/j))/2))%int31
+     Lt => rec i (fst ((j + fst(i/j))/Twon))%int31
    | _ =>  j
    end.
  Proof.
@@ -2011,7 +2012,7 @@ Section Int31_Specs.
     [|rec i j1|] ^ 2 <= [|i|] < ([|rec i j1|] + 1) ^ 2) ->
   [|sqrt31_step rec i j|] ^ 2 <= [|i|] < ([|sqrt31_step rec i j|] + 1) ^ 2.
  Proof.
- assert (Hp2: 0 < [|2|]) by exact (eq_refl Lt).
+ assert (Hp2: 0 < [|Twon|]) by exact (eq_refl Lt).
  intros Hi Hj Hij H31 Hrec; rewrite sqrt31_step_def.
  rewrite spec_compare, div31_phi; auto.
  case Z.compare_spec; auto; intros Hc;
@@ -2026,12 +2027,12 @@ Section Int31_Specs.
    (1 * 2 + (([|j|] - 2) + [|i|] / [|j|])) by ring.
    rewrite Z_div_plus_full_l; auto with zarith.
    assert (0 <= [|i|]/ [|j|]) by auto with zarith.
-   assert (0 <= ([|j|] - 2 + [|i|] / [|j|]) / [|2|]); auto with zarith.
+   assert (0 <= ([|j|] - 2 + [|i|] / [|j|]) / [|Twon|]); auto with zarith.
  - rewrite <- Hj, Zdiv_1_r.
    replace (1 + [|i|]) with (1 * 2 + ([|i|] - 1)) by ring.
    rewrite Z_div_plus_full_l; auto with zarith.
    assert (0 <= ([|i|] - 1) /2) by auto with zarith.
-   change ([|2|]) with 2; auto with zarith.
+   change ([|Twon|]) with 2; auto with zarith.
  Qed.
 
  Lemma iter31_sqrt_correct n rec i j: 0 < [|i|] -> 0 < [|j|] ->
@@ -2059,29 +2060,29 @@ Section Int31_Specs.
  Lemma spec_sqrt : forall x,
        [|sqrt31 x|] ^ 2 <= [|x|] < ([|sqrt31 x|] + 1) ^ 2.
  Proof.
- intros i; unfold sqrt31.
- rewrite spec_compare. case Z.compare_spec; change [|1|] with 1;
+ intros i; unfold sqrt31. fold On In Twon.
+ rewrite spec_compare. case Z.compare_spec; change [|In|] with 1;
    intros Hi; auto with zarith.
  repeat rewrite Z.pow_2_r; auto with zarith.
  apply iter31_sqrt_correct; auto with zarith.
-  rewrite div31_phi; change ([|2|]) with 2;  auto with zarith.
+  rewrite div31_phi; change ([|Twon|]) with 2;  auto with zarith.
   replace ([|i|]) with (1 * 2 + ([|i|] - 2))%Z; try ring.
   assert (0 <= ([|i|] - 2)/2)%Z by (apply Z_div_pos; auto with zarith).
   rewrite Z_div_plus_full_l; auto with zarith.
-  rewrite div31_phi; change ([|2|]) with 2; auto with zarith.
+  rewrite div31_phi; change ([|Twon|]) with 2; auto with zarith.
   apply sqrt_init; auto.
- rewrite div31_phi; change ([|2|]) with 2; auto with zarith.
+ rewrite div31_phi; change ([|Twon|]) with 2; auto with zarith.
  apply Z.le_lt_trans with ([|i|]).
  apply Z_mult_div_ge; auto with zarith.
  case (phi_bounded i); auto.
  intros j2 H1 H2; contradict H2; apply Z.lt_nge.
- rewrite div31_phi; change ([|2|]) with 2; auto with zarith.
+ rewrite div31_phi; change ([|Twon|]) with 2; auto with zarith.
  apply Z.le_lt_trans with ([|i|]); auto with zarith.
  assert (0 <= [|i|]/2)%Z by (apply Z_div_pos; auto with zarith).
  apply Z.le_trans with (2 * ([|i|]/2)); auto with zarith.
  apply Z_mult_div_ge; auto with zarith.
  case (phi_bounded i); unfold size; auto with zarith.
- change [|0|] with 0; auto with zarith.
+ change [|On|] with 0; auto with zarith.
  case (phi_bounded i); repeat rewrite Z.pow_2_r; auto with zarith.
  Qed.
 
@@ -2093,8 +2094,8 @@ Section Int31_Specs.
     | _ =>
        match (fst (div3121 ih il j) ?= j)%int31 with
          Lt => let m := match j +c fst (div3121 ih il j) with
-                       C0 m1 => fst (m1/2)%int31
-                     | C1 m1 => (fst (m1/2) + v30)%int31
+                       C0 m1 => fst (m1/Twon)%int31
+                     | C1 m1 => (fst (m1/Twon) + v30)%int31
                      end in rec ih il m
        | _ =>  j
        end
@@ -2136,7 +2137,7 @@ Section Int31_Specs.
   [|sqrt312_step rec ih il  j|] ^ 2 <= phi2 ih il
       < ([|sqrt312_step rec ih il j|] + 1) ^  2.
  Proof.
- assert (Hp2: (0 < [|2|])%Z) by exact (eq_refl Lt).
+ assert (Hp2: (0 < [|Twon|])%Z) by exact (eq_refl Lt).
  intros Hih Hj Hij Hrec; rewrite sqrt312_step_def.
  assert (H1: ([|ih|] <= [|j|])) by (apply sqrt312_lower_bound with il; auto).
  case (phi_bounded ih); intros Hih1 _.
@@ -2175,9 +2176,9 @@ Section Int31_Specs.
        generalize (spec_add_c j (fst (div3121 ih il j))).
        unfold interp_carry;  case add31c; intros r;
        rewrite div312_phi; auto with zarith.
-       { rewrite div31_phi; change [|2|] with 2; auto with zarith.
+       { rewrite div31_phi; change [|Twon|] with 2; auto with zarith.
          intros HH; rewrite HH; clear HH; auto with zarith. }
-       { rewrite spec_add, div31_phi; change [|2|] with 2; auto.
+       { rewrite spec_add, div31_phi; change [|Twon|] with 2; auto.
          rewrite Z.mul_1_l; intros HH.
          rewrite Z.add_comm, <- Z_div_plus_full_l; auto with zarith.
          change (phi v30 * 2) with (2 ^ Z.of_nat size).
@@ -2196,9 +2197,9 @@ Section Int31_Specs.
          rewrite spec_add, Zmod_small.
          - rewrite div31_phi; auto.
          - split; auto with zarith.
-           + case (phi_bounded (fst (r/2)%int31));
+           + case (phi_bounded (fst (r/Twon)%int31));
              case (phi_bounded v30); auto with zarith.
-           + rewrite div31_phi; change (phi 2) with 2; auto.
+           + rewrite div31_phi; change (phi Twon) with 2; auto.
              change (2 ^Z.of_nat size) with (base/2 + phi v30).
              assert (phi r / 2 < base/2); auto with zarith.
              apply Z.mul_lt_mono_pos_r with 2; auto with zarith.
@@ -2256,6 +2257,7 @@ Section Int31_Specs.
           [+|r|] <= 2 * [|s|].
  Proof.
  intros ih il Hih; unfold sqrt312.
+ fold On In.
  change [||WW ih il||] with (phi2 ih il).
  assert (Hbin: forall s, s * s + 2* s + 1 = (s + 1) ^ 2) by
   (intros s; ring).
@@ -2334,8 +2336,8 @@ Section Int31_Specs.
  rewrite <- Hihl1; unfold phi2; rewrite <- H1; ring.
  unfold interp_carry in Hil2 |- *.
  unfold interp_carry; change (1 * 2 ^ Z.of_nat size) with base.
- assert (Hsih: [|ih - 1|] = [|ih|] - 1).
- { rewrite spec_sub, Zmod_small; auto; change [|1|] with 1.
+ assert (Hsih: [|ih - In|] = [|ih|] - 1).
+ { rewrite spec_sub, Zmod_small; auto; change [|In|] with 1.
    case (phi_bounded ih); intros H1 H2.
    generalize Hih; change (2 ^ Z.of_nat size / 4) with 536870912.
    split; auto with zarith. }
@@ -2415,7 +2417,7 @@ Qed.
  Proof.
  clear; unfold ZnZ.eq0, int31_ops.
  unfold compare31; intros.
- change [|0|] with 0 in H.
+ change [|On|] with 0 in H.
  apply Z.compare_eq.
  now destruct ([|x|] ?= 0).
  Qed.
@@ -2426,11 +2428,11 @@ Qed.
       if ZnZ.is_even x then [|x|] mod 2 = 0 else [|x|] mod 2 = 1.
  Proof.
  unfold ZnZ.is_even, int31_ops; intros.
- generalize (spec_div x 2).
- destruct (x/2)%int31 as (q,r); intros.
+ generalize (spec_div x Twon).
+ destruct (x/Twon)%int31 as (q,r); intros.
  unfold compare31.
- change [|2|] with 2 in H.
- change [|0|] with 0.
+ change [|Twon|] with 2 in H.
+ change [|On|] with 0.
  destruct H; auto with zarith.
  replace ([|x|] mod 2) with [|r|].
  destruct H; auto with zarith.
