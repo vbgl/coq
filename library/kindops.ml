@@ -28,7 +28,6 @@ let string_of_theorem_kind = function
 let string_of_definition_object_kind = function
   | Definition -> "Definition"
   | Example -> "Example"
-  | Coercion -> "Coercion"
   | SubClass -> "SubClass"
   | CanonicalStructure -> "Canonical Structure"
   | Instance -> "Instance"

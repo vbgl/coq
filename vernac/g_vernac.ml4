@@ -75,8 +75,25 @@ GEXTEND Gram
       | IDENT "Redirect"; s = ne_string; c = located_vernac -> VernacRedirect (s, c)
       | IDENT "Timeout"; n = natural; v = vernac_control -> VernacTimeout(n,v)
       | IDENT "Fail"; v = vernac_control -> VernacFail v
-      | (f, v) = vernac -> VernacExpr(f, v) ]
+      | (f, v) = decorated_vernac -> VernacExpr (f, v) ]
     ]
+  ;
+  decorated_vernac:
+  [[ a = attributes ; (f, v) = vernac -> (List.append a f, v)
+  | fv = vernac -> fv
+  ]]
+  ;
+  attributes: [[ "#[" ; a = LIST1 attribute SEP "," ; "]" -> a ]]
+  ;
+  attribute:
+  [[
+    IDENT "polymorphic" -> VernacPolymorphic true
+  | IDENT "monomorphic" -> VernacPolymorphic false
+  | IDENT "program" -> VernacProgram
+  | IDENT "local" -> VernacLocal true
+  | IDENT "global" -> VernacLocal false
+  | IDENT "coercion" -> VernacCoercion
+  ]]
   ;
   vernac:
     [ [ IDENT "Local"; (f, v) = vernac_poly -> (VernacLocal true :: f, v)
@@ -621,7 +638,7 @@ GEXTEND Gram
       (* Coercions *)
       | IDENT "Coercion"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-        [VernacCoercion], VernacDefinition ((NoDischarge,Coercion),((CAst.make (Name s)),None),d)
+        [VernacCoercion], VernacDefinition ((NoDischarge,Definition),((CAst.make (Name s)),None),d)
       | IDENT "Identity"; IDENT "Coercion"; f = identref; ":";
          s = class_rawexpr; ">->"; t = class_rawexpr ->
         [], VernacIdentityCoercion (f, s, t)

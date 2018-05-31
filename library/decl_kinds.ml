@@ -33,7 +33,6 @@ type theorem_kind =
 
 type definition_object_kind =
   | Definition
-  | Coercion
   | SubClass
   | CanonicalStructure
   | Example
