@@ -181,6 +181,11 @@ let std_table : (string * string list * string) array =
    ; "program.tactics.obligation", [coq;"Program";"Tactics"], "obligation"
    ; "program.tactics.fix_proto",  [coq;"Program";"Tactics"], "fix_proto"
 
+   ; "num.pos.type", [coq;"Numbers";"BinNums"], "positive"
+   ; "num.pos.xH", [coq;"Numbers";"BinNums"], "xH"
+   ; "num.pos.xO", [coq;"Numbers";"BinNums"], "xO"
+   ; "num.pos.xI", [coq;"Numbers";"BinNums"], "xI"
+
   |]
 
 let table = std_table
