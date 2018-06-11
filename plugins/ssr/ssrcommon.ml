@@ -1220,7 +1220,7 @@ let genclrtac cl cs clr =
       (fun type_err gl ->
          tclTHEN
            (tclTHEN (Proofview.V82.of_tactic (Tactics.elim_type (EConstr.of_constr
-             (Universes.constr_of_global @@ Coqlib.(lib_ref "core.False.type"))))) (old_cleartac clr))
+             (UnivGen.constr_of_global @@ Coqlib.(lib_ref "core.False.type"))))) (old_cleartac clr))
            (fun gl -> raise type_err)
            gl))
     (old_cleartac clr)
@@ -1501,6 +1501,7 @@ let tclOPTION o d =
   | None -> d >>= tclUNIT
   | Some x -> tclUNIT x
 
+[@@@ocaml.warning "-3"]
 let tacIS_INJECTION_CASE ?ty t = begin
   tclOPTION ty (tacTYPEOF t) >>= fun ty ->
   tacREDUCE_TO_QUANTIFIED_IND ty >>= fun ((mind,_),_) ->

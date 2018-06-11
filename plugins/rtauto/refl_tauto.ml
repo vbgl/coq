@@ -26,9 +26,9 @@ let step_count = ref 0
 
 let node_count = ref 0
 
-let li_False = lazy (destInd (Universes.constr_of_global @@ Coqlib.lib_ref "core.False.type"))
-let li_and   = lazy (destInd (Universes.constr_of_global @@ Coqlib.lib_ref "core.and.type"))
-let li_or    = lazy (destInd (Universes.constr_of_global @@ Coqlib.lib_ref "core.or.type"))
+let li_False = lazy (destInd (UnivGen.constr_of_global @@ Coqlib.lib_ref "core.False.type"))
+let li_and   = lazy (destInd (UnivGen.constr_of_global @@ Coqlib.lib_ref "core.and.type"))
+let li_or    = lazy (destInd (UnivGen.constr_of_global @@ Coqlib.lib_ref "core.or.type"))
 
 [@@@ocaml.warning "-3"]
 let pos_constant s = Universes.constr_of_global @@

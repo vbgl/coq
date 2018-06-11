@@ -427,6 +427,7 @@ let rwcltac cl rdx dir sr gl =
 ;;
 
 
+[@@@ocaml.warning "-3"]
 let lz_coq_prod =
   let prod = lazy (Coqlib.build_prod ()) in fun () -> Lazy.force prod
 

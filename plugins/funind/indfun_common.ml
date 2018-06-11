@@ -114,6 +114,7 @@ let def_of_const t =
        with Not_found -> assert false)
     |_ -> assert false
 
+[@@@ocaml.warning "-3"]
 let coq_constant s =
   UnivGen.constr_of_global @@
   Coqlib.gen_reference_in_modules "RecursiveDefinition"

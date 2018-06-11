@@ -145,6 +145,7 @@ let def_id = Id.of_string "def"
 let p_id = Id.of_string "p"
 let rec_res_id = Id.of_string "rec_res";;
 let lt = function () -> (coq_init_constant "lt")
+[@@@ocaml.warning "-3"]
 let le = function () -> (Coqlib.gen_reference_in_modules "RecursiveDefinition" Coqlib.init_modules "le")
 let ex = function () -> (coq_init_constant "ex")
 let nat = function () -> (coq_init_constant "nat")

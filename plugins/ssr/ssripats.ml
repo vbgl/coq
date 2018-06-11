@@ -149,6 +149,7 @@ let tac_case t =
 end
 
 (** [=> [: id]] ************************************************************)
+[@@@ocaml.warning "-3"]
 let mk_abstract_id =
   let open Coqlib in
   let ssr_abstract_id = Summary.ref ~name:"SSR:abstractid" 0 in
@@ -340,6 +341,7 @@ let mkCoqRefl t c env sigma =
 
 (** Intro patterns processing for elim tactic, in particular when used in
     conjunction with equation generation as in [elim E: x] *)
+[@@@ocaml.warning "-3"]
 let elim_intro_tac ipats ?ist what eqid ssrelim is_rec clr =
   let intro_eq =
     match eqid with

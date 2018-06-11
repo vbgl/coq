@@ -212,8 +212,10 @@ let stdlib_modules =
    ["Coq";"Init";"Logic"];
   ]
 
+[@@@ocaml.warning "-3"]
 let coq_constant c =
   lazy (EConstr.of_constr (UnivGen.constr_of_global @@ Coqlib.gen_reference_in_modules "Ring" stdlib_modules c))
+[@@@ocaml.warning "-3"]
 let coq_reference c =
   lazy (Coqlib.gen_reference_in_modules "Ring" stdlib_modules c)
 
