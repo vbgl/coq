@@ -83,50 +83,42 @@ GEXTEND Gram
   | fv = vernac -> fv
   ]]
   ;
-  attributes: [[ "#[" ; a = LIST1 attribute SEP "," ; "]" -> a ]]
+  attributes:
+  [[ "#[" ; a = attribute_list ; "]" -> a
+  ]]
+  ;
+  attribute_list:
+  [[ a = LIST0 attribute SEP "," -> a
+  ]]
   ;
   attribute:
-  [[
-    IDENT "polymorphic" -> VernacPolymorphic true
-  | IDENT "monomorphic" -> VernacPolymorphic false
-  | IDENT "program" -> VernacProgram
-  | IDENT "local" -> VernacLocal true
-  | IDENT "global" -> VernacLocal false
-  | IDENT "coercion" -> VernacCoercion
-  | IDENT "deprecated" ; v = attribute_value ->
-    match v with
-    | `List [ k1, `Leaf since ; k2, `Leaf note ] when Names.Id.equal k1 (Names.Id.of_string "since") && Names.Id.equal k2 (Names.Id.of_string "note") -> VernacDeprecated (since, note)
-    |  _ -> CErrors.user_err (Pp.str "Ill formed “deprecated” attribute")
-  ]]
-  ;
-  attribute_value:
-  [[ "=" ; v = string -> `Leaf v
-   | "(" ; m = LIST0 attribute_pair SEP "," ; ")" -> `List m
-   | -> `Empty
-  ]]
-  ;
-  attribute_pair:
   [[ k = ident ; v = attribute_value -> (k, v)
   ]]
   ;
+  attribute_value:
+  [[ "=" ; v = string -> VernacFlagLeaf v
+   | "(" ; a = attribute_list ; ")" -> VernacFlagList a
+   | -> VernacFlagEmpty
+  ]]
+  ;
   vernac:
-    [ [ IDENT "Local"; (f, v) = vernac_poly -> (VernacLocal true :: f, v)
-      | IDENT "Global"; (f, v) = vernac_poly -> (VernacLocal false :: f, v)
+    [ [ IDENT "Local"; (f, v) = vernac_poly -> ((Names.Id.of_string "local", VernacFlagEmpty) :: f, v)
+      | IDENT "Global"; (f, v) = vernac_poly -> ((Names.Id.of_string "global", VernacFlagEmpty) :: f, v)
 
       | v = vernac_poly -> v ]
     ]
   ;
   vernac_poly:
-    [ [ IDENT "Polymorphic"; (f, v) = vernac_aux -> (VernacPolymorphic true :: f, v)
-      | IDENT "Monomorphic"; (f, v) = vernac_aux -> (VernacPolymorphic false :: f, v)
+    [ [ IDENT "Polymorphic"; (f, v) = vernac_aux -> ((Names.Id.of_string "polymorphic", VernacFlagEmpty) :: f, v)
+      | IDENT "Monomorphic"; (f, v) = vernac_aux -> ((Names.Id.of_string "monomorphic", VernacFlagEmpty) :: f, v)
       | v = vernac_aux -> v ]
     ]
   ;
   vernac_aux:
     (* Better to parse "." here: in case of failure (e.g. in coerce_to_var), *)
     (* "." is still in the stream and discard_to_dot works correctly         *)
-    [ [ IDENT "Program"; g = gallina; "." -> ([VernacProgram], g)
-      | IDENT "Program"; (f, g) = gallina_ext; "." -> (VernacProgram :: f, g)
+    [ [ IDENT "Program"; g = gallina; "." -> ([Names.Id.of_string "program", VernacFlagEmpty], g)
+      | IDENT "Program"; (f, g) = gallina_ext; "." -> ((Names.Id.of_string "program", VernacFlagEmpty) :: f, g)
       | g = gallina; "." -> ([], g)
       | g = gallina_ext; "." -> g
       | c = command; "." -> ([], c)
@@ -652,7 +644,7 @@ GEXTEND Gram
       (* Coercions *)
       | IDENT "Coercion"; qid = global; d = def_body ->
           let s = coerce_reference_to_id qid in
-        [VernacCoercion], VernacDefinition ((NoDischarge,Definition),((CAst.make (Name s)),None),d)
+        [Names.Id.of_string "coercion", VernacFlagEmpty], VernacDefinition ((NoDischarge,Definition),((CAst.make (Name s)),None),d)
       | IDENT "Identity"; IDENT "Coercion"; f = identref; ":";
          s = class_rawexpr; ">->"; t = class_rawexpr ->
         [], VernacIdentityCoercion (f, s, t)
