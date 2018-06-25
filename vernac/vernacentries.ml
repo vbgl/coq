@@ -2272,6 +2272,10 @@ let attributes_of_flags f atts =
          (polymorphism, { atts with coercion = true })
        | VernacCoercion ->
          user_err Pp.(str "Coercion mode specified twice")
+       | VernacDeprecated (since, note) when Option.is_empty atts.deprecated ->
+         (polymorphism, { atts with deprecated = Some (since, note) })
+       | VernacDeprecated _ ->
+         user_err Pp.(str "Deprecation specified twice")
     )
     (None, atts)
     f

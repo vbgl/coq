@@ -18,10 +18,11 @@ type atts = {
   polymorphic : bool;
   program : bool;
   coercion : bool;
+  deprecated : (string * string) option; (* Since, Note *)
 }
 
 val mk_atts : ?loc: Loc.t option -> ?locality: bool option ->
-  ?polymorphic: bool -> ?program: bool -> ?coercion: bool -> unit -> atts
+  ?polymorphic: bool -> ?program: bool -> ?coercion: bool -> ?deprecated: (string * string) option -> unit -> atts
 
 type 'a vernac_command = 'a -> atts:atts -> st:Vernacstate.t -> Vernacstate.t
 

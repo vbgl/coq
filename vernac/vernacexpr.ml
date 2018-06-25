@@ -459,6 +459,7 @@ type nonrec vernac_flag =
   | VernacPolymorphic of bool
   | VernacLocal of bool
   | VernacCoercion
+  | VernacDeprecated of string * string (* Since, Note *)
 
 type vernac_control =
   | VernacExpr of vernac_flag list * vernac_expr
