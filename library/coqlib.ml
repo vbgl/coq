@@ -188,11 +188,11 @@ let std_table : (string * string list * string) array =
 
   |]
 
-let table = std_table
-
 let find_reference locstr dir s =
   let dp = make_dir dir in
   let sp = Libnames.make_path dp (Id.of_string s) in
+  Nametab.global_of_path sp
+    (*
   try Nametab.global_of_path sp
   with Not_found ->
     (* Following bug 5066 we are more permissive with the handling
@@ -201,13 +201,15 @@ let find_reference locstr dir s =
       Pp.(str "cannot find " ++ Libnames.pr_path sp ++
           str "; maybe library " ++ DirPath.print dp ++
           str " has to be required first.")
+*)
 
 let coq_reference locstr dir s = find_reference locstr (coq::dir) s
 
 let table : (string, GlobRef.t Lazy.t) Hashtbl.t =
-  let ht = Hashtbl.create (2 * Array.length table) in
-  Array.iter (fun (b, path, s) -> Hashtbl.add ht b @@ lazy (find_reference "from_table" path s)) table;
-  ht
+  Hashtbl.create (2 * Array.length std_table)
+
+let init () =
+  Array.iter (fun (b, path, s) -> Hashtbl.add table b @@ lazy (find_reference "from_table" path s)) std_table
 
 (** Can throw Not_found *)
 let lib_ref    s =
@@ -216,9 +218,41 @@ let lib_ref    s =
     Feedback.msg_warning Pp.(str "not found in table: " ++ str s);
     raise Not_found
 
-(** Replaces a binding ! *)
-let add_ref  s c =
+let add_ref s c =
   Hashtbl.add table s (Lazy.from_val c)
+
+let cache_ref (_,(s,c)) =
+  add_ref s c
+
+let (inCoqlibRef : string * GlobRef.t -> Libobject.obj) =
+  let open Libobject in
+  declare_object { (default_object "COQLIBREF") with
+    cache_function = cache_ref;
+    load_function = (fun _ x -> cache_ref x);
+    classify_function = (fun o -> Keep o); (** FIXME figure out what to do when registering a functor argument field *)
+    subst_function = ident_subst_function;
+    discharge_function = fun (_,(s,c)) -> Some (s,Globnames.pop_global_reference c) }
+
+(** Replaces a binding ! *)
+let register_ref s c =
+  Lib.add_anonymous_leaf @@ inCoqlibRef (s,c)
+
+let get_lib_refs () =
+  Hashtbl.fold (fun s g l -> try (s, Lazy.force g) :: l with Not_found -> l) table []
+
+let freeze _ = get_lib_refs ()
+
+let unfreeze refs =
+  Hashtbl.clear table;
+  List.iter (fun (s, g) -> add_ref s g) refs
+
+let _ =
+  Summary.declare_summary "coqlib_registered"
+    { Summary.freeze_function = freeze;
+      Summary.unfreeze_function = unfreeze;
+      Summary.init_function = init }
+
+let _ = init ()
 
 (************************************************************************)
 (* Generic functions to find Coq objects *)

@@ -37,7 +37,8 @@ open Names
 *)
 
 val lib_ref    : string -> GlobRef.t
-val add_ref    : string -> GlobRef.t -> unit
+val register_ref    : string -> GlobRef.t -> unit
+val get_lib_refs : unit -> (string * GlobRef.t) list
 
 (** Exceptions to deprecation *)
 

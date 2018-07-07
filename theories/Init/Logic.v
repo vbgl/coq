@@ -21,8 +21,13 @@ Notation "A -> B" := (forall (_ : A), B) : type_scope.
 Inductive True : Prop :=
   I : True.
 
+Register True as core.True.type.
+Register I as core.True.I.
+
 (** [False] is the always false proposition *)
 Inductive False : Prop :=.
+
+Register False as core.False.type.
 
 (** [not A], written [~A], is the negation of [A] *)
 Definition not (A:Prop) := A -> False.
@@ -318,6 +323,9 @@ Inductive eq (A:Type) (x:A) : A -> Prop :=
 
 where "x = y :> A" := (@eq A x y) : type_scope.
 
+Register eq_refl as core.eq.refl.
+Register eq_ind as core.eq.ind.
+
 Notation "x = y" := (x = y :>_) : type_scope.
 Notation "x <> y  :> T" := (~ x = y :>T) : type_scope.
 Notation "x <> y" := (x <> y :>_) : type_scope.
@@ -332,6 +340,8 @@ Arguments eq_rect [A] x P _ y _.
 Hint Resolve I conj or_introl or_intror : core.
 Hint Resolve eq_refl: core.
 Hint Resolve ex_intro ex_intro2: core.
+
+Register eq as core.eq.type.
 
 Section Logic_lemmas.
 
@@ -351,15 +361,21 @@ Section Logic_lemmas.
       destruct 1; trivial.
     Defined.
 
+    Register eq_sym as core.eq.sym.
+
     Theorem eq_trans : x = y -> y = z -> x = z.
     Proof.
       destruct 2; trivial.
     Defined.
 
+    Register eq_trans as core.eq.trans.
+
     Theorem f_equal : x = y -> f x = f y.
     Proof.
       destruct 1; trivial.
     Defined.
+
+    Register f_equal as core.eq.congr.
 
     Theorem not_eq_sym : x <> y -> y <> x.
     Proof.
@@ -426,6 +442,8 @@ Theorem f_equal2 :
 Proof.
   destruct 1; destruct 1; reflexivity.
 Qed.
+
+Register f_equal2 as core.eq.congr2.
 
 Theorem f_equal3 :
   forall (A1 A2 A3 B:Type) (f:A1 -> A2 -> A3 -> B) (x1 y1:A1)
