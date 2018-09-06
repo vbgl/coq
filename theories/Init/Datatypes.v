@@ -186,6 +186,10 @@ Notation "( x , y , .. , z )" := (pair .. (pair x y) .. z) : core_scope.
 
 Arguments pair {A B} _ _.
 
+Register prod as core.prod.type.
+Register pair as core.prod.intro.
+Register prod_rect as core.prod.rect.
+
 Section projections.
   Context {A : Type} {B : Type}.
 
@@ -195,6 +199,10 @@ Section projections.
   Definition snd (p:A * B) := match p with
 				| (x, y) => y
                               end.
+
+  Register fst as core.prod.proj1.
+  Register snd as core.prod.proj2.
+
 End projections.
 
 Hint Resolve pair inl inr: core.
@@ -351,6 +359,8 @@ Arguments identity_ind [A] a P f y i.
 Arguments identity_rec [A] a P f y i.
 Arguments identity_rect [A] a P f y i.
 
+Register identity as core.identity.type.
+
 (** Identity type *)
 
 Definition ID := forall A:Type, A -> A.
@@ -359,6 +369,7 @@ Definition id : ID := fun A x => x.
 Definition IDProp := forall A:Prop, A -> A.
 Definition idProp : IDProp := fun A x => x.
 
+Register idProp as core.IDProp.idProp.
 
 (* begin hide *)
 

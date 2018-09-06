@@ -28,6 +28,9 @@ Set Elimination Schemes.
 
 Arguments JMeq_refl {A x} , [A] x.
 
+Register JMeq as core.JMeq.type.
+Register JMeq_refl as core.JMeq.refl.
+
 Hint Resolve JMeq_refl.
 
 Definition JMeq_hom {A : Type} (x y : A) := JMeq x y.

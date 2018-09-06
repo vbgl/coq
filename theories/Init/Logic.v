@@ -34,6 +34,8 @@ Definition not (A:Prop) := A -> False.
 
 Notation "~ x" := (not x) : type_scope.
 
+Register not as core.not.type.
+
 (** Create the "core" hint database, and set its transparent state for
   variables and constants explicitely. *)
 
@@ -54,6 +56,8 @@ Inductive and (A B:Prop) : Prop :=
   conj : A -> B -> A /\ B
 
 where "A /\ B" := (and A B) : type_scope.
+
+Register and as core.and.type.
 
 Section Conjunction.
 
@@ -81,6 +85,8 @@ where "A \/ B" := (or A B) : type_scope.
 
 Arguments or_introl [A B] _, [A] B _.
 Arguments or_intror [A B] _, A [B] _.
+
+Register or as core.or.type.
 
 (** [iff A B], written [A <-> B], expresses the equivalence of [A] and [B] *)
 
@@ -323,9 +329,6 @@ Inductive eq (A:Type) (x:A) : A -> Prop :=
 
 where "x = y :> A" := (@eq A x y) : type_scope.
 
-Register eq_refl as core.eq.refl.
-Register eq_ind as core.eq.ind.
-
 Notation "x = y" := (x = y :>_) : type_scope.
 Notation "x <> y  :> T" := (~ x = y :>T) : type_scope.
 Notation "x <> y" := (x <> y :>_) : type_scope.
@@ -342,6 +345,9 @@ Hint Resolve eq_refl: core.
 Hint Resolve ex_intro ex_intro2: core.
 
 Register eq as core.eq.type.
+Register eq_refl as core.eq.refl.
+Register eq_ind as core.eq.ind.
+Register eq_rect as core.eq.rect.
 
 Section Logic_lemmas.
 
