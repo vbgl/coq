@@ -35,6 +35,8 @@ Hint Resolve JMeq_refl.
 
 Definition JMeq_hom {A : Type} (x y : A) := JMeq x y.
 
+Register JMeq_hom as core.JMeq.hom.
+
 Lemma JMeq_sym : forall (A B:Type) (x:A) (y:B), JMeq x y -> JMeq y x.
 Proof. 
 intros; destruct H; trivial.
@@ -48,6 +50,8 @@ Proof.
 destruct 2; trivial.
 Qed.
 
+Register JMeq_trans as core.JMeq.trans.
+
 Axiom JMeq_eq : forall (A:Type) (x y:A), JMeq x y -> x = y.
 
 Lemma JMeq_ind : forall (A:Type) (x:A) (P:A -> Prop),
@@ -55,6 +59,8 @@ Lemma JMeq_ind : forall (A:Type) (x:A) (P:A -> Prop),
 Proof.
 intros A x P H y H'; case JMeq_eq with (1 := H'); trivial.
 Qed.
+
+Register JMeq_ind as core.JMeq.ind.
 
 Lemma JMeq_rec : forall (A:Type) (x:A) (P:A -> Set),
   P x -> forall y, JMeq x y -> P y.
@@ -91,6 +97,8 @@ Lemma JMeq_congr :
 Proof.
 intros A x B f y H; case JMeq_eq with (1 := H); trivial.
 Qed.
+
+Register JMeq_congr as core.JMeq.congr.
 
 (** [JMeq] is equivalent to [eq_dep Type (fun X => X)] *)
 

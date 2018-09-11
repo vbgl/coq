@@ -58,6 +58,7 @@ Inductive and (A B:Prop) : Prop :=
 where "A /\ B" := (and A B) : type_scope.
 
 Register and as core.and.type.
+Register conj as core.and.conj.
 
 Section Conjunction.
 
@@ -93,6 +94,10 @@ Register or as core.or.type.
 Definition iff (A B:Prop) := (A -> B) /\ (B -> A).
 
 Notation "A <-> B" := (iff A B) : type_scope.
+
+Register iff as core.iff.type.
+Register proj1 as core.iff.proj1.
+Register proj2 as core.iff.proj2.
 
 Section Equivalence.
 
@@ -267,6 +272,8 @@ Notation "'IF' c1 'then' c2 'else' c3" := (IF_then_else c1 c2 c3)
 
 Inductive ex (A:Type) (P:A -> Prop) : Prop :=
   ex_intro : forall x:A, P x -> ex (A:=A) P.
+
+Register ex as core.ex.type.
 
 Inductive ex2 (A:Type) (P Q:A -> Prop) : Prop :=
   ex_intro2 : forall x:A, P x -> Q x -> ex2 (A:=A) P Q.

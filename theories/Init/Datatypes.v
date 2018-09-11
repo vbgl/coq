@@ -41,6 +41,10 @@ Declare Scope bool_scope.
 Delimit Scope bool_scope with bool.
 Bind Scope bool_scope with bool.
 
+Register bool as core.bool.type.
+Register true as core.bool.true.
+Register false as core.bool.false.
+
 (** Basic boolean operators *)
 
 Definition andb (b1 b2:bool) : bool := if b1 then b2 else false.
@@ -62,6 +66,8 @@ Definition negb (b:bool) := if b then false else true.
 Infix "||" := orb : bool_scope.
 Infix "&&" := andb : bool_scope.
 
+Register andb as core.bool.andb.
+
 (** Basic properties of [andb] *)
 
 Lemma andb_prop : forall a b:bool, andb a b = true -> a = true /\ b = true.
@@ -70,6 +76,8 @@ Proof.
 Qed.
 Hint Resolve andb_prop: bool.
 
+Register andb_prop as core.bool.andb_prop.
+
 Lemma andb_true_intro :
   forall b1 b2:bool, b1 = true /\ b2 = true -> andb b1 b2 = true.
 Proof.
@@ -77,11 +85,15 @@ Proof.
 Qed.
 Hint Resolve andb_true_intro: bool.
 
+Register andb_true_intro as core.bool.andb_true_intro.
+
 (** Interpretation of booleans as propositions *)
 
 Inductive eq_true : bool -> Prop := is_eq_true : eq_true true.
 
 Hint Constructors eq_true : eq_true.
+
+Register eq_true as core.eq_true.type.
 
 (** Another way of interpreting booleans as propositions *)
 
@@ -360,6 +372,8 @@ Arguments identity_rec [A] a P f y i.
 Arguments identity_rect [A] a P f y i.
 
 Register identity as core.identity.type.
+Register identity_refl as core.identity.refl.
+Register identity_ind as core.identity.ind.
 
 (** Identity type *)
 
