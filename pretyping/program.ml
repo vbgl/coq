@@ -25,7 +25,7 @@ let sig_proj1 () = Coqlib.lib_ref "core.sig.proj1"
 
 let sigT_typ   () = Coqlib.lib_ref "core.sigT.type"
 let sigT_intro () = Coqlib.lib_ref "core.sigT.intro"
-let sigT_proj1 () = Coqlib.lib_ref "core.sigT.proj2"
+let sigT_proj1 () = Coqlib.lib_ref "core.sigT.proj1"
 let sigT_proj2 () = Coqlib.lib_ref "core.sigT.proj2"
 
 let prod_typ   () = Coqlib.lib_ref "core.prod.type"

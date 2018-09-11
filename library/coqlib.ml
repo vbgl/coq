@@ -481,11 +481,11 @@ let build_coq_jmeq () = lib_ref "core.JMeq.type"
 let build_coq_False () = lib_ref "core.False.type"
 let build_coq_not ()   = lib_ref "core.not.type"
 let build_coq_and ()   = lib_ref "core.and.type"
-let build_coq_conj ()  = lib_ref "core.conj.type"
+let build_coq_conj ()  = lib_ref "core.conj.type" (* FIXME: this name is dubious; expected: “core.and.conj” *)
 let build_coq_or ()    = lib_ref "core.or.type"
 let build_coq_ex ()    = lib_ref "core.ex.type"
 let build_coq_sig () = lib_ref "core.sig.type"
-let build_coq_existT () = lib_ref "core.sigT.existT"
+let build_coq_existT () = lib_ref "core.sigT.existT" (* FIXME: dubious name; expected “core.sigT.intro” *)
 let build_coq_iff ()   = lib_ref "core.iff.type"
 
 let build_coq_iff_left_proj ()  = lib_ref "core.iff.proj1"
