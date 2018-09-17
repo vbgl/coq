@@ -44,6 +44,8 @@ Qed.
 
 Hint Immediate JMeq_sym.
 
+Register JMeq_sym as core.JMeq.sym.
+
 Lemma JMeq_trans :
  forall (A B C:Type) (x:A) (y:B) (z:C), JMeq x y -> JMeq y z -> JMeq x z.
 Proof.

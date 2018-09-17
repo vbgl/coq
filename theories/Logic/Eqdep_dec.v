@@ -328,8 +328,6 @@ Module DecidableEqDepSet (M:DecidableSet).
       existT P p x = existT P p y -> x = y.
   Proof eq_dep_eq__inj_pair2 U N.eq_dep_eq.
 
-  Register inj_pair2 as core.eqdep_dec.inj_pair2.
-
   (** Injectivity of equality on dependent pairs with second component
       in [Type] *)
 
@@ -348,6 +346,8 @@ Proof.
   intros; apply eq_rect_eq_dec.
   apply eq_dec.
 Qed.
+
+Register inj_pair2_eq_dec as core.eqdep_dec.inj_pair2.
 
   (** Examples of short direct proofs of unicity of reflexivity proofs
       on specific domains *)
