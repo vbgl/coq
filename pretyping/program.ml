@@ -42,7 +42,10 @@ let mk_coq_not sigma x =
   let sigma, notc = Evarutil.new_global sigma Coqlib.(lib_ref "core.not.type") in
   sigma, EConstr.mkApp (notc, [| x |])
 
-let coq_JMeq_ind  () = Coqlib.lib_ref "core.JMeq.type"
+let coq_JMeq_ind  () =
+  try Coqlib.lib_ref "core.JMeq.type"
+  with Not_found ->
+    user_err (Pp.str "cannot find Coq.Logic.JMeq.JMeq; maybe library Coq.Logic.JMeq has to be required first.")
 let coq_JMeq_refl () = Coqlib.lib_ref "core.JMeq.refl"
 
 (* let coq_not () = Universes.constr_of_global @@ Coqlib.lib_ref "core.not.type" *)
