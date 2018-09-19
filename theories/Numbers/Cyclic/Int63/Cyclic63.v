@@ -119,12 +119,12 @@ Proof.
  assert (H: (wB <= wB) -> forall p : positive,
   Zpos p = Z_of_N (fst (positive_to_int p)) * wB + [|snd (positive_to_int p)|] /\
   [|snd (positive_to_int p)|] < wB).
-  2: intros p; case (H (Zle_refl wB) p); auto.
+  2: intros p; case (H (Z.le_refl wB) p); auto.
  unfold positive_to_int, wB at 1 3 4.
  elim size.
  intros _ p; simpl;
    rewrite to_Z_0, Pmult_1_r; split; auto with zarith; apply refl_equal.
- intros n; rewrite inj_S; unfold Zsucc; rewrite Zpower_exp, Z.pow_1_r; auto with zarith.
+ intros n; rewrite inj_S; unfold Z.succ; rewrite Zpower_exp, Z.pow_1_r; auto with zarith.
  intros IH Hle p.
  assert (F1: 2 ^ Z_of_nat n <= wB); auto with zarith.
   assert (0 <= 2 ^ Z_of_nat n); auto with zarith.
@@ -172,7 +172,7 @@ Proof.
  intros a b H;assert (W:= diveucl_spec a b).
  assert ([|b|]>0) by (auto with zarith).
  generalize (Z_div_mod [|a|] [|b|] H0).
- destruct (diveucl a b);destruct (Zdiv_eucl [|a|] [|b|]).
+ destruct (diveucl a b);destruct (Z.div_eucl [|a|] [|b|]).
  inversion W;rewrite Zmult_comm;trivial.
 Qed.
 
@@ -187,7 +187,7 @@ Proof.
  assert (W1:= to_Z_bounded a1).
  assert ([|b|]>0) by (auto with zarith).
  generalize (Z_div_mod ([|a1|]*wB+[|a2|]) [|b|] H).
- destruct (diveucl_21 a1 a2 b);destruct (Zdiv_eucl ([|a1|]*wB+[|a2|]) [|b|]).
+ destruct (diveucl_21 a1 a2 b);destruct (Z.div_eucl ([|a1|]*wB+[|a2|]) [|b|]).
  inversion W;rewrite (Zmult_comm [|b|]);trivial.
 Qed.
 
@@ -215,7 +215,7 @@ Lemma shift_unshift_mod_2 : forall n p a, 0 <= p <= n ->
  split.
  apply Z_div_pos; auto with zarith; admit (* FIXME *).
  apply Zdiv_lt_upper_bound; auto with zarith.
- apply Zlt_le_trans with (2^n); auto with zarith; admit.
+ apply Z.lt_le_trans with (2^n); auto with zarith; admit.
 (*
  rewrite <- (Zmult_1_r (2^n)) at 1.
  apply Zmult_le_compat; auto with zarith.
@@ -236,7 +236,7 @@ Lemma div_lt : forall p x y, 0 <= x < y -> x / 2^p < y.
  Proof.
   intros p x y H;destruct (Z_le_gt_dec 0 p).
   apply Zdiv_lt_upper_bound;auto with zarith.
-  apply Zlt_le_trans with y;auto with zarith.
+  apply Z.lt_le_trans with y;auto with zarith.
   rewrite <- (Zmult_1_r y);apply Zmult_le_compat;auto with zarith.
   assert (0 < 2^p);auto with zarith.
   replace (2^p) with 0.
