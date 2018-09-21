@@ -153,6 +153,9 @@ Delimit Scope nat_scope with nat.
 Bind Scope nat_scope with nat.
 Arguments S _%nat.
 
+Register nat as num.nat.type.
+Register O as num.nat.O.
+Register S as num.nat.S.
 
 (********************************************************************)
 (** * Container datatypes *)
@@ -286,6 +289,11 @@ Inductive comparison : Set :=
   | Eq : comparison
   | Lt : comparison
   | Gt : comparison.
+
+Register comparison as core.comparison.type.
+Register Eq as core.comparison.Eq.
+Register Lt as core.comparison.Lt.
+Register Gt as core.comparison.Gt.
 
 Lemma comparison_eq_stable : forall c c' : comparison, ~~ c = c' -> c = c'.
 Proof.

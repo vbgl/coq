@@ -68,6 +68,11 @@ Notation "( x | y )" := (divide x y) (at level 0).
 Definition Even a := exists b, a = 2*b.
 Definition Odd a := exists b, a = 2*b+1.
 
+Register le as num.Z.le.
+Register lt as num.Z.lt.
+Register ge as num.Z.ge.
+Register gt as num.Z.gt.
+
 (** * Decidability of equality. *)
 
 Definition eq_dec (x y : Z) : {x = y} + {x <> y}.
@@ -476,6 +481,10 @@ Qed.
     functions. *)
 
 Include ZBasicProp <+ UsualMinMaxLogicalProperties <+ UsualMinMaxDecProperties.
+
+Register eq_decidable as num.Z.eq_decidable.
+Register le_decidable as num.Z.le_decidable.
+Register lt_decidable as num.Z.lt_decidable.
 
 
 (** ** Specification of absolute value *)
@@ -1751,6 +1760,8 @@ weak_Zmult_plus_distr_r (now Z.mul_add_distr_pos)
 (** Obsolete stuff *)
 
 Definition Zne (x y:Z) := x <> y. (* TODO : to remove someday ? *)
+
+Register Zne as plugins.omega.Zne.
 
 Ltac elim_compare com1 com2 :=
   case (Dcompare (com1 ?= com2)%Z);

@@ -91,6 +91,8 @@ Definition add x y :=
 
 Infix "+" := add : Z_scope.
 
+Register add as num.Z.add.
+
 (** ** Opposite *)
 
 Definition opp x :=
@@ -102,19 +104,27 @@ Definition opp x :=
 
 Notation "- x" := (opp x) : Z_scope.
 
+Register opp as num.Z.opp.
+
 (** ** Successor *)
 
 Definition succ x := x + 1.
 
+Register succ as num.Z.succ.
+
 (** ** Predecessor *)
 
 Definition pred x := x + neg 1.
+
+Register pred as num.Z.pred.
 
 (** ** Subtraction *)
 
 Definition sub m n := m + -n.
 
 Infix "-" := sub : Z_scope.
+
+Register sub as num.Z.sub.
 
 (** ** Multiplication *)
 
@@ -129,6 +139,8 @@ Definition mul x y :=
   end.
 
 Infix "*" := mul : Z_scope.
+
+Register mul as num.Z.mul.
 
 (** ** Power function *)
 
@@ -288,6 +300,8 @@ Definition of_nat (n:nat) : Z :=
    | O => 0
    | S n => pos (Pos.of_succ_nat n)
   end.
+
+Register of_nat as num.Z.of_nat.
 
 (** From [N] to [Z] *)
 

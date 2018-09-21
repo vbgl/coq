@@ -29,6 +29,10 @@ Bind Scope positive_scope with positive.
 Arguments xO _%positive.
 Arguments xI _%positive.
 
+Register xI as num.pos.xI.
+Register xO as num.pos.xO.
+Register xH as num.pos.xH.
+
 (** [N] is a datatype representing natural numbers in a binary way,
     by extending the [positive] datatype with a zero.
     Numbers in [N] will also be denoted using a decimal notation;
@@ -60,3 +64,8 @@ Delimit Scope Z_scope with Z.
 Bind Scope Z_scope with Z.
 Arguments Zpos _%positive.
 Arguments Zneg _%positive.
+
+Register Z as num.Z.type.
+Register Z0 as num.Z.Z0.
+Register Zpos as num.Z.Zpos.
+Register Zneg as num.Z.Zneg.

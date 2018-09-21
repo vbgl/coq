@@ -402,6 +402,8 @@ Section Logic_lemmas.
     intros A x P H y H0. elim eq_sym with (1 := H0); assumption.
   Defined.
 
+  Register eq_ind_r as core.eq.ind_r.
+
   Definition eq_rec_r :
     forall (A:Type) (x:A) (P:A -> Set), P x -> forall y:A, y = x -> P y.
     intros A x P H y H0; elim eq_sym with (1 := H0); assumption.
