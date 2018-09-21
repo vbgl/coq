@@ -1,4 +1,4 @@
-Require Import Int63.
+Require Import Cyclic63.
 
 Set Implicit Arguments.
 
