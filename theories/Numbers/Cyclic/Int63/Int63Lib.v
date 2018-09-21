@@ -1,3 +1,4 @@
+(*
 Require Int63.
 Import BinInt.
 Import Bool.
@@ -11,6 +12,7 @@ Import Utf8.
 
 Local Open Scope int63_scope.
 Local Open Scope Z_scope.
+
 
 Import Znumtheory.
 Require Import Zgcd_alt.
@@ -1623,3 +1625,4 @@ Lemma land_max_int_r : forall i, i land max_int = i.
 Proof.
  intros;rewrite land_comm;apply land_max_int_l.
 Qed.
+*)

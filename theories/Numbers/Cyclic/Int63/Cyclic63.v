@@ -14,6 +14,9 @@ Author: Arnaud Spiwack (+ Pierre Letouzey)
 Require Import CyclicAxioms.
 Require Export ZArith.
 Require Export Int63.
+Import Zpow_facts.
+Import Utf8.
+Import Lia.
 
 Local Open Scope int63_scope.
 (** {2 Operators } **)
@@ -191,37 +194,37 @@ Proof.
  inversion W;rewrite (Zmult_comm [|b|]);trivial.
 Qed.
 
+Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
+Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
+
+Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
+Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
+
+Local Hint Resolve pow2_pos pow2_nz : zarith.
+
 Lemma shift_unshift_mod_2 : forall n p a, 0 <= p <= n ->
    ((a * 2 ^ (n - p)) mod (2^n) / 2 ^ (n - p)) mod (2^n) =
    a mod 2 ^ p.
  Proof.
- intros.
- rewrite Zmod_small.
- rewrite Zmod_eq by (auto with zarith; admit) (* FIXME *).
- unfold Zminus at 1.
- rewrite Zdiv.Z_div_plus_full_l by (auto with zarith; admit (* FIXME *)).
- assert (2^n = 2^(n-p)*2^p).
-  rewrite <- Zpower_exp by (auto with zarith).
-  replace (n-p+p) with n; auto with zarith.
- rewrite H0.
- rewrite <- Zdiv_Zdiv, Z_div_mult by (auto with zarith; admit (* FIXME *)).
- rewrite (Zmult_comm (2^(n-p))), Zmult_assoc.
- rewrite Zopp_mult_distr_l.
- rewrite Z_div_mult by (auto with zarith; admit (* FIXME *)).
- symmetry; apply Zmod_eq; auto with zarith.
-
- remember (a * 2 ^ (n - p)) as b.
- destruct (Z_mod_lt b (2^n)); auto with zarith; admit (* FIXME *).
- split.
- apply Z_div_pos; auto with zarith; admit (* FIXME *).
- apply Zdiv_lt_upper_bound; auto with zarith.
- apply Z.lt_le_trans with (2^n); auto with zarith; admit.
-(*
- rewrite <- (Zmult_1_r (2^n)) at 1.
- apply Zmult_le_compat; auto with zarith.
- cut (0 < 2 ^ (n-p)); auto with zarith.
-*)
-Admitted.
+   intros n p a H.
+   rewrite Zmod_small.
+   - rewrite Zmod_eq by auto with zarith.
+     unfold Zminus at 1.
+     rewrite Zdiv.Z_div_plus_full_l by auto with zarith.
+     replace (2 ^ n) with (2 ^ (n - p) * 2 ^ p) by (rewrite <- Zpower_exp; [ f_equal | | ]; lia).
+     rewrite <- Zdiv_Zdiv, Z_div_mult by auto with zarith.
+     rewrite (Zmult_comm (2^(n-p))), Zmult_assoc.
+     rewrite Zopp_mult_distr_l.
+     rewrite Z_div_mult by auto with zarith.
+     symmetry; apply Zmod_eq; auto with zarith.
+   - remember (a * 2 ^ (n - p)) as b.
+     destruct (Z_mod_lt b (2^n)); auto with zarith.
+     split.
+     apply Z_div_pos; auto with zarith.
+     apply Zdiv_lt_upper_bound; auto with zarith.
+     apply Z.lt_le_trans with (2^n); auto with zarith.
+     generalize (pow2_pos (n - p)); nia.
+ Qed.
 
 Lemma div_le_0 : forall p x, 0 <= x -> 0 <= x / 2 ^ p.
  Proof.
@@ -244,40 +247,40 @@ Lemma div_lt : forall p x y, 0 <= x < y -> x / 2^p < y.
   destruct p;trivial;discriminate.
  Qed.
 
+Lemma P (A B C: Prop) :
+  A → (B → C) → (A → B) → C.
+Proof. tauto. Qed.
+
 Lemma shift_unshift_mod_3:
   forall n p a : Z,
   0 <= p <= n ->
   (a * 2 ^ (n - p)) mod 2 ^ n / 2 ^ (n - p) = a mod 2 ^ p.
 Proof.
-
  intros;rewrite <- (shift_unshift_mod_2 n p a);[ | auto with zarith].
  symmetry;apply Zmod_small.
  generalize (a * 2 ^ (n - p));intros w.
- assert (2 ^ n > 0) by (auto with zarith; admit (* FIXME *)).
- assert (H1 := Z_mod_lt w _ H0).
- split;[apply div_le_0| apply div_lt];auto with zarith.
-Admitted.
+ generalize (2 ^ (n - p)) (pow2_pos (n - p)); intros x; apply P. lia. intros hx.
+ generalize (2 ^ n) (pow2_pos n); intros y; apply P. lia. intros hy.
+ elim_div. intros q r. apply P. lia.
+ elim_div. intros z t. refine (P _ _ _ _ _). lia.
+ intros [ ? [ ht | ] ]; [ | lia ]; subst w.
+ intros [ ? [ hr | ] ]; [ | lia ]; subst t.
+ nia.
+Qed.
 
-Locate digits.
-
-Lemma pos_mod_spec : forall w p,
-       [|pos_mod p w|] = [|w|] mod (2 ^ [|p|]).
+Lemma pos_mod_spec w p : φ(pos_mod p w) = φ(w) mod (2 ^ φ(p)).
 Proof.
- unfold pos_mod;intros.
- assert (W:=to_Z_bounded p);assert (W':=to_Z_bounded Int63.digits);assert (W'' := to_Z_bounded w).
- case_eq (p <= Int63.digits)%int63;intros Heq.
- rewrite leb_spec in Heq.
- assert (0 <= [|p|] <= [|Int63.digits|]) by (auto with zarith).
- rewrite <- (shift_unshift_mod_3 [|Int63.digits|] [|p|] [|w|] H).
- replace ([|Int63.digits|] - [|p|]) with [|Int63.digits - p|];trivial.
- rewrite sub_spec, Zmod_small;auto with zarith.
-(*
- symmetry;apply Zmod_small.
- rewrite <- Bool.not_true_iff_false, leb_spec in Heq.
- assert (2 ^ [|Int63.digits|] < 2 ^ [|p|]);[ apply Zpower_lt_monotone | ];auto with zarith.
- change wB with (2 ^ [|Int63.digits|]) in *;auto with zarith.
-*)
-Admitted.
+  simpl. unfold pos_mod_int.
+  assert (W:=to_Z_bounded p);assert (W':=to_Z_bounded Int63.digits);assert (W'' := to_Z_bounded w).
+  case lebP; intros hle.
+  2: {
+    symmetry; apply Zmod_small.
+    assert (2 ^ [|Int63.digits|] < 2 ^ [|p|]); [ apply Zpower_lt_monotone; auto with zarith | ].
+    change wB with (2 ^ [|Int63.digits|]) in *; auto with zarith. }
+  rewrite <- (shift_unshift_mod_3 [|Int63.digits|] [|p|] [|w|]) by auto with zarith.
+  replace ([|Int63.digits|] - [|p|]) with [|Int63.digits - p|] by (rewrite sub_spec, Zmod_small; auto with zarith).
+  rewrite lsr_spec, lsl_spec; reflexivity.
+Qed.
 
 Axiom sqrt2_spec : forall x y,
        wB/ 4 <= [|x|] ->
