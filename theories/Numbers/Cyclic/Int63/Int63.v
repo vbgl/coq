@@ -1348,3 +1348,542 @@ Proof.
   apply Z_mult_div_ge; auto with zarith.
  case (to_Z_bounded i); repeat rewrite Z.pow_2_r; auto with zarith.
 Qed.
+
+(* sqrt2 *)
+Lemma sqrt2_step_def rec ih il j:
+   sqrt2_step rec ih il j =
+   if (ih < j)%int63 then
+    let quo := fst (diveucl_21 ih il j) in
+    if (quo < j)%int63 then
+     let m :=
+      match j +c quo with
+      | C0 m1 => m1 >> 1
+      | C1 m1 => (m1 >> 1 + 1 << (digits -1))%int63
+      end in
+     rec ih il m
+    else j
+   else j.
+Proof.
+ unfold sqrt2_step; case diveucl_21; intros;simpl.
+ case (j +c i);trivial.
+Qed.
+
+Lemma sqrt2_lower_bound ih il j:
+   [|| WW ih il||]  < ([|j|] + 1) ^ 2 -> [|ih|] <= [|j|].
+Proof.
+ intros H1.
+ case (to_Z_bounded j); intros Hbj _.
+ case (to_Z_bounded il); intros Hbil _.
+ case (to_Z_bounded ih); intros Hbih Hbih1.
+ assert (([|ih|] < [|j|] + 1)%Z); auto with zarith.
+ apply Zlt_square_simpl; auto with zarith.
+ simpl zn2z_to_Z in H1.
+ repeat rewrite <-Z.pow_2_r; apply Z.le_lt_trans with (2 := H1).
+ apply Z.le_trans with ([|ih|] * wB)%Z;try rewrite Z.pow_2_r; auto with zarith.
+Qed.
+
+Lemma div2_phi ih il j:
+  [|fst (diveucl_21 ih il j)|] = [|| WW ih il||] /[|j|].
+Proof.
+ generalize (diveucl_21_spec ih il j).
+ case diveucl_21; intros q r Heq.
+ simpl zn2z_to_Z;unfold Z.div;rewrite <- Heq;trivial.
+Qed.
+
+Lemma sqrt2_step_correct rec ih il j:
+  2 ^ (Z_of_nat (size - 2)) <= [|ih|] ->
+  0 < [|j|] -> [|| WW ih il||] < ([|j|] + 1) ^ 2 ->
+  (forall j1, 0 < [|j1|] < [|j|] ->  [|| WW ih il||] < ([|j1|] + 1) ^ 2 ->
+     [|rec ih il j1|] ^ 2 <= [||WW ih il||] < ([|rec ih il j1|] + 1) ^ 2) ->
+  [|sqrt2_step rec ih il j|] ^ 2 <= [||WW ih il ||]
+      < ([|sqrt2_step rec ih il j|] + 1) ^  2.
+Proof.
+ assert (Hp2: (0 < [|2|])%Z) by exact (refl_equal Lt).
+ intros Hih Hj Hij Hrec; rewrite sqrt2_step_def.
+ assert (H1: ([|ih|] <= [|j|])%Z) by (apply sqrt2_lower_bound with il; auto).
+ case (to_Z_bounded ih); intros Hih1 _.
+ case (to_Z_bounded il); intros Hil1 _.
+ case (to_Z_bounded j); intros _ Hj1.
+ assert (Hp3: (0 < [||WW ih il||])).
+  simpl zn2z_to_Z;apply Z.lt_le_trans with ([|ih|] * wB)%Z; auto with zarith.
+  apply Zmult_lt_0_compat; auto with zarith.
+  refine (Z.lt_le_trans _ _ _ _ Hih); auto with zarith.
+ cbv zeta.
+ case_eq (ih < j)%int63;intros Heq.
+ rewrite -> ltb_spec in Heq.
+ 2: rewrite <-not_true_iff_false, ltb_spec in Heq.
+ 2: split; auto.
+ 2: apply sqrt_test_true; auto with zarith.
+ 2: unfold zn2z_to_Z; replace [|ih|] with [|j|]; auto with zarith.
+ 2: assert (0 <= [|il|]/[|j|]) by (apply Z_div_pos; auto with zarith).
+ 2: rewrite Zmult_comm, Z_div_plus_full_l; unfold base; auto with zarith.
+ case (Zle_or_lt (2^(Z_of_nat size -1)) [|j|]); intros Hjj.
+ case_eq (fst (diveucl_21 ih il j) < j)%int63;intros Heq0.
+ 2: rewrite <-not_true_iff_false, ltb_spec, div2_phi in Heq0.
+ 2: split; auto; apply sqrt_test_true; auto with zarith.
+ rewrite -> ltb_spec, div2_phi in Heq0.
+ match goal with |- context[rec _ _ ?X] =>
+  set (u := X)
+ end.
+ assert (H: [|u|] = ([|j|] + ([||WW ih il||])/([|j|]))/2).
+  unfold u; generalize (addc_spec j (fst (diveucl_21 ih il j)));
+  case addc;unfold interp_carry;rewrite div2_phi;simpl zn2z_to_Z.
+  intros i H;rewrite lsr_spec, H;trivial.
+  intros i H;rewrite <- H.
+  case (to_Z_bounded i); intros H1i H2i.
+  rewrite -> add_spec, Zmod_small, lsr_spec.
+  change (1 * wB) with ([|(1 << (digits -1))|] * 2)%Z.
+  rewrite Z_div_plus_full_l; auto with zarith.
+  change wB with (2 * (wB/2))%Z; auto.
+  replace [|(1 << (digits - 1))|] with (wB/2); auto.
+  rewrite lsr_spec; auto.
+  replace (2^[|1|]) with 2%Z; auto.
+  split; auto with zarith.
+  assert ([|i|]/2 < wB/2); auto with zarith.
+  apply Zdiv_lt_upper_bound; auto with zarith.
+ apply Hrec; rewrite H; clear u H.
+ assert (Hf1: 0 <= [||WW ih il||]/ [|j|]) by (apply Z_div_pos; auto with zarith).
+ case (Zle_lt_or_eq 1 ([|j|])); auto with zarith; intros Hf2.
+ 2: contradict Heq0; apply Zle_not_lt; rewrite <- Hf2, Zdiv_1_r; auto with zarith.
+ split.
+ replace ([|j|] + [||WW ih il||]/ [|j|])%Z with
+        (1 * 2 + (([|j|] - 2) + [||WW ih il||] / [|j|])); try ring.
+ rewrite Z_div_plus_full_l; auto with zarith.
+ assert (0 <= ([|j|] - 2 + [||WW ih il||] / [|j|]) / 2) ; auto with zarith.
+ apply sqrt_test_false; auto with zarith.
+ apply sqrt_main; auto with zarith.
+ contradict Hij; apply Zle_not_lt.
+ assert ((1 + [|j|]) <= 2 ^ (Z_of_nat size - 1)); auto with zarith.
+ apply Z.le_trans with ((2 ^ (Z_of_nat size - 1)) ^2); auto with zarith.
+ assert (0 <= 1 + [|j|]); auto with zarith.
+ apply Zmult_le_compat; auto with zarith.
+ change ((2 ^ (Z_of_nat size - 1))^2) with (2 ^ (Z_of_nat size - 2) * wB).
+ apply Z.le_trans with ([|ih|] * wB); auto with zarith.
+ unfold zn2z_to_Z, wB; auto with zarith.
+Qed.
+
+Lemma iter2_sqrt_correct n rec ih il j:
+  2^(Z_of_nat (size - 2)) <= [|ih|] ->  0 < [|j|] -> [||WW ih il||] < ([|j|] + 1) ^ 2 ->
+  (forall j1, 0 < [|j1|] -> 2^(Z_of_nat n) + [|j1|] <= [|j|] ->
+      [||WW ih il||] < ([|j1|] + 1) ^ 2 ->
+       [|rec ih il j1|] ^ 2 <= [||WW ih il||] < ([|rec ih il j1|] + 1) ^ 2)  ->
+  [|iter2_sqrt n rec ih il j|] ^ 2 <= [||WW ih il||]
+      < ([|iter2_sqrt n rec ih il j|] + 1) ^ 2.
+Proof.
+ revert rec ih il j; elim n; unfold iter2_sqrt; fold iter2_sqrt; clear n.
+ intros rec ih il j Hi Hj Hij Hrec; apply sqrt2_step_correct; auto with zarith.
+ intros; apply Hrec; auto with zarith.
+ rewrite Zpower_0_r; auto with zarith.
+ intros n Hrec rec ih il j Hi Hj Hij HHrec.
+ apply sqrt2_step_correct; auto.
+ intros j1 Hj1  Hjp1; apply Hrec; auto with zarith.
+ intros j2 Hj2 H2j2 Hjp2; apply Hrec; auto with zarith.
+ intros j3 Hj3 Hpj3.
+ apply HHrec; auto.
+ rewrite -> inj_S, Z.pow_succ_r.
+ apply Z.le_trans with (2 ^Z_of_nat n + [|j2|])%Z; auto with zarith.
+ apply Zle_0_nat.
+Qed.
+
+Lemma sqrt2_spec : forall x y,
+       wB/ 4 <= [|x|] ->
+       let (s,r) := sqrt2 x y in
+          [||WW x y||] = [|s|] ^ 2 + [+|r|] /\
+          [+|r|] <= 2 * [|s|].
+ Proof.
+ intros ih il Hih; unfold sqrt2.
+ change [||WW ih il||] with ([||WW ih il||]).
+ assert (Hbin: forall s, s * s + 2* s + 1 = (s + 1) ^ 2) by
+  (intros s; ring).
+ assert (Hb: 0 <= wB) by (red; intros HH; discriminate).
+ assert (Hi2: [||WW ih il ||] < ([|max_int|] + 1) ^ 2).
+  apply Z.le_lt_trans with ((wB - 1) * wB + (wB - 1)); auto with zarith.
+  2: apply refl_equal.
+  case (to_Z_bounded ih); case (to_Z_bounded il); intros H1 H2 H3 H4.
+  unfold zn2z_to_Z; auto with zarith.
+ case (iter2_sqrt_correct size (fun _ _ j => j) ih il max_int); auto with zarith.
+ apply refl_equal.
+ intros j1 _ HH; contradict HH.
+ apply Zlt_not_le.
+ case (to_Z_bounded j1); auto with zarith.
+ change (2 ^ Z_of_nat size) with ([|max_int|]+1)%Z; auto with zarith.
+ set (s := iter2_sqrt size (fun _ _ j : int=> j) ih il max_int).
+ intros Hs1 Hs2.
+ generalize (mulc_spec s s); case mulc.
+ simpl fst; simpl snd; intros ih1 il1 Hihl1.
+ generalize (subc_spec il il1).
+ case subc; intros il2 Hil2.
+ simpl interp_carry in Hil2.
+ case_eq (ih1  < ih)%int63;  [idtac | rewrite <- not_true_iff_false];
+  rewrite ltb_spec; intros Heq.
+ unfold interp_carry; rewrite Zmult_1_l.
+ rewrite -> Z.pow_2_r, Hihl1, Hil2.
+ case (Zle_lt_or_eq ([|ih1|] + 1) ([|ih|])); auto with zarith.
+ intros H2; contradict Hs2; apply Zle_not_lt.
+ replace (([|s|] + 1) ^ 2) with ([||WW ih1 il1||] + 2 * [|s|] + 1).
+ unfold zn2z_to_Z.
+ case (to_Z_bounded il); intros Hpil _.
+ assert (Hl1l: [|il1|] <= [|il|]).
+  case (to_Z_bounded il2); rewrite Hil2; auto with zarith.
+ assert ([|ih1|] * wB + 2 * [|s|] + 1 <= [|ih|] * wB); auto with zarith.
+ case (to_Z_bounded s); intros _ Hps.
+ case (to_Z_bounded ih1); intros Hpih1 _; auto with zarith.
+ apply Z.le_trans with (([|ih1|] + 2) * wB); auto with zarith.
+ rewrite Zmult_plus_distr_l.
+ assert (2 * [|s|] + 1 <= 2 * wB); auto with zarith.
+ unfold zn2z_to_Z; rewrite <-Hihl1, Hbin; auto.
+ intros H2; split.
+ unfold zn2z_to_Z; rewrite <- H2; ring.
+ replace (wB + ([|il|] - [|il1|])) with ([||WW ih il||] - ([|s|] * [|s|])).
+ rewrite <-Hbin in Hs2; auto with zarith.
+ rewrite Hihl1; unfold zn2z_to_Z; rewrite <- H2; ring.
+ unfold interp_carry.
+ case (Zle_lt_or_eq [|ih|] [|ih1|]); auto with zarith; intros H.
+ contradict Hs1.
+ apply Zlt_not_le; rewrite Z.pow_2_r, Hihl1.
+ unfold zn2z_to_Z.
+ case (to_Z_bounded il); intros _ H2.
+ apply Z.lt_le_trans with (([|ih|] + 1) * wB + 0).
+ rewrite Zmult_plus_distr_l, Zplus_0_r; auto with zarith.
+ case (to_Z_bounded il1); intros H3 _.
+ apply Zplus_le_compat; auto with zarith.
+ split.
+ rewrite Z.pow_2_r, Hihl1.
+ unfold zn2z_to_Z; ring[Hil2 H].
+ replace [|il2|] with ([||WW ih il||] - [||WW ih1 il1||]).
+ unfold zn2z_to_Z at 2; rewrite <-Hihl1.
+ rewrite <-Hbin in Hs2; auto with zarith.
+ unfold zn2z_to_Z; rewrite H, Hil2; ring.
+ unfold interp_carry in Hil2 |- *.
+ assert (Hsih: [|ih - 1|] = [|ih|] - 1).
+  rewrite sub_spec, Zmod_small; auto; replace [|1|] with 1; auto.
+  case (to_Z_bounded ih); intros H1 H2.
+  split; auto with zarith.
+  apply Z.le_trans with (wB/4 - 1); auto with zarith.
+ case_eq (ih1 < ih - 1)%int63;  [idtac | rewrite <- not_true_iff_false];
+  rewrite ltb_spec, Hsih; intros Heq.
+ rewrite Z.pow_2_r, Hihl1.
+ case (Zle_lt_or_eq ([|ih1|] + 2) [|ih|]); auto with zarith.
+ intros H2; contradict Hs2; apply Zle_not_lt.
+ replace (([|s|] + 1) ^ 2) with ([||WW ih1 il1||] + 2 * [|s|] + 1).
+ unfold zn2z_to_Z.
+ assert ([|ih1|] * wB + 2 * [|s|] + 1 <= [|ih|] * wB + ([|il|] - [|il1|]));
+  auto with zarith.
+ rewrite <-Hil2.
+ case (to_Z_bounded il2); intros Hpil2 _.
+ apply Z.le_trans with ([|ih|] * wB + - wB); auto with zarith.
+ case (to_Z_bounded s);  intros _ Hps.
+ assert (2 * [|s|] + 1 <= 2 * wB); auto with zarith.
+ apply Z.le_trans with ([|ih1|] * wB + 2 * wB); auto with zarith.
+ assert (Hi: ([|ih1|] + 3) * wB <= [|ih|] * wB); auto with zarith.
+ rewrite Zmult_plus_distr_l in Hi; auto with zarith.
+ unfold zn2z_to_Z; rewrite <-Hihl1, Hbin; auto.
+ intros H2; unfold zn2z_to_Z; rewrite <-H2.
+ split.
+ replace [|il|] with (([|il|] - [|il1|]) + [|il1|]); try ring.
+ rewrite <-Hil2; ring.
+ replace (1 * wB + [|il2|]) with ([||WW ih il||] - [||WW ih1 il1||]).
+ unfold zn2z_to_Z at 2; rewrite <-Hihl1.
+ rewrite <-Hbin in Hs2; auto with zarith.
+ unfold zn2z_to_Z; rewrite <-H2.
+ replace [|il|] with (([|il|] - [|il1|]) + [|il1|]); try ring.
+ rewrite <-Hil2; ring.
+ case (Zle_lt_or_eq ([|ih|] - 1) ([|ih1|])); auto with zarith; intros H1.
+ assert (He: [|ih|] = [|ih1|]).
+   apply Zle_antisym; auto with zarith.
+   case (Zle_or_lt [|ih1|] [|ih|]); auto; intros H2.
+   contradict Hs1; apply Zlt_not_le; rewrite Z.pow_2_r, Hihl1.
+  unfold zn2z_to_Z.
+  case (to_Z_bounded il); intros _ Hpil1.
+  apply Z.lt_le_trans with (([|ih|] + 1) * wB).
+  rewrite Zmult_plus_distr_l, Zmult_1_l; auto with zarith.
+  case (to_Z_bounded il1); intros Hpil2 _.
+  apply Z.le_trans with (([|ih1|]) * wB); auto with zarith.
+ contradict Hs1; apply Zlt_not_le; rewrite Z.pow_2_r, Hihl1.
+ unfold zn2z_to_Z; rewrite He.
+ assert ([|il|] - [|il1|] < 0); auto with zarith.
+ rewrite <-Hil2.
+ case (to_Z_bounded il2); auto with zarith.
+ split.
+ rewrite Z.pow_2_r, Hihl1.
+ unfold zn2z_to_Z; rewrite <-H1.
+ apply trans_equal with ([|ih|] * wB + [|il1|] + ([|il|] - [|il1|])).
+ ring.
+ rewrite <-Hil2; ring.
+ replace [|il2|] with ([||WW ih il||] - [||WW ih1 il1||]).
+ unfold zn2z_to_Z at 2; rewrite <- Hihl1.
+ rewrite <-Hbin in Hs2; auto with zarith.
+ unfold zn2z_to_Z.
+ rewrite <-H1.
+ ring_simplify.
+ apply trans_equal with (wB + ([|il|] - [|il1|])).
+ ring.
+ rewrite <-Hil2; ring.
+Qed.
+
+(* Results about pow2 *)
+Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
+Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
+
+Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
+Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
+
+Hint Resolve pow2_pos pow2_nz : zarith.
+
+(* of_pos *)
+Lemma of_pos_rec_spec (k: nat) :
+  (k <= size)%nat →
+  ∀ p, φ(of_pos_rec k p) = Zpos p mod 2 ^ Z.of_nat k.
+Proof.
+  elim k; clear k.
+    intros _ p; simpl; rewrite to_Z_0, Zmod_1_r; reflexivity.
+  intros n ih hn.
+  assert (n <= size)%nat as hn' by lia.
+  specialize (ih hn').
+  intros [ p | p | ].
+  3: {
+    rewrite Zmod_small. reflexivity.
+    split. lia.
+    apply Zpower_gt_1; lia.
+  }
+  - simpl.
+    destruct (bit_add_or (of_pos_rec n p << 1) 1) as (H1, _).
+    rewrite <- H1;clear H1.
+    2: {
+      intros i; rewrite bit_lsl, bit_1.
+      case eqbP.
+      + intros h; apply to_Z_inj in h; subst. exact (λ e _, diff_false_true e).
+      + exact (λ _ _, diff_false_true).
+    }
+    rewrite add_spec, lsl_spec, ih, to_Z_1; clear ih.
+    rewrite Z.pow_pos_fold, Zpos_P_of_succ_nat.
+    change (Zpos p~1) with (2 ^ 1 * Zpos p + 1)%Z.
+    rewrite Zmod_distr by lia.
+    rewrite Zpower_Zsucc by auto with zarith.
+    rewrite Zplus_mod_idemp_l.
+    rewrite Zmod_small.
+      rewrite Zmult_mod_distr_l; lia.
+    set (a := Z.of_nat n).
+    set (b := Zpos p).
+    change (2 ^ 1) with 2.
+    pose proof (pow2_pos a (Nat2Z.is_nonneg _)).
+    elim_div; intros x y [ ? ha]. lia.
+    destruct ha as [ ha | ]. 2: lia.
+    split. lia.
+    apply Z.lt_le_trans with (2 ^ (a + 1)).
+    2: apply Z.pow_le_mono_r; subst a; lia.
+    fold (Z.succ a); rewrite Z.pow_succ_r. lia.
+    subst a; lia.
+  - simpl. rewrite lsl_spec, ih, to_Z_1, Zmod_small.
+      rewrite Z.pow_pos_fold, Zpos_P_of_succ_nat, Zpower_Zsucc by lia.
+      change (Zpos p~0) with (2 ^ 1 * Zpos p)%Z.
+      rewrite Z.mul_mod_distr_l; auto with zarith.
+    (* FIXME: déjà vu *)
+    set (a := Z.of_nat n).
+    set (b := Zpos p).
+    change (2 ^ 1) with 2.
+    pose proof (pow2_pos a (Nat2Z.is_nonneg _)).
+    elim_div; intros x y [ ? ha]. lia.
+    destruct ha as [ ha | ]. 2: lia.
+    split. lia.
+    apply Z.lt_le_trans with (2 ^ (a + 1)).
+    2: apply Z.pow_le_mono_r; subst a; lia.
+    fold (Z.succ a); rewrite Z.pow_succ_r. lia.
+    subst a; lia.
+Qed.
+
+Lemma is_int n :
+  0 <= n < 2 ^ φ digits →
+  n = φ (of_Z n).
+Proof.
+  destruct n. reflexivity. 2: lia.
+  intros [_ h]. simpl.
+  unfold of_pos. rewrite of_pos_rec_spec by lia.
+  symmetry; apply Z.mod_small. split. lia. exact h.
+Qed.
+
+(* General lemmas *)
+Lemma negbE a b : a = negb b → negb a = b.
+Proof. intros ->; apply negb_involutive. Qed.
+
+Lemma Z_oddE a : Z.odd a = (a mod 2 =? 1)%Z.
+Proof. rewrite Zmod_odd; case Z.odd; reflexivity. Qed.
+
+Lemma Z_evenE a : Z.even a = (a mod 2 =? 0)%Z.
+Proof. rewrite Zmod_even; case Z.even; reflexivity. Qed.
+
+(* is_zero *)
+Lemma is_zeroE n : is_zero n = Z.eqb (φ n) 0.
+Proof.
+  case Z.eqb_spec.
+  - intros h; apply (to_Z_inj n 0) in h; subst n; reflexivity.
+  - generalize (proj1 (is_zero_spec n)).
+    case is_zero; auto; intros ->; auto; destruct 1; reflexivity.
+Qed.
+
+(* bit *)
+Lemma bitE i j : bit i j = Z.testbit φ(i) φ(j).
+Proof.
+  apply negbE; rewrite is_zeroE, lsl_spec, lsr_spec.
+  generalize (φ i) (to_Z_bounded i) (φ j) (to_Z_bounded j); clear i j;
+  intros i [hi hi'] j [hj hj'].
+  rewrite Z.testbit_eqb by auto; rewrite <- Z_oddE, Z.negb_odd, Z_evenE.
+  remember (i / 2 ^ j) as k.
+  change wB with (2 * 2 ^ φ (digits - 1)).
+  unfold Z.modulo at 2.
+  generalize (Z_div_mod_full k 2 (λ k, let 'eq_refl := k in I)); unfold Remainder.
+  destruct Z.div_eucl as [ p q ]; intros [hk [ hq | ]]. 2: lia.
+  rewrite hk.
+  remember φ (digits - 1) as m.
+  replace ((_ + _) * _) with (q * 2 ^ m + p * (2 * 2 ^ m)) by ring.
+  rewrite Z_mod_plus by (subst m; reflexivity).
+  assert (q = 0 ∨ q = 1) as D by lia.
+  destruct D; subst; reflexivity.
+Qed.
+
+(* land, lor, lxor *)
+Lemma lt_pow_lt_log d k n :
+  0 < d <= n →
+  0 <= k < 2 ^ d →
+  Z.log2 k < n.
+Proof.
+  intros [hd hdn] [hk hkd].
+  assert (k = 0 ∨ 0 < k) as D by lia.
+  clear hk; destruct D as [ hk | hk ].
+  - subst k; simpl; lia.
+  - apply Z.log2_lt_pow2. lia.
+    eapply Z.lt_le_trans. eassumption.
+    apply Z.pow_le_mono_r; lia.
+Qed.
+
+Lemma land_spec' x y : φ (x land y) = Z.land φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x land y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.land_nonneg; auto.
+    - eapply Z.le_lt_trans.
+        apply Z.log2_land; assumption.
+       apply Z.min_lt_iff.
+       left. apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+    - apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+  }
+  rewrite (is_int n).
+    rewrite Z.land_spec, <- !bitE, land_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.
+
+Lemma lor_spec' x y : φ (x lor y) = Z.lor φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x lor y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.lor_nonneg; auto.
+    - rewrite Z.log2_lor by assumption.
+      apply Z.max_lub_lt; apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+    - apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+  }
+  rewrite (is_int n).
+    rewrite Z.lor_spec, <- !bitE, lor_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.
+
+Lemma lxor_spec' x y : φ (x lxor y) = Z.lxor φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x lxor y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.lxor_nonneg; split; auto.
+    - eapply Z.le_lt_trans.
+        apply Z.log2_lxor; assumption.
+      apply Z.max_lub_lt; apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+    - apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+  }
+  rewrite (is_int n).
+    rewrite Z.lxor_spec, <- !bitE, lxor_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.
+
+(* Downwards or loop *)
+Variant predicate A (P: A → bool) (a: A) : Type :=
+| IsTrue `(P a = true)
+| IsFalse `(P a = false).
+
+Arguments IsTrue {A P a}.
+Arguments IsFalse {A P a}.
+
+Definition dec {A} P a : predicate A P a :=
+  (if P a as b return P a = b → _ then IsTrue else IsFalse) eq_refl.
+
+Section FOLDI_DOWN.
+  Context {A: Type} (f: int → A → A) (downto: int) (nz: (0 < downto)%int63 = true).
+
+  Definition lt u v := (u < v)%int63 = true.
+
+  Local Lemma le_lt x : downto ≤ x = true → lt (x - 1) x.
+  Proof.
+    unfold lt; revert nz.
+    case ltbP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
+    change (φ (0)) with 0; intros nz _.
+    case lebP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
+    intros hle _.
+    case ltbP; auto.
+    rewrite sub_spec; change (φ(1)) with 1.
+    generalize (to_Z_bounded x).
+    change wB with 9223372036854775808.
+    elim_div; intros q r; lia.
+  Qed.
+
+  Fixpoint foldi_down_rec (x: int) (h: Acc lt x) (a: A) : A :=
+    match dec (λ x, downto ≤ x) x with
+    | IsFalse _ => a
+    | IsTrue e =>
+      let 'Acc_intro _ rec := h in
+      foldi_down_rec (x - 1) (rec _ (le_lt _ e)) (f x a)
+    end.
+
+  Local Lemma not_is_zero_pred_lt x : is_zero x = false → lt (x - 1) x.
+  Proof.
+    unfold lt; rewrite is_zeroE; case ltbP; auto.
+    case Z.eqb_spec; auto.
+    rewrite sub_spec; change (φ(1)) with 1.
+    generalize (to_Z_bounded x).
+    change wB with 9223372036854775808.
+    elim_div; intros q r; lia.
+  Qed.
+
+  Fixpoint foldi_down_zero (x: int) (h: Acc lt x) (a: A) : A :=
+    match dec is_zero x with
+    | IsTrue _ => f x a
+    | IsFalse e =>
+      let 'Acc_intro _ rec := h in
+      foldi_down_zero (x - 1) (rec _ (not_is_zero_pred_lt _ e)) (f x a)
+    end.
+
+End FOLDI_DOWN.
+
+Definition foldi_down {A} f from downto : A → A :=
+  match dec (ltb 0) downto with
+  | IsTrue e => foldi_down_rec f downto e from (wf from)
+  | IsFalse _ => foldi_down_zero f from (wf from)
+  end.
