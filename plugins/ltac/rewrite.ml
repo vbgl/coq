@@ -58,7 +58,7 @@ let init_setoid () =
 
 let find_reference dir s =
   Coqlib.find_reference "generalized rewriting" dir s
-[@@warning "-3"]
+[@warning "-3"]
 
 let lazy_find_reference dir s =
   let gr = lazy (find_reference dir s) in
