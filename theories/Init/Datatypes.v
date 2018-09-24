@@ -67,6 +67,9 @@ Infix "||" := orb : bool_scope.
 Infix "&&" := andb : bool_scope.
 
 Register andb as core.bool.andb.
+Register orb as core.bool.orb.
+Register xorb as core.bool.xorb.
+Register negb as core.bool.negb.
 
 (** Basic properties of [andb] *)
 
@@ -258,6 +261,10 @@ Delimit Scope list_scope with list.
 Bind Scope list_scope with list.
 
 Infix "::" := cons (at level 60, right associativity) : list_scope.
+
+Register list as core.list.type.
+Register nil as core.list.nil.
+Register cons as core.list.cons.
 
 Local Open Scope list_scope.
 
