@@ -282,12 +282,6 @@ Proof.
   rewrite lsr_spec, lsl_spec; reflexivity.
 Qed.
 
-Axiom sqrt2_spec : forall x y,
-       wB/ 4 <= [|x|] ->
-       let (s,r) := sqrt2 x y in
-          [||DoubleType.WW x y||] = [|s|] ^ 2 + [+|r|] /\
-          [+|r|] <= 2 * [|s|].
-
 Axiom land_spec : forall x y : int, [| Int63.land x y |] = Z.land [|x|] [|y|].
 Axiom lor_spec : forall x y : int, [| Int63.lor x y |] = Z.lor [|x|] [|y|].
 Axiom lxor_spec : forall x y : int, [| Int63.lxor x y |] = Z.lxor [|x|] [|y|].
