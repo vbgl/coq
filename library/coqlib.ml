@@ -212,9 +212,9 @@ let init () =
   Array.iter (fun (b, path, s) -> Hashtbl.add table b @@ lazy (find_reference "from_table" path s)) std_table
 
 (** Can throw Not_found *)
-let lib_ref    s =
+let lib_ref ?(quiet=false) s =
   try Lazy.force (Hashtbl.find table s)
-  with | Not_found ->
+  with Not_found when not quiet ->
     Feedback.msg_warning Pp.(str "not found in table: " ++ str s);
     raise Not_found
 

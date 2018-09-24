@@ -292,7 +292,7 @@ let coq_refl_jm_pattern       =
 open Globnames
 
 let is_globref_exists gr c =
-  try GlobRef.equal Coqlib.(lib_ref gr) c
+  try GlobRef.equal Coqlib.(lib_ref ~quiet:true gr) c
   with _ -> false
 
 let match_with_equation env sigma t =

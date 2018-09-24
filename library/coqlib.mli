@@ -36,7 +36,7 @@ open Names
     take.
 *)
 
-val lib_ref    : string -> GlobRef.t
+val lib_ref : ?quiet:bool -> string -> GlobRef.t
 val register_ref    : string -> GlobRef.t -> unit
 val get_lib_refs : unit -> (string * GlobRef.t) list
 

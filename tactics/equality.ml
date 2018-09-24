@@ -340,7 +340,7 @@ let find_elim hdcncl lft2rgt dep cls ot =
   Proofview.Goal.enter_one begin fun gl ->
   let sigma = project gl in
   let is_global_exists gr c =
-    try Termops.is_global sigma Coqlib.(lib_ref gr) c
+    try Termops.is_global sigma (Coqlib.lib_ref ~quiet:true gr) c
     with _ -> false
   in
   let inccl = Option.is_empty cls in
