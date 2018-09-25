@@ -194,14 +194,6 @@ Proof.
  inversion W;rewrite (Zmult_comm [|b|]);trivial.
 Qed.
 
-Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
-Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
-
-Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
-Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
-
-Local Hint Resolve pow2_pos pow2_nz : zarith.
-
 Lemma shift_unshift_mod_2 : forall n p a, 0 <= p <= n ->
    ((a * 2 ^ (n - p)) mod (2^n) / 2 ^ (n - p)) mod (2^n) =
    a mod 2 ^ p.

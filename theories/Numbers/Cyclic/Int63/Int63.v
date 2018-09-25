@@ -1620,3 +1620,12 @@ Lemma sqrt2_spec : forall x y,
  ring.
  rewrite <-Hil2; ring.
 Qed.
+
+(* Results about pow2 *)
+Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
+Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
+
+Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
+Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
+
+Hint Resolve pow2_pos pow2_nz : zarith.

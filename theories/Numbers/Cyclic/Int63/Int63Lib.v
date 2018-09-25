@@ -1,4 +1,3 @@
-(*
 Require Int63.
 Import BinInt.
 Import Bool.
@@ -13,7 +12,88 @@ Import Utf8.
 Local Open Scope int63_scope.
 Local Open Scope Z_scope.
 
+Lemma is_int n :
+  0 <= n < φ digits →
+  n = φ (of_Z n).
+Proof.
+  destruct n. reflexivity. 2: lia.
+  intros [_ h]. simpl.
+Admitted.
 
+Lemma is_zeroE n : is_zero n = Z.eqb (φ n) 0.
+Proof.
+  case Z.eqb_spec.
+  - intros h; apply (to_Z_inj n 0) in h; subst n; reflexivity.
+  - generalize (proj1 (is_zero_spec n)).
+    case is_zero; auto; intros ->; auto; destruct 1; reflexivity.
+Qed.
+
+Lemma negbE a b : a = negb b → negb a = b.
+Proof. intros ->; apply negb_involutive. Qed.
+
+Lemma Z_oddE a : Z.odd a = (a mod 2 =? 1)%Z.
+Proof. rewrite Zmod_odd; case Z.odd; reflexivity. Qed.
+
+Lemma Z_evenE a : Z.even a = (a mod 2 =? 0)%Z.
+Proof. rewrite Zmod_even; case Z.even; reflexivity. Qed.
+
+Lemma bitE i j : bit i j = Z.testbit φ(i) φ(j).
+Proof.
+  apply negbE; rewrite is_zeroE, lsl_spec, lsr_spec.
+  generalize (φ i) (to_Z_bounded i) (φ j) (to_Z_bounded j); clear i j;
+  intros i [hi hi'] j [hj hj'].
+  rewrite Z.testbit_eqb by auto; rewrite <- Z_oddE, Z.negb_odd, Z_evenE.
+  remember (i / 2 ^ j) as k.
+  change wB with (2 * 2 ^ φ (digits - 1)).
+  unfold Z.modulo at 2.
+  generalize (Z_div_mod_full k 2 (λ k, let 'eq_refl := k in I)); unfold Remainder.
+  destruct Z.div_eucl as [ p q ]; intros [hk [ hq | ]]. 2: lia.
+  rewrite hk.
+  remember φ (digits - 1) as m.
+  replace ((_ + _) * _) with (q * 2 ^ m + p * (2 * 2 ^ m)) by ring.
+  rewrite Z_mod_plus by (subst m; reflexivity).
+  assert (q = 0 ∨ q = 1) as D by lia.
+  destruct D; subst; reflexivity.
+Qed.
+
+Lemma lt_pow_lt_log d k n :
+  0 < d <= n →
+  0 <= k < 2 ^ d →
+  Z.log2 k < n.
+Proof.
+  intros [hd hdn] [hk hkd].
+  assert (k = 0 ∨ 0 < k) as D by lia.
+  clear hk; destruct D as [ hk | hk ].
+  - subst k; simpl; lia.
+  - apply Z.log2_lt_pow2. lia.
+    eapply Z.lt_le_trans. eassumption.
+    apply Z.pow_le_mono_r; lia.
+Qed.
+
+Lemma land_spec x y : φ (x land y) = Z.land φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x land y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.land_nonneg; auto.
+    - eapply Z.le_lt_trans.
+        apply Z.log2_land; assumption.
+       apply Z.min_lt_iff.
+       left. apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+    - apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+  }
+  rewrite (is_int _ (conj hn hd)).
+  rewrite Z.land_spec, <- !bitE, land_spec.
+  reflexivity.
+Qed.
+
+(*
 Import Znumtheory.
 Require Import Zgcd_alt.
 
