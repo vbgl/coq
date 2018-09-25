@@ -101,7 +101,7 @@ let make_coqtop_args fname =
            ~projfile_name:project_file_name#get
        with
        | None -> "", base_args
-       | Some proj -> 
+       | Some proj ->
            proj, coqtop_args_from_project (read_project_file proj) @ base_args
 ;;
 
@@ -442,7 +442,7 @@ let compile sn =
     |None -> flash_info "Active buffer has no name"
     |Some f ->
       let args = Coq.get_arguments sn.coqtop in
-      let cmd = cmd_coqc#get 
+      let cmd = cmd_coqc#get
 	^ " " ^ String.concat " " args
 	^ " " ^ (Filename.quote f) ^ " 2>&1"
       in
@@ -754,6 +754,14 @@ let about _ =
   dialog#set_copyright copyright;
   dialog#set_authors authors;
   dialog#show ()
+
+let latex_to_unicode =
+  cb_on_current_term (fun t ->
+    (*let show_warning s =
+      t.messages#clear;
+      t.messages#add_string s
+      in*)
+    t.script#latex_to_unicode() (*show_warning*))
 
 let comment = cb_on_current_term (fun t -> t.script#comment ())
 let uncomment = cb_on_current_term (fun t -> t.script#uncomment ())
@@ -1152,6 +1160,8 @@ let build_ui () =
       ~callback:MiscMenu.uncomment;
     item "Coqtop arguments" ~label:"Coqtop _arguments"
       ~callback:MiscMenu.coqtop_arguments;
+    item "Latex-to-unicode" ~label:"_Latex-to-unicode" ~accel:"<Shift>space"
+      ~callback:MiscMenu.latex_to_unicode;
   ];
 
   menu compile_menu [
