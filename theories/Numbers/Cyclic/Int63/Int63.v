@@ -1629,3 +1629,197 @@ Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
 Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
 
 Hint Resolve pow2_pos pow2_nz : zarith.
+
+(* of_pos *)
+Lemma of_pos_rec_spec (k: nat) :
+  (k <= size)%nat →
+  ∀ p, φ(of_pos_rec k p) = Zpos p mod 2 ^ Z.of_nat k.
+Proof.
+  elim k; clear k.
+    intros _ p; simpl; rewrite to_Z_0, Zmod_1_r; reflexivity.
+  intros n ih hn.
+  assert (n <= size)%nat as hn' by lia.
+  specialize (ih hn').
+  intros [ p | p | ].
+  3: {
+    rewrite Zmod_small. reflexivity.
+    split. lia.
+    apply Zpower_gt_1; lia.
+  }
+  - simpl.
+    destruct (bit_add_or (of_pos_rec n p << 1) 1) as (H1, _).
+    rewrite <- H1;clear H1.
+    2: {
+      intros i; rewrite bit_lsl, bit_1.
+      case eqbP.
+      + intros h; apply to_Z_inj in h; subst. exact (λ e _, diff_false_true e).
+      + exact (λ _ _, diff_false_true).
+    }
+    rewrite add_spec, lsl_spec, ih, to_Z_1; clear ih.
+    rewrite Z.pow_pos_fold, Zpos_P_of_succ_nat.
+    change (Zpos p~1) with (2 ^ 1 * Zpos p + 1)%Z.
+    rewrite Zmod_distr by lia.
+    rewrite Zpower_Zsucc by auto with zarith.
+    rewrite Zplus_mod_idemp_l.
+    rewrite Zmod_small.
+      rewrite Zmult_mod_distr_l; lia.
+    set (a := Z.of_nat n).
+    set (b := Zpos p).
+    change (2 ^ 1) with 2.
+    pose proof (pow2_pos a (Nat2Z.is_nonneg _)).
+    elim_div; intros x y [ ? ha]. lia.
+    destruct ha as [ ha | ]. 2: lia.
+    split. lia.
+    apply Z.lt_le_trans with (2 ^ (a + 1)).
+    2: apply Z.pow_le_mono_r; subst a; lia.
+    fold (Z.succ a); rewrite Z.pow_succ_r. lia.
+    subst a; lia.
+  - simpl. rewrite lsl_spec, ih, to_Z_1, Zmod_small.
+      rewrite Z.pow_pos_fold, Zpos_P_of_succ_nat, Zpower_Zsucc by lia.
+      change (Zpos p~0) with (2 ^ 1 * Zpos p)%Z.
+      rewrite Z.mul_mod_distr_l; auto with zarith.
+    (* FIXME: déjà vu *)
+    set (a := Z.of_nat n).
+    set (b := Zpos p).
+    change (2 ^ 1) with 2.
+    pose proof (pow2_pos a (Nat2Z.is_nonneg _)).
+    elim_div; intros x y [ ? ha]. lia.
+    destruct ha as [ ha | ]. 2: lia.
+    split. lia.
+    apply Z.lt_le_trans with (2 ^ (a + 1)).
+    2: apply Z.pow_le_mono_r; subst a; lia.
+    fold (Z.succ a); rewrite Z.pow_succ_r. lia.
+    subst a; lia.
+Qed.
+
+Lemma is_int n :
+  0 <= n < 2 ^ φ digits →
+  n = φ (of_Z n).
+Proof.
+  destruct n. reflexivity. 2: lia.
+  intros [_ h]. simpl.
+  unfold of_pos. rewrite of_pos_rec_spec by lia.
+  symmetry; apply Z.mod_small. split. lia. exact h.
+Qed.
+
+(* General lemmas *)
+Lemma negbE a b : a = negb b → negb a = b.
+Proof. intros ->; apply negb_involutive. Qed.
+
+Lemma Z_oddE a : Z.odd a = (a mod 2 =? 1)%Z.
+Proof. rewrite Zmod_odd; case Z.odd; reflexivity. Qed.
+
+Lemma Z_evenE a : Z.even a = (a mod 2 =? 0)%Z.
+Proof. rewrite Zmod_even; case Z.even; reflexivity. Qed.
+
+(* is_zero *)
+Lemma is_zeroE n : is_zero n = Z.eqb (φ n) 0.
+Proof.
+  case Z.eqb_spec.
+  - intros h; apply (to_Z_inj n 0) in h; subst n; reflexivity.
+  - generalize (proj1 (is_zero_spec n)).
+    case is_zero; auto; intros ->; auto; destruct 1; reflexivity.
+Qed.
+
+(* bit *)
+Lemma bitE i j : bit i j = Z.testbit φ(i) φ(j).
+Proof.
+  apply negbE; rewrite is_zeroE, lsl_spec, lsr_spec.
+  generalize (φ i) (to_Z_bounded i) (φ j) (to_Z_bounded j); clear i j;
+  intros i [hi hi'] j [hj hj'].
+  rewrite Z.testbit_eqb by auto; rewrite <- Z_oddE, Z.negb_odd, Z_evenE.
+  remember (i / 2 ^ j) as k.
+  change wB with (2 * 2 ^ φ (digits - 1)).
+  unfold Z.modulo at 2.
+  generalize (Z_div_mod_full k 2 (λ k, let 'eq_refl := k in I)); unfold Remainder.
+  destruct Z.div_eucl as [ p q ]; intros [hk [ hq | ]]. 2: lia.
+  rewrite hk.
+  remember φ (digits - 1) as m.
+  replace ((_ + _) * _) with (q * 2 ^ m + p * (2 * 2 ^ m)) by ring.
+  rewrite Z_mod_plus by (subst m; reflexivity).
+  assert (q = 0 ∨ q = 1) as D by lia.
+  destruct D; subst; reflexivity.
+Qed.
+
+(* land, lor, lxor *)
+Lemma lt_pow_lt_log d k n :
+  0 < d <= n →
+  0 <= k < 2 ^ d →
+  Z.log2 k < n.
+Proof.
+  intros [hd hdn] [hk hkd].
+  assert (k = 0 ∨ 0 < k) as D by lia.
+  clear hk; destruct D as [ hk | hk ].
+  - subst k; simpl; lia.
+  - apply Z.log2_lt_pow2. lia.
+    eapply Z.lt_le_trans. eassumption.
+    apply Z.pow_le_mono_r; lia.
+Qed.
+
+Lemma land_spec' x y : φ (x land y) = Z.land φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x land y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.land_nonneg; auto.
+    - eapply Z.le_lt_trans.
+        apply Z.log2_land; assumption.
+       apply Z.min_lt_iff.
+       left. apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+    - apply (lt_pow_lt_log φ digits). exact (conj eq_refl hd).
+      split; assumption.
+  }
+  rewrite (is_int n).
+    rewrite Z.land_spec, <- !bitE, land_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.
+
+Lemma lor_spec' x y : φ (x lor y) = Z.lor φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x lor y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.lor_nonneg; auto.
+    - rewrite Z.log2_lor by assumption.
+      apply Z.max_lub_lt; apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+    - apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+  }
+  rewrite (is_int n).
+    rewrite Z.lor_spec, <- !bitE, lor_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.
+
+Lemma lxor_spec' x y : φ (x lxor y) = Z.lxor φ(x) φ(y).
+Proof.
+  apply Z.bits_inj'; intros n hn.
+  destruct (to_Z_bounded (x lxor y)) as [ hxy hxy' ].
+  destruct (to_Z_bounded x) as [ hx hx' ].
+  destruct (to_Z_bounded y) as [ hy hy' ].
+  case (Z_lt_le_dec n (φ digits)); intros hd.
+  2: {
+    rewrite !Z.bits_above_log2; auto.
+    - apply Z.lxor_nonneg; split; auto.
+    - eapply Z.le_lt_trans.
+        apply Z.log2_lxor; assumption.
+      apply Z.max_lub_lt; apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+    - apply (lt_pow_lt_log φ digits); split; assumption || reflexivity.
+  }
+  rewrite (is_int n).
+    rewrite Z.lxor_spec, <- !bitE, lxor_spec; reflexivity.
+  apply (conj hn).
+  apply (Z.lt_trans _ _ _ hd).
+  apply Zpower2_lt_lin. lia.
+Qed.

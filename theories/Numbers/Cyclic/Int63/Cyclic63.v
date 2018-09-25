@@ -274,10 +274,6 @@ Proof.
   rewrite lsr_spec, lsl_spec; reflexivity.
 Qed.
 
-Axiom land_spec : forall x y : int, [| Int63.land x y |] = Z.land [|x|] [|y|].
-Axiom lor_spec : forall x y : int, [| Int63.lor x y |] = Z.lor [|x|] [|y|].
-Axiom lxor_spec : forall x y : int, [| Int63.lxor x y |] = Z.lxor [|x|] [|y|].
-
 (** {2 Specification and proof} **)
 Global Instance int_specs : ZnZ.Specs int_ops := {
     spec_to_Z   := to_Z_bounded;
@@ -323,9 +319,9 @@ Global Instance int_specs : ZnZ.Specs int_ops := {
     spec_is_even := is_even_spec;
     spec_sqrt2 := sqrt2_spec;
     spec_sqrt := sqrt_spec;
-    spec_land := land_spec;
-    spec_lor := lor_spec;
-    spec_lxor := lxor_spec }.
+    spec_land := land_spec';
+    spec_lor := lor_spec';
+    spec_lxor := lxor_spec' }.
 
 
 
