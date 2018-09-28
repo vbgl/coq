@@ -1823,3 +1823,67 @@ Proof.
   apply (Z.lt_trans _ _ _ hd).
   apply Zpower2_lt_lin. lia.
 Qed.
+
+(* Downwards or loop *)
+Variant predicate A (P: A → bool) (a: A) : Type :=
+| IsTrue `(P a = true)
+| IsFalse `(P a = false).
+
+Arguments IsTrue {A P a}.
+Arguments IsFalse {A P a}.
+
+Definition dec {A} P a : predicate A P a :=
+  (if P a as b return P a = b → _ then IsTrue else IsFalse) eq_refl.
+
+Section FOLDI_DOWN.
+  Context {A: Type} (f: int → A → A) (downto: int) (nz: (0 < downto)%int63 = true).
+
+  Definition lt u v := (u < v)%int63 = true.
+
+  Local Lemma le_lt x : downto ≤ x = true → lt (x - 1) x.
+  Proof.
+    unfold lt; revert nz.
+    case ltbP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
+    change (φ (0)) with 0; intros nz _.
+    case lebP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
+    intros hle _.
+    case ltbP; auto.
+    rewrite sub_spec; change (φ(1)) with 1.
+    generalize (to_Z_bounded x).
+    change wB with 9223372036854775808.
+    elim_div; intros q r; lia.
+  Qed.
+
+  Fixpoint foldi_down_rec (x: int) (h: Acc lt x) (a: A) : A :=
+    match dec (λ x, downto ≤ x) x with
+    | IsFalse _ => a
+    | IsTrue e =>
+      let 'Acc_intro _ rec := h in
+      foldi_down_rec (x - 1) (rec _ (le_lt _ e)) (f x a)
+    end.
+
+  Local Lemma not_is_zero_pred_lt x : is_zero x = false → lt (x - 1) x.
+  Proof.
+    unfold lt; rewrite is_zeroE; case ltbP; auto.
+    case Z.eqb_spec; auto.
+    rewrite sub_spec; change (φ(1)) with 1.
+    generalize (to_Z_bounded x).
+    change wB with 9223372036854775808.
+    elim_div; intros q r; lia.
+  Qed.
+
+  Fixpoint foldi_down_zero (x: int) (h: Acc lt x) (a: A) : A :=
+    match dec is_zero x with
+    | IsTrue _ => f x a
+    | IsFalse e =>
+      let 'Acc_intro _ rec := h in
+      foldi_down_zero (x - 1) (rec _ (not_is_zero_pred_lt _ e)) (f x a)
+    end.
+
+End FOLDI_DOWN.
+
+Definition foldi_down {A} f from downto : A → A :=
+  match dec (ltb 0) downto with
+  | IsTrue e => foldi_down_rec f downto e from (wf from)
+  | IsFalse _ => foldi_down_zero f from (wf from)
+  end.

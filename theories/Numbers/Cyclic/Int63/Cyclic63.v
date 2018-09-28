@@ -21,8 +21,6 @@ Import Lia.
 Local Open Scope int63_scope.
 (** {2 Operators } **)
 
-Locate "land".
-
 Definition Pdigits := Eval compute in P_of_succ_nat (size - 1).
 
 Fixpoint positive_to_int_rec (n:nat) (p:positive) :=
