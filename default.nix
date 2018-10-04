@@ -75,12 +75,20 @@ stdenv.mkDerivation rec {
         (path: _:
            !elem (baseNameOf path) [".git" "result" "bin" "_build" "_build_ci"]) ./.;
 
+  enableParallelBuilding = true;
+
+  preConfigure = "patchShebangs kernel/";
+
   prefixKey = "-prefix ";
 
   buildFlags = [ "world" "byte" ] ++ optional buildDoc "doc-html";
 
   installTargets =
     [ "install" "install-byte" ] ++ optional buildDoc "install-doc-html";
+
+  createFindlibDestdir = !shell;
+
+  postInstall = "ln -s $out/lib/coq $OCAMLFIND_DESTDIR/coq";
 
   inherit doInstallCheck;
 
