@@ -95,6 +95,7 @@ stdenv.mkDerivation rec {
   preInstallCheck = ''
     patchShebangs tools/
     patchShebangs test-suite/
+    export OCAMLPATH=$OCAMLFIND_DESTDIR:$OCAMLPATH
   '';
 
   installCheckTarget = [ "check" ];
