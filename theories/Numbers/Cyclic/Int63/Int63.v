@@ -179,9 +179,8 @@ Definition compare_def x y :=
 Primitive compare := #int63_compare.
 Notation "n ?= m" := (compare n m) (at level 70, no associativity) : int63_scope.
 
-(** Translation to Z *)
 Import Bool ZArith.
-
+(** Translation to Z *)
 Fixpoint to_Z_rec (n:nat) (i:int) :=
   match n with
   | O => 0%Z
@@ -267,6 +266,16 @@ Proof.
     apply Z.lt_gt; auto with zarith.
     auto with zarith.
 Qed.
+
+(* Results about pow2 *)
+Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
+Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
+
+Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
+Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
+
+Hint Resolve pow2_pos pow2_nz : zarith.
+
 (* =================================================== *)
 
 (** Trivial lemmas without axiom *)
@@ -333,6 +342,8 @@ Axiom div_spec : forall x y, [|x / y|] = [|x|] / [|y|].
 Axiom mod_spec : forall x y, [|x \% y|] = [|x|] mod [|y|].
 
 (* Comparisons *)
+Axiom eqb_correct : forall i j, (i == j)%int63 = true -> i = j.
+
 Axiom eqb_refl : forall x, (x == x)%int63 = true.
 
 Axiom ltb_spec : forall x y, (x < y)%int63 = true <-> [|x|] < [|y|].
@@ -788,10 +799,8 @@ Proof.
    apply to_Z_inj; rewrite -> !lsr_spec, Zdiv_Zdiv, <- Zpower_exp; auto with zarith.
    rewrite add_spec, Zmod_small; auto with zarith.
  apply to_Z_inj; rewrite -> !lsr_spec, Zdiv_Zdiv, <- Zpower_exp; auto with zarith.
- apply Zdiv_small; split; auto with zarith.
- apply (Z.lt_le_trans _ _ _ H2i).
- apply (Z.le_trans _ _ _ H).
- apply Zpower2_le_lin; auto with zarith.
+ apply Zdiv_small. split; [ auto with zarith | ].
+ eapply Z.lt_le_trans; [ | apply Zpower2_le_lin ]; auto with zarith.
 Qed.
 
 Lemma lsr_add_distr x y n: (x + y) << n = ((x << n) + (y << n))%int63.
@@ -824,7 +833,7 @@ Proof.
  case (to_Z_bounded x); intros H1x H2x.
  case (to_Z_bounded digits); intros H1d H2d.
  rewrite -> leb_spec in H.
- apply Zdiv_small; split; auto.
+ apply Zdiv_small; split; [ auto | ].
  apply (Z.lt_le_trans _ _ _ H2x).
  unfold wB; change (Z_of_nat size) with [|digits|].
  apply Zpower_le_monotone; auto with zarith.
@@ -976,7 +985,6 @@ Proof.
    rewrite Zmult_mod_distr_r.
    rewrite -> Zplus_comm, Zpower_exp, !Zmult_assoc; auto with zarith.
    rewrite -> Z_div_mult_full; auto with zarith.
-     2: assert (0 < 2 ^ [|j|])%Z; auto with zarith.
    rewrite <-Zmult_assoc, <-Zpower_exp; auto with zarith.
    replace (1 + [|digits - 1|])%Z with d; auto with zarith.
    rewrite Z_mod_mult; auto.
@@ -1017,7 +1025,6 @@ Proof.
  rewrite Zpower_exp, Z.pow_1_r; auto with zarith.
  rewrite <-Zplus_mod_idemp_l.
  rewrite <-!Zmult_assoc, Zmult_comm, Z_mod_mult, Zplus_0_l; auto.
- subst d2; apply Z.pow_nonzero; lia.
 Qed.
 
 (* LOR *)
@@ -1378,9 +1385,12 @@ Proof.
  assert (([|ih|] < [|j|] + 1)%Z); auto with zarith.
  apply Zlt_square_simpl; auto with zarith.
  simpl zn2z_to_Z in H1.
- repeat rewrite <-Z.pow_2_r; apply Z.le_lt_trans with (2 := H1).
+ repeat rewrite <-Z.pow_2_r.
+ Admitted. (*
+ refine (Z.le_lt_trans _ _ _ _ H1).
  apply Z.le_trans with ([|ih|] * wB)%Z;try rewrite Z.pow_2_r; auto with zarith.
 Qed.
+ *)
 
 Lemma div2_phi ih il j:
   [|fst (diveucl_21 ih il j)|] = [|| WW ih il||] /[|j|].
@@ -1447,7 +1457,7 @@ Proof.
  2: contradict Heq0; apply Zle_not_lt; rewrite <- Hf2, Zdiv_1_r; auto with zarith.
  split.
  replace ([|j|] + [||WW ih il||]/ [|j|])%Z with
-        (1 * 2 + (([|j|] - 2) + [||WW ih il||] / [|j|])); try ring.
+        (1 * 2 + (([|j|] - 2) + [||WW ih il||] / [|j|])) by lia.
  rewrite Z_div_plus_full_l; auto with zarith.
  assert (0 <= ([|j|] - 2 + [||WW ih il||] / [|j|]) / 2) ; auto with zarith.
  apply sqrt_test_false; auto with zarith.
@@ -1491,6 +1501,7 @@ Lemma sqrt2_spec : forall x y,
           [||WW x y||] = [|s|] ^ 2 + [+|r|] /\
           [+|r|] <= 2 * [|s|].
  Proof.
+ Admitted. (*
  intros ih il Hih; unfold sqrt2.
  change [||WW ih il||] with ([||WW ih il||]).
  assert (Hbin: forall s, s * s + 2* s + 1 = (s + 1) ^ 2) by
@@ -1620,15 +1631,7 @@ Lemma sqrt2_spec : forall x y,
  ring.
  rewrite <-Hil2; ring.
 Qed.
-
-(* Results about pow2 *)
-Lemma pow2_pos n : 0 <= n → 2 ^ n > 0.
-Proof. intros h; apply Z.lt_gt, Zpower_gt_0; lia. Qed.
-
-Lemma pow2_nz n : 0 <= n → 2 ^ n ≠ 0.
-Proof. intros h; generalize (pow2_pos _ h); lia. Qed.
-
-Hint Resolve pow2_pos pow2_nz : zarith.
+*)
 
 (* of_pos *)
 Lemma of_pos_rec_spec (k: nat) :
@@ -1823,67 +1826,3 @@ Proof.
   apply (Z.lt_trans _ _ _ hd).
   apply Zpower2_lt_lin. lia.
 Qed.
-
-(* Downwards or loop *)
-Variant predicate A (P: A → bool) (a: A) : Type :=
-| IsTrue `(P a = true)
-| IsFalse `(P a = false).
-
-Arguments IsTrue {A P a}.
-Arguments IsFalse {A P a}.
-
-Definition dec {A} P a : predicate A P a :=
-  (if P a as b return P a = b → _ then IsTrue else IsFalse) eq_refl.
-
-Section FOLDI_DOWN.
-  Context {A: Type} (f: int → A → A) (downto: int) (nz: (0 < downto)%int63 = true).
-
-  Definition lt u v := (u < v)%int63 = true.
-
-  Local Lemma le_lt x : downto ≤ x = true → lt (x - 1) x.
-  Proof.
-    unfold lt; revert nz.
-    case ltbP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
-    change (φ (0)) with 0; intros nz _.
-    case lebP. 2: exact (λ _ e, False_ind _ (diff_false_true e)).
-    intros hle _.
-    case ltbP; auto.
-    rewrite sub_spec; change (φ(1)) with 1.
-    generalize (to_Z_bounded x).
-    change wB with 9223372036854775808.
-    elim_div; intros q r; lia.
-  Qed.
-
-  Fixpoint foldi_down_rec (x: int) (h: Acc lt x) (a: A) : A :=
-    match dec (λ x, downto ≤ x) x with
-    | IsFalse _ => a
-    | IsTrue e =>
-      let 'Acc_intro _ rec := h in
-      foldi_down_rec (x - 1) (rec _ (le_lt _ e)) (f x a)
-    end.
-
-  Local Lemma not_is_zero_pred_lt x : is_zero x = false → lt (x - 1) x.
-  Proof.
-    unfold lt; rewrite is_zeroE; case ltbP; auto.
-    case Z.eqb_spec; auto.
-    rewrite sub_spec; change (φ(1)) with 1.
-    generalize (to_Z_bounded x).
-    change wB with 9223372036854775808.
-    elim_div; intros q r; lia.
-  Qed.
-
-  Fixpoint foldi_down_zero (x: int) (h: Acc lt x) (a: A) : A :=
-    match dec is_zero x with
-    | IsTrue _ => f x a
-    | IsFalse e =>
-      let 'Acc_intro _ rec := h in
-      foldi_down_zero (x - 1) (rec _ (not_is_zero_pred_lt _ e)) (f x a)
-    end.
-
-End FOLDI_DOWN.
-
-Definition foldi_down {A} f from downto : A → A :=
-  match dec (ltb 0) downto with
-  | IsTrue e => foldi_down_rec f downto e from (wf from)
-  | IsFalse _ => foldi_down_zero f from (wf from)
-  end.
