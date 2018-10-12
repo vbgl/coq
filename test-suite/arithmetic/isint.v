@@ -46,3 +46,5 @@ Check (eq_refl 4 <: (fun x => x + x) 2 = 4).
 Check (eq_refl 4 <<: (fun x => x + x) 2 = 4).
 Definition compute6 := Eval compute in (fun x => x + x) 2.
 Check (eq_refl compute6 : 4 = 4).
+
+End test.
