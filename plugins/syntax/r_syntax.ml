@@ -12,7 +12,6 @@ open Util
 open Names
 open Globnames
 open Glob_term
-open Bigint
 
 (* Poor's man DECLARE PLUGIN *)
 let __coq_plugin_name = "r_syntax_plugin"
@@ -48,10 +47,10 @@ let pos_of_bignat ?loc x =
   let ref_xH = DAst.make @@ GRef (glob_xH, None) in
   let ref_xO = DAst.make @@ GRef (glob_xO, None) in
   let rec pos_of x =
-    match div2_with_rest x with
-      | (q,false) -> DAst.make @@ GApp (ref_xO,[pos_of q])
-      | (q,true) when not (Bigint.equal q zero) -> DAst.make @@ GApp (ref_xI,[pos_of q])
-      | (q,true) -> ref_xH
+    match Z.(div_rem x (of_int 2)) with
+      | (q,rem) when rem = Z.zero -> DAst.make @@ GApp (ref_xO,[pos_of q])
+      | (q,_) when not Z.(equal q zero) -> DAst.make @@ GApp (ref_xI,[pos_of q])
+      | (q,_) -> ref_xH
   in
   pos_of x
 
@@ -60,9 +59,9 @@ let pos_of_bignat ?loc x =
 (**********************************************************************)
 
 let rec bignat_of_pos c = match DAst.get c with
-  | GApp (r, [a]) when is_gr r glob_xO -> mult_2(bignat_of_pos a)
-  | GApp (r, [a]) when is_gr r glob_xI -> add_1(mult_2(bignat_of_pos a))
-  | GRef (a, _) when GlobRef.equal a glob_xH -> Bigint.one
+  | GApp (r, [a]) when is_gr r glob_xO -> Z.mul Z.(of_int 2) (bignat_of_pos a)
+  | GApp (r, [a]) when is_gr r glob_xI -> Z.add Z.one Z.(mul (of_int 2) (bignat_of_pos a))
+  | GRef (a, _) when GlobRef.equal a glob_xH -> Z.one
   | _ -> raise Non_closed_number
 
 (**********************************************************************)
@@ -78,9 +77,9 @@ let glob_POS = ConstructRef path_of_POS
 let glob_NEG = ConstructRef path_of_NEG
 
 let z_of_int ?loc n =
-  if not (Bigint.equal n zero) then
+  if not Z.(equal n zero) then
     let sgn, n =
-      if is_pos_or_zero n then glob_POS, n else glob_NEG, Bigint.neg n in
+      if Z.(leq zero n) then glob_POS, n else glob_NEG, Z.neg n in
     DAst.make @@ GApp(DAst.make @@ GRef (sgn,None), [pos_of_bignat ?loc n])
   else
     DAst.make @@ GRef (glob_ZERO, None)
@@ -91,8 +90,8 @@ let z_of_int ?loc n =
 
 let bigint_of_z c = match DAst.get c with
   | GApp (r,[a]) when is_gr r glob_POS -> bignat_of_pos a
-  | GApp (r,[a]) when is_gr r glob_NEG -> Bigint.neg (bignat_of_pos a)
-  | GRef (a, _) when GlobRef.equal a glob_ZERO -> Bigint.zero
+  | GApp (r,[a]) when is_gr r glob_NEG -> Z.neg (bignat_of_pos a)
+  | GRef (a, _) when GlobRef.equal a glob_ZERO -> Z.zero
   | _ -> raise Non_closed_number
 
 (**********************************************************************)

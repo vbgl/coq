@@ -79,8 +79,6 @@ let pppattern = (fun x -> pp(envpp pr_constr_pattern_env x))
 let pptype = (fun x -> try pp(envpp pr_ltype_env x) with e -> pp (str (Printexc.to_string e)))
 let ppfconstr c = ppconstr (CClosure.term_of_fconstr c)
 
-let ppbigint n = pp (str (Bigint.to_string n));;
-
 let prset pr l = str "[" ++ hov 0 (prlist_with_sep spc pr l) ++ str "]"
 let ppintset l = pp (prset int (Int.Set.elements l))
 let ppidset l = pp (prset Id.print (Id.Set.elements l))

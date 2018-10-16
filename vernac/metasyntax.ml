@@ -251,7 +251,7 @@ let quote_notation_token x =
 let is_numeral symbs =
   match List.filter (function Break _ -> false | _ -> true) symbs with
   | ([Terminal "-"; Terminal x] | [Terminal x]) ->
-      (try let _ = Bigint.of_string x in true with Failure _ -> false)
+      (try let _ = Z.of_string x in true with Invalid_argument _ -> false)
   | _ ->
       false
 

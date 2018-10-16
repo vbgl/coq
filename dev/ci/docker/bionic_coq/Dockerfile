@@ -1,4 +1,4 @@
-# CACHEKEY: "bionic_coq-V2019-03-11-V1"
+# CACHEKEY: "bionic_coq-V2019-03-13-V1"
 # ^^ Update when modifying this file.
 
 FROM ubuntu:bionic
@@ -6,9 +6,14 @@ LABEL maintainer="e@x80.org"
 
 ENV DEBIAN_FRONTEND="noninteractive"
 
+# We need libgmp-dev:i386 for zarith; maybe we could also install GTK
+RUN dpkg --add-architecture i386
+
 RUN apt-get update -qq && apt-get install --no-install-recommends -y -qq \
         # Dependencies of the image, the test-suite and external projects
         m4 automake autoconf time wget rsync git gcc-multilib build-essential unzip \
+        # Dependencies of ZArith
+        perl libgmp-dev libgmp-dev:i386 \
         # Dependencies of lablgtk (for CoqIDE)
         libgtk2.0-dev libgtksourceview2.0-dev \
         # Dependencies of stdlib and sphinx doc
@@ -35,9 +40,7 @@ ENV NJOBS="2" \
 ENV COMPILER="4.05.0"
 
 # Common OPAM packages.
-# `num` does not have a version number as the right version to install varies
-# with the compiler version.
-ENV BASE_OPAM="num ocamlfind.1.8.0 dune.1.6.2 ounit.2.0.8 odoc.1.4.0" \
+ENV BASE_OPAM="zarith.1.7 ocamlfind.1.8.0 dune.1.6.2 ounit.2.0.8 odoc.1.4.0" \
     CI_OPAM="menhir.20181113 elpi.1.1.0 ocamlgraph.1.8.8"
 
 # BASE switch; CI_OPAM contains Coq's CI dependencies.
@@ -47,9 +50,10 @@ ENV COQIDE_OPAM="lablgtk.2.18.5 conf-gtksourceview.2"
 RUN opam init -a --disable-sandboxing --compiler="$COMPILER" default https://opam.ocaml.org && eval $(opam env) && opam update && \
     opam install $BASE_OPAM $COQIDE_OPAM $CI_OPAM
 
-# base+32bit switch
+# base+32bit switch, note the zarith hack
 RUN opam switch create "${COMPILER}+32bit" && eval $(opam env) && \
-    opam install $BASE_OPAM
+        i386 env CC='gcc -m32' opam install zarith.1.7 && \
+        opam install $BASE_OPAM
 
 # EDGE switch
 ENV COMPILER_EDGE="4.07.1" \
