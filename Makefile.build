@@ -676,11 +676,11 @@ COND_OPTFLAGS= \
 
 plugins/micromega/%.cmi: plugins/micromega/%.mli
 	$(SHOW)'OCAMLC    $<'
-	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,num -c $<
+	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,zarith -c $<
 
 plugins/nsatz/%.cmi: plugins/nsatz/%.mli
 	$(SHOW)'OCAMLC    $<'
-	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,num -c $<
+	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,zarith -c $<
 
 kernel/%.cmi: COND_BYTEFLAGS+=-w +a-4-44-50
 
@@ -690,11 +690,11 @@ kernel/%.cmi: COND_BYTEFLAGS+=-w +a-4-44-50
 
 plugins/micromega/%.cmo: plugins/micromega/%.ml
 	$(SHOW)'OCAMLC    $<'
-	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,num -c $<
+	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,zarith -c $<
 
 plugins/nsatz/%.cmo: plugins/nsatz/%.ml
 	$(SHOW)'OCAMLC    $<'
-	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,num -c $<
+	$(HIDE)$(OCAMLC) $(COND_BYTEFLAGS) -package unix,zarith -c $<
 
 kernel/%.cmo: COND_BYTEFLAGS+=-w +a-4-44-50
 
@@ -733,11 +733,11 @@ plugins/micromega/csdpcert_FORPACK:=
 
 plugins/micromega/%.cmx: plugins/micromega/%.ml
 	$(SHOW)'OCAMLOPT  $<'
-	$(HIDE)$(OCAMLOPT) $(COND_OPTFLAGS) $(HACKMLI) $($(@:.cmx=_FORPACK)) -package unix,num -c $<
+	$(HIDE)$(OCAMLOPT) $(COND_OPTFLAGS) $(HACKMLI) $($(@:.cmx=_FORPACK)) -package unix,zarith -c $<
 
 plugins/nsatz/%.cmx: plugins/nsatz/%.ml
 	$(SHOW)'OCAMLOPT  $<'
-	$(HIDE)$(OCAMLOPT) $(COND_OPTFLAGS) $(HACKMLI) $($(@:.cmx=_FORPACK)) -package unix,num -c $<
+	$(HIDE)$(OCAMLOPT) $(COND_OPTFLAGS) $(HACKMLI) $($(@:.cmx=_FORPACK)) -package unix,zarith -c $<
 
 plugins/%.cmx: plugins/%.ml
 	$(SHOW)'OCAMLOPT  $<'
