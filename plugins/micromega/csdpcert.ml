@@ -14,7 +14,6 @@
 (*                                                                      *)
 (************************************************************************)
 
-open Num
 open Sos
 open Sos_types
 open Sos_lib
@@ -98,7 +97,7 @@ let real_nonlinear_prover d l =
     match kd with
      | Axiom_lt i -> poly_mul p y
      | Axiom_eq i -> poly_mul (poly_pow p 2) y
-     |   _        -> failwith "monoids") m (poly_const (Int 1)) , List.map snd m))
+     |   _        -> failwith "monoids") m (poly_const Q.one), List.map snd m))
    (sets_of_list neq) in
 
   let (cert_ideal, cert_cone,monoid) = deepen_until d (fun d ->
@@ -117,7 +116,7 @@ let real_nonlinear_prover d l =
    let sq = match
      (List.map (function Axiom_eq i -> i | _ -> failwith "error") neq)
     with
-    | []  -> Rational_lt (Int 1)
+    | []  -> Rational_lt Q.one
     | l   -> Monoid l in
     List.fold_right (fun x y -> Product(x,y)) lt sq in
 
@@ -143,7 +142,7 @@ let pure_sos  l =
   let pos = Product (Rational_lt n,
 		    List.fold_right (fun (c,p) rst -> Sum (Product (Rational_lt c, Square
 		     (term_of_poly p)), rst))
-		     polys (Rational_lt (Int 0))) in
+                     polys (Rational_lt Q.zero)) in
   let proof = Sum(Axiom_lt i, pos) in
 (*  let s,proof' = scale_certificate proof in
   let cert  = snd (cert_of_pos proof') in *)
