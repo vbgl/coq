@@ -196,13 +196,6 @@ build:base:
     # coqdoc for stdlib, until we know how to build it from installed Coq
     EXTRA_TARGET: "stdlib"
 
-# no coqide for 32bit: libgtk installation problems
-build:base+32bit:
-  <<: *build-template
-  variables:
-    OPAM_VARIANT: "+32bit"
-    COQ_EXTRA_CONF: "-native-compiler yes"
-
 build:edge:
   <<: *build-template
   variables:
@@ -299,13 +292,6 @@ test-suite:base:
   dependencies:
     - build:base
 
-test-suite:base+32bit:
-  <<: *test-suite-template
-  dependencies:
-    - build:base+32bit
-  variables:
-    OPAM_VARIANT: "+32bit"
-
 test-suite:edge:
   <<: *test-suite-template
   dependencies:
@@ -338,13 +324,6 @@ validate:base:
   <<: *validate-template
   dependencies:
     - build:base
-
-validate:base+32bit:
-  <<: *validate-template
-  dependencies:
-    - build:base+32bit
-  variables:
-    OPAM_VARIANT: "+32bit"
 
 validate:edge:
   <<: *validate-template
