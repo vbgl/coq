@@ -1386,11 +1386,9 @@ Proof.
  apply Zlt_square_simpl; auto with zarith.
  simpl zn2z_to_Z in H1.
  repeat rewrite <-Z.pow_2_r.
- Admitted. (*
  refine (Z.le_lt_trans _ _ _ _ H1).
  apply Z.le_trans with ([|ih|] * wB)%Z;try rewrite Z.pow_2_r; auto with zarith.
 Qed.
- *)
 
 Lemma div2_phi ih il j:
   [|fst (diveucl_21 ih il j)|] = [|| WW ih il||] /[|j|].
@@ -1501,7 +1499,6 @@ Lemma sqrt2_spec : forall x y,
           [||WW x y||] = [|s|] ^ 2 + [+|r|] /\
           [+|r|] <= 2 * [|s|].
  Proof.
- Admitted. (*
  intros ih il Hih; unfold sqrt2.
  change [||WW ih il||] with ([||WW ih il||]).
  assert (Hbin: forall s, s * s + 2* s + 1 = (s + 1) ^ 2) by
@@ -1631,7 +1628,6 @@ Lemma sqrt2_spec : forall x y,
  ring.
  rewrite <-Hil2; ring.
 Qed.
-*)
 
 (* of_pos *)
 Lemma of_pos_rec_spec (k: nat) :
