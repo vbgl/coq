@@ -250,17 +250,24 @@ let incr_var i v = List.map (fun (v,n) -> (v+i,n)) v
 
 open Big_int_Z
 
+(* Workaround to removed once https://github.com/ocaml/Zarith/pull/39
+   is fixed *)
+let fix_gcd c n =
+  if Z.(equal c zero) then
+    if Z.(equal n zero) then Z.(div zero zero) else n
+  else gcd_big_int c n
+
 let gcd v =
   let res = fold (fun c _ n  ->
-                assert (Int.equal (compare_big_int (Q.den n)  unit_big_int) 0);
-                gcd_big_int c (Q.num n)) zero_big_int v in
+                assert (Int.equal (compare_big_int (Q.den n) unit_big_int) 0);
+                fix_gcd c (Q.num n)) zero_big_int v in
   if Int.equal (compare_big_int res zero_big_int) 0
   then unit_big_int else res
 
 let normalise v =
   let ppcm = fold (fun c _ n -> ppcm c (Q.den n)) unit_big_int v in
-  let gcd  =
-    let gcd = fold (fun c _ n -> gcd_big_int c (Q.num n)) zero_big_int v in
+  let gcd =
+    let gcd = fold (fun c _ n -> fix_gcd c (Q.num n)) unit_big_int v in
     if Int.equal (compare_big_int gcd zero_big_int) 0 then unit_big_int else gcd in
   List.map (fun (x,v) -> (x, Q.(mul v (div (of_bigint ppcm) (of_bigint gcd))))) v
 

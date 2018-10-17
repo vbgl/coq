@@ -634,19 +634,26 @@ let diag m =
 (* Adjust a diagonalization to collect rationals at the start.               *)
 (* ------------------------------------------------------------------------- *)
 
+(* Workaround to removed once https://github.com/ocaml/Zarith/pull/39
+   is fixed *)
+let fix_gcd c n =
+  if Z.(equal c zero) then
+    if Z.(equal n zero) then Z.(div zero zero) else n
+  else Z.gcd c n
+
 let deration d =
   if d = [] then Q.zero, d else
   let adj(c,l) =
     let a =
       Q.make
         (foldl (fun a i c -> Z.lcm a (Q.den c)) Z.one (snd l))
-        (foldl (fun a i c -> Z.gcd a (Q.num c)) Z.zero (snd l)) in
+        (foldl (fun a i c -> fix_gcd a (Q.num c)) Z.zero (snd l)) in
     (Q.div c (Q.mul a a)), mapa (Q.mul a) l in
   let d' = List.map adj d in
   let a =
     Q.make
       (List.fold_right ((o) Z.lcm ((o) Q.den fst)) d' Z.one)
-      (List.fold_right ((o) Z.gcd ((o) Q.num fst)) d' Z.zero) in
+      (List.fold_right ((o) fix_gcd ((o) Q.num fst)) d' Z.zero) in
   Q.inv a, List.map (fun (c,l) -> (Q.mul a c, l)) d'
 
 (* ------------------------------------------------------------------------- *)
