@@ -71,7 +71,7 @@ module Poly : sig
 
   (** [constant c]
       @return the constant polynomial c *)
-  val constant : Num.num -> t
+  val constant : Q.t -> t
 
   (** [variable x]
       @return the polynomial 1.x^1 *)
@@ -91,22 +91,22 @@ module Poly : sig
 
   (** [get mi p]
       @return the coefficient ai of the  monomial mi. *)
-  val get : Monomial.t -> t -> Num.num
+  val get : Monomial.t -> t -> Q.t
 
 
   (** [fold f p a] folds f over the monomials of p with non-zero coefficient *)
-  val fold : (Monomial.t -> Num.num -> 'a -> 'a) -> t -> 'a -> 'a
+  val fold : (Monomial.t -> Q.t -> 'a -> 'a) -> t -> 'a -> 'a
 
   (** [add m n p]
       @return the polynomial n*m + p *)
-  val add : Monomial.t -> Num.num -> t -> t
+  val add : Monomial.t -> Q.t -> t -> t
 
 end
 
-type cstr = {coeffs : Vect.t ; op : op ; cst : Num.num} (* Representation of linear constraints *)
+type cstr = { coeffs : Vect.t ; op : op ; cst : Q.t } (* Representation of linear constraints *)
 and op = Eq | Ge | Gt
 
-val eval_op : op -> Num.num -> Num.num -> bool
+val eval_op : op -> Q.t -> Q.t -> bool
 
 (*val opMult : op -> op -> op*)
 
@@ -155,7 +155,7 @@ module LinPoly : sig
       @param p is a multi-variate polynomial.
       @param c maps a rational to a Coq polynomial coefficient.
       @return the coq expression corresponding to polynomial [p].*)
-  val coq_poly_of_linpol : (Num.num -> 'a) -> t -> 'a Mc.pExpr
+  val coq_poly_of_linpol : (Q.t -> 'a) -> t -> 'a Mc.pExpr
 
   (** [of_monomial m]
       @returns 1.x where x is the variable (index) for monomial m *)
@@ -178,20 +178,20 @@ module LinPoly : sig
   (** [constant c]
       @return the constant polynomial c
    *)
-  val constant : Num.num -> t
+  val constant : Q.t -> t
 
   (** [search_linear pred p]
       @return a variable x such p = a.x + b such that
       p is linear in x i.e x does not occur in b and
       a is a constant such that [pred a] *)
 
-  val search_linear : (Num.num -> bool) -> t -> var option
+  val search_linear : (Q.t -> bool) -> t -> var option
 
   (** [search_all_linear pred p]
       @return all the variables x such p = a.x + b such that
       p is linear in x i.e x does not occur in b and
       a is a constant such that [pred a] *)
-  val search_all_linear : (Num.num -> bool) -> t -> var list
+  val search_all_linear : (Q.t -> bool) -> t -> var list
 
  (** [product p q]
      @return the product of the polynomial [p*q] *)
@@ -231,11 +231,11 @@ module ProofFormat : sig
     | Annot of string * prf_rule
     | Hyp of int
     | Def of int
-    | Cst  of Num.num
+    | Cst  of Q.t
     | Zero
     | Square of Vect.t
     | MulC of Vect.t * prf_rule
-    | Gcd of Big_int.big_int * prf_rule
+    | Gcd of Z.t * prf_rule
     | MulPrf of prf_rule * prf_rule
     | AddPrf of prf_rule * prf_rule
     | CutPrf of prf_rule
@@ -257,14 +257,14 @@ module ProofFormat : sig
 
   val add_proof : prf_rule -> prf_rule -> prf_rule
 
-  val mul_cst_proof : Num.num -> prf_rule -> prf_rule
+  val mul_cst_proof : Q.t -> prf_rule -> prf_rule
 
   val mul_proof : prf_rule -> prf_rule -> prf_rule
 
   val compile_proof : int list -> proof -> Micromega.zArithProof
 
   val cmpl_prf_rule : ('a Micromega.pExpr -> 'a Micromega.pol) ->
-                      (Num.num -> 'a) -> (int list) -> prf_rule -> 'a Micromega.psatz
+                      (Q.t -> 'a) -> (int list) -> prf_rule -> 'a Micromega.psatz
 
   val proof_of_farkas : prf_rule IMap.t -> Vect.t -> prf_rule
 

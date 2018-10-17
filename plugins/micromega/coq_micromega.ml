@@ -628,7 +628,7 @@ struct
     | Mc.Zpos p -> EConstr.mkApp(Lazy.force coq_POS,[| dump_positive p|])
     | Mc.Zneg p -> EConstr.mkApp(Lazy.force coq_NEG,[| dump_positive p|])
 
-  let pp_z o x = Printf.fprintf o "%s" (Big_int.string_of_big_int (CoqToCaml.z_big_int x))
+  let pp_z o x = Printf.fprintf o "%s" (Big_int_Z.string_of_big_int (CoqToCaml.z_big_int x))
 
   let dump_q q =
    EConstr.mkApp(Lazy.force coq_Qmake,

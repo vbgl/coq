@@ -8,7 +8,6 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
-
 module ISet : Set.S with type elt = int
 
 module IMap :
@@ -19,9 +18,6 @@ sig
   val from : key -> 'elt t -> 'elt t
 
 end
-
-val numerator : Num.num -> Big_int.big_int
-val denominator : Num.num -> Big_int.big_int
 
 module Cmp : sig
 
@@ -47,20 +43,20 @@ val pp_list : string -> (out_channel -> 'a -> unit) -> out_channel -> 'a list ->
 module CamlToCoq : sig
 
   val positive : int -> Micromega.positive
-  val bigint : Big_int.big_int -> Micromega.z
+  val bigint : Z.t -> Micromega.z
   val n : int -> Micromega.n
   val nat : int -> Micromega.nat
-  val q : Num.num -> Micromega.q
+  val q : Q.t -> Micromega.q
   val index : int -> Micromega.positive
   val z : int -> Micromega.z
-  val positive_big_int : Big_int.big_int -> Micromega.positive
+  val positive_big_int : Z.t -> Micromega.positive
 
 end
 
 module CoqToCaml : sig
 
-  val z_big_int : Micromega.z -> Big_int.big_int
-  val q_to_num : Micromega.q -> Num.num
+  val z_big_int : Micromega.z -> Z.t
+  val q_to_num : Micromega.q -> Q.t
   val positive : Micromega.positive -> int
   val n : Micromega.n -> int
   val nat : Micromega.nat -> int
@@ -68,7 +64,7 @@ module CoqToCaml : sig
 
 end
 
-val ppcm : Big_int.big_int -> Big_int.big_int -> Big_int.big_int
+val ppcm : Z.t -> Z.t -> Z.t
 
 val all_pairs : ('a -> 'a -> 'b) -> 'a list -> 'b list
 val try_any : (('a -> 'b option) * 'c) list -> 'a -> 'b option

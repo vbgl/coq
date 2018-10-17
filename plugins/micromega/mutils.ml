@@ -19,7 +19,6 @@
 (*                                                                      *)
 (************************************************************************)
 
-
 module ISet = Set.Make(Int)
 
 module IMap =
@@ -88,23 +87,13 @@ let extract_all pred l  =
       | None -> s1,e::s2
       | Some v -> (v,e)::s1 , s2) ([],[]) l
 
-open Num
-open Big_int
+open Big_int_Z
 
 let ppcm x y =
  let g = gcd_big_int x y in
  let x' = div_big_int x g in
  let y' = div_big_int y g in
   mult_big_int g (mult_big_int x' y')
-
-let denominator = function
- | Int _ | Big_int _ -> unit_big_int
- | Ratio r -> Ratio.denominator_ratio r
-
-let numerator = function
- | Ratio r -> Ratio.numerator_ratio r
- | Int i -> Big_int.big_int_of_int i
- | Big_int i -> i
 
 let iterate_until_stable f x =
  let rec iter x =
@@ -152,7 +141,7 @@ struct
    | XI i -> 1+(2*(index i))
    | XO i -> 2*(index i)
 
- open Big_int
+ open Big_int_Z
 
  let rec positive_big_int p =
   match p with
@@ -166,8 +155,8 @@ struct
    | Zpos p -> (positive_big_int p)
    | Zneg p -> minus_big_int (positive_big_int p)
 
- let q_to_num {qnum = x ; qden = y} =
-  Big_int (z_big_int x) // (Big_int (z_big_int (Zpos y)))
+ let q_to_num { qnum ; qden } =
+   Q.make (z_big_int qnum) (z_big_int (Zpos qden))
 
 end
 
@@ -209,7 +198,7 @@ struct
    | _ -> (* this should be -1 *)
       Zneg (positive (-x))
 
- open Big_int
+ open Big_int_Z
 
  let positive_big_int n =
   let two = big_int_of_int 2 in
@@ -229,8 +218,8 @@ struct
    | _ -> Zneg (positive_big_int (minus_big_int x))
 
  let q n =
-  {Micromega.qnum = bigint (numerator n) ;
-   Micromega.qden = positive_big_int (denominator n)}
+  {Micromega.qnum = bigint (Q.num n) ;
+   Micromega.qden = positive_big_int (Q.den n)}
 
 end
 

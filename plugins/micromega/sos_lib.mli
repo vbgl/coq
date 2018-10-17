@@ -10,9 +10,11 @@
 
 val o : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 
-val num_1 : Num.num
-val pow10 : int -> Num.num
-val pow2 : int -> Num.num
+val pow10 : int -> Z.t
+val pow2 : int -> Q.t
+
+val floorQ : Q.t -> Q.t
+val ceilingQ : Q.t -> Q.t
 
 val implode : string list -> string
 val explode : string -> string list
@@ -52,10 +54,10 @@ val setify : 'a list -> 'a list
 val increasing : ('a -> 'b) -> 'a -> 'a -> bool
 val allpairs : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
 
-val gcd_num : Num.num -> Num.num -> Num.num
-val lcm_num : Num.num -> Num.num -> Num.num
-val numerator : Num.num -> Num.num
-val denominator : Num.num -> Num.num
+(*
+val gcd_num : Q.t -> Q.t -> Q.t
+val lcm_num : Q.t -> Q.t -> Q.t
+   *)
 val end_itlist : ('a -> 'a -> 'a) -> 'a list -> 'a
 
 val (>>) : ('a -> 'b * 'c) -> ('b -> 'd) -> 'a -> 'd * 'c

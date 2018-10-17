@@ -7,12 +7,10 @@
 (*         *     GNU Lesser General Public License Version 2.1          *)
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
-open Num
-
-type interval = num option * num option
+type interval = Q.t option * Q.t option
 val pp : out_channel -> interval -> unit
 val inter : interval -> interval -> interval option
-val range : interval -> num option
+val range : interval -> Z.t option
 val smaller_itv : interval -> interval -> bool
-val in_bound : interval -> num -> bool
+val in_bound : interval -> Q.t -> bool
 val norm_itv : interval -> interval option

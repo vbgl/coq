@@ -7,8 +7,6 @@
 (* - Frédéric Besson (fbesson@irisa.fr) is using it to feed  micromega       *)
 (* ========================================================================= *)
 
-open Num
-
 (* ------------------------------------------------------------------------- *)
 (* Comparisons that are reflexive on NaN and also short-circuiting.          *)
 (* ------------------------------------------------------------------------- *)
@@ -31,28 +29,20 @@ let (o) = fun f g x -> f(g x);;
 (* ------------------------------------------------------------------------- *)
 
 
-let num_0 = Int 0
-and num_1 = Int 1
-and num_2 = Int 2
-and num_10 = Int 10;;
+let pow2 n = Q.of_bigint (Z.pow (Z.of_int 2) n)
+let pow10 = Z.pow (Z.of_int 10)
 
-let pow2 n = power_num num_2 (Int n);;
-let pow10 n = power_num num_10 (Int n);;
+let floorQ q : Q.t = Z.fdiv (Q.num q) (Q.den q) |> Q.of_bigint
+let ceilingQ q : Q.t = Z.cdiv (Q.num q) (Q.den q) |> Q.of_bigint
 
-let numdom r =
-  let r' = Ratio.normalize_ratio (ratio_of_num r) in
-  num_of_big_int(Ratio.numerator_ratio r'),
-  num_of_big_int(Ratio.denominator_ratio r');;
-
-let numerator = (o) fst numdom
-and denominator = (o) snd numdom;;
-
+(*
 let gcd_num n1 n2 =
   num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2));;
 
 let lcm_num x y =
-  if x =/ num_0 && y =/ num_0 then num_0
-  else abs_num((x */ y) // gcd_num x y);;
+  if Q.(equal zero) x && Q.(equal zero) y then Q.zero
+  else Q.(div (abs (mul x y)) (gcd_num x y))
+   *)
 
 
 (* ------------------------------------------------------------------------- *)

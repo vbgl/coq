@@ -20,8 +20,7 @@
 let debug = false
 
 open Util
-open Big_int
-open Num
+open Big_int_Z
 open Polynomial
 
 module Mc = Micromega
@@ -34,7 +33,7 @@ let use_simplex = ref true
 open Mutils
 type 'a number_spec = {
     bigint_to_number : big_int -> 'a;
-    number_to_num : 'a  -> num;
+    number_to_num : 'a  -> Q.t;
     zero : 'a;
     unit : 'a;
     mult : 'a -> 'a -> 'a;
@@ -43,7 +42,7 @@ type 'a number_spec = {
 
 let z_spec = {
     bigint_to_number = Ml2C.bigint ;
-    number_to_num = (fun x -> Big_int (C2Ml.z_big_int x));
+    number_to_num = (fun x -> Q.of_bigint (C2Ml.z_big_int x));
     zero = Mc.Z0;
     unit = Mc.Zpos Mc.XH;
     mult = Mc.Z.mul;
@@ -125,17 +124,17 @@ let simplify_cone n_spec c = fixpoint (rec_simpl_cone n_spec) c
 
 let constrain_variable v l =
   let coeffs = List.fold_left (fun acc p -> (Vect.get v p.coeffs)::acc) [] l in
-  { coeffs = Vect.from_list ((Big_int zero_big_int):: (Big_int zero_big_int):: (List.rev coeffs)) ;
+  { coeffs = Vect.from_list (Q.zero :: Q.zero :: List.rev coeffs) ;
     op = Eq ; 
-    cst = Big_int zero_big_int  }
+    cst = Q.zero }
 
 
 
 let constrain_constant l =
-  let coeffs = List.fold_left (fun acc p -> minus_num p.cst ::acc) [] l in
-  { coeffs = Vect.from_list ((Big_int zero_big_int):: (Big_int unit_big_int):: (List.rev coeffs)) ;
+  let coeffs = List.fold_left (fun acc p -> Q.neg p.cst ::acc) [] l in
+  { coeffs = Vect.from_list (Q.zero :: Q.one :: List.rev coeffs) ;
     op = Eq ; 
-    cst = Big_int zero_big_int  }
+    cst = Q.zero }
 
 let positivity l = 
   let rec xpositivity i l =
@@ -144,16 +143,16 @@ let positivity l =
     | c::l -> match c.op with
               | Eq -> xpositivity (i+1) l
               |  _ ->
-                  {coeffs = Vect.update (i+1) (fun _ -> Int 1) Vect.null ;
+                  {coeffs = Vect.update (i+1) (fun _ -> Q.one) Vect.null ;
                    op = Ge ;
-                   cst = Int 0 }  :: (xpositivity (i+1) l)
+                   cst = Q.zero }  :: (xpositivity (i+1) l)
   in
   xpositivity 1 l
 
 
 let cstr_of_poly (p,o) =
   let (c,l) = Vect.decomp_cst p in
-  {coeffs = l; op = o ; cst = minus_num c}
+  {coeffs = l; op = o ; cst = Q.neg c }
 
 
 
@@ -174,13 +173,13 @@ let build_dual_linear_system l =
 
   (* I need at least something strictly positive *)
   let strict = {
-      coeffs = Vect.from_list ((Big_int zero_big_int) :: (Big_int unit_big_int)::
-                                 (List.map (fun c ->  if is_strict c then Big_int unit_big_int else Big_int zero_big_int) l));
-      op = Ge ; cst = Big_int unit_big_int } in
+      coeffs = Vect.from_list (Q.zero :: Q.one ::
+                                 List.map (fun c ->  if is_strict c then Q.one else Q.zero) l);
+      op = Ge ; cst = Q.one } in
   (* Add the positivity constraint *)
-  {coeffs = Vect.from_list ([Big_int zero_big_int ;Big_int unit_big_int]) ;
+  {coeffs = Vect.from_list ([Q.zero; Q.one]) ;
    op = Ge ;
-   cst = Big_int zero_big_int}::(strict::(positivity l)@c::s0)
+   cst = Q.zero }::(strict::(positivity l)@c::s0)
 
 
 (** [direct_linear_prover l] does not handle strict inegalities *)
@@ -236,7 +235,7 @@ let dual_raw_certificate l =
        | None -> failwith "dual_raw_certificate: empty_certificate"
        | Some _ ->
           (*Some (rats_to_ints (Vect.to_list (Vect.decr_var 2 (Vect.set 1 (Int 0) cert))))*)
-          Some (Vect.normalise (Vect.decr_var 2 (Vect.set 1 (Int 0) cert)))
+          Some (Vect.normalise (Vect.decr_var 2 (Vect.set 1 Q.zero cert)))
                (* should not use rats_to_ints *)
   with x when CErrors.noncritical x ->
         if debug
@@ -317,24 +316,24 @@ exception FoundProof of  prf_rule
     - normalises constraints and generate cuts.
  *)
 
-let check_int_sat (cstr,prf) =
-  let {coeffs=coeffs ; op=op ; cst=cst} = cstr in
+let check_int_sat (cstr, prf) =
+  let { coeffs ; op ; cst } = cstr in
   match Vect.choose coeffs with
   | None ->
-     if eval_op op (Int 0) cst then Tauto else Unsat prf
+     if eval_op op Q.zero cst then Tauto else Unsat prf
   | _  ->
      let gcdi =  Vect.gcd coeffs in
-     let gcd = Big_int gcdi in
-     if eq_num gcd (Int 1)
+     let gcd = Q.of_bigint gcdi in
+     if Q.(equal one) gcd
      then Normalise(cstr,prf)
      else
-       if Int.equal (sign_num (mod_num cst gcd)) 0
+       if Z.(equal zero) (Z.rem (Q.to_bigint cst) gcdi)
        then (* We can really normalise *)
          begin
-           assert (sign_num gcd >=1 ) ;
+           assert (Q.sign gcd >=1 ) ;
            let cstr = {
                coeffs = Vect.div gcd  coeffs;
-               op = op ; cst = cst // gcd
+               op = op ; cst = Q.div cst gcd
              } in
            Normalise(cstr,Gcd(gcdi,prf))
                     (*		    Normalise(cstr,CutPrf prf)*)
@@ -345,7 +344,7 @@ let check_int_sat (cstr,prf) =
          | Ge ->
             let cstr = {
                 coeffs = Vect.div gcd coeffs;
-                op = op ; cst = ceiling_num (cst // gcd)
+                op = op ; cst = Sos_lib.ceilingQ (Q.div cst gcd)
               } in Cut(cstr,CutPrf prf)
          | Gt -> failwith "check_sat : Unexpected operator"
 
@@ -380,7 +379,7 @@ let saturate f sys =
     ) [] sys
 
 let is_substitution strict ((p,o),prf) =
-  let pred v = if strict then v =/ Int 1 || v =/ Int (-1) else true in
+  let pred v = if strict then Q.(equal one) v || Q.(equal minus_one) v else true in
 
   match o with
   | Eq -> LinPoly.search_linear pred  p
@@ -400,7 +399,7 @@ let non_linear_pivot sys pc v pc' =
 
 
 let is_linear_substitution sys ((p,o),prf) =
-  let pred v =  v =/ Int 1 || v =/ Int (-1)  in
+  let pred v =  Q.(equal one) v || Q.(equal minus_one) v in
   match o with
   | Eq -> begin
       match
@@ -512,7 +511,7 @@ open Sos_types
 let rec scale_term t = 
   match t with
   | Zero    -> unit_big_int , Zero
-  | Const n ->  (denominator n) , Const (Big_int (numerator n))
+  | Const n ->  (Q.den n) , Const (Q.of_bigint (Q.num n))
   | Var n   -> unit_big_int , Var n
   | Opp t   -> let s, t = scale_term t in s, Opp t
   | Add(t1,t2) -> let s1,y1 = scale_term t1 and s2,y2 = scale_term t2 in
@@ -522,8 +521,8 @@ let rec scale_term t =
                   let e = mult_big_int g (mult_big_int s1' s2') in
                   if Int.equal (compare_big_int e unit_big_int) 0
                   then (unit_big_int, Add (y1,y2))
-                  else 	e, Add (Mul(Const (Big_int s2'), y1),
-		                Mul (Const (Big_int s1'), y2))
+                  else 	e, Add (Mul(Const (Q.of_bigint s2'), y1),
+                                Mul (Const (Q.of_bigint s1'), y2))
   | Sub _ -> failwith "scale term: not implemented"
   | Mul(y,z) ->       let s1,y1 = scale_term y and s2,y2 = scale_term z in
                       mult_big_int s1 s2 , Mul (y1, y2)
@@ -539,9 +538,9 @@ let rec scale_certificate pos = match pos with
   | Axiom_le i ->  unit_big_int , Axiom_le i
   | Axiom_lt i ->   unit_big_int , Axiom_lt i
   | Monoid l   -> unit_big_int , Monoid l
-  | Rational_eq n ->  (denominator n) , Rational_eq (Big_int (numerator n))
-  | Rational_le n ->  (denominator n) , Rational_le (Big_int (numerator n))
-  | Rational_lt n ->  (denominator n) , Rational_lt (Big_int (numerator n))
+  | Rational_eq n -> Q.den n, Rational_eq (Q.of_bigint (Q.num n))
+  | Rational_le n -> Q.den n, Rational_le (Q.of_bigint (Q.num n))
+  | Rational_lt n -> Q.den n, Rational_lt (Q.of_bigint (Q.num n))
   | Square t -> let s,t' =  scale_term t in
                 mult_big_int s s , Square t'
   | Eqmul (t, y) -> let s1,y1 = scale_term t and s2,y2 = scale_certificate y in
@@ -552,8 +551,8 @@ let rec scale_certificate pos = match pos with
                   let s1' = div_big_int s1 g in
                   let s2' = div_big_int s2 g in
                   mult_big_int g (mult_big_int s1' s2'),
-                  Sum (Product(Rational_le (Big_int s2'), y1),
-                       Product (Rational_le (Big_int s1'), y2))
+                  Sum (Product(Rational_le (Q.of_bigint s2'), y1),
+                       Product (Rational_le (Q.of_bigint s1'), y2))
   | Product (y, z) ->
      let s1,y1 = scale_certificate y and s2,y2 = scale_certificate z in
      mult_big_int s1 s2 , Product (y1,y2)
@@ -562,7 +561,7 @@ let rec scale_certificate pos = match pos with
 open Micromega
 let rec term_to_q_expr = function
   | Const n ->  PEc (Ml2C.q n)
-  | Zero   ->  PEc ( Ml2C.q (Int 0))
+  | Zero   ->  PEc ( Ml2C.q Q.zero)
   | Var s   ->  PEX (Ml2C.index
                        (int_of_string (String.sub s 1 (String.length s - 1))))
   | Mul(p1,p2) ->  PEmul(term_to_q_expr p1, term_to_q_expr p2)
@@ -571,7 +570,7 @@ let rec term_to_q_expr = function
   | Pow(t,n) ->  PEpow (term_to_q_expr t,Ml2C.n n)
   | Sub(t1,t2) ->  PEsub (term_to_q_expr t1,  term_to_q_expr t2)
 
-let term_to_q_pol e = Mc.norm_aux (Ml2C.q (Int 0)) (Ml2C.q (Int 1)) Mc.qplus  Mc.qmult Mc.qminus Mc.qopp Mc.qeq_bool (term_to_q_expr e)
+let term_to_q_pol e = Mc.norm_aux (Ml2C.q Q.zero) (Ml2C.q Q.one) Mc.qplus  Mc.qmult Mc.qminus Mc.qopp Mc.qeq_bool (term_to_q_expr e)
 
 
 let rec product l = 
@@ -588,7 +587,7 @@ let  q_cert_of_pos  pos =
     | Axiom_lt i ->  Mc.PsatzIn (Ml2C.nat i)
     | Monoid l  -> product l
     | Rational_eq n | Rational_le n | Rational_lt n ->
-       if Int.equal (compare_num n (Int 0)) 0 then Mc.PsatzZ else
+       if Int.equal (Q.compare n Q.zero) 0 then Mc.PsatzZ else
          Mc.PsatzC (Ml2C.q   n)
     | Square t -> Mc.PsatzSquare (term_to_q_pol  t)
     | Eqmul (t, y) -> Mc.PsatzMulC(term_to_q_pol t, _cert_of_pos y)
@@ -598,7 +597,7 @@ let  q_cert_of_pos  pos =
 
 
 let rec term_to_z_expr = function
-  | Const n ->  PEc (Ml2C.bigint (big_int_of_num n))
+  | Const n ->  PEc (Ml2C.bigint (Q.to_bigint n))
   | Zero   ->  PEc ( Z0)
   | Var s   ->  PEX (Ml2C.index
                        (int_of_string (String.sub s 1 (String.length s - 1))))
@@ -618,13 +617,13 @@ let  z_cert_of_pos  pos =
     | Axiom_lt i ->  Mc.PsatzIn (Ml2C.nat i)
     | Monoid l  -> product l
     | Rational_eq n | Rational_le n | Rational_lt n ->
-       if Int.equal (compare_num n (Int 0)) 0 then Mc.PsatzZ else
-         Mc.PsatzC (Ml2C.bigint (big_int_of_num  n))
+       if Int.equal (Q.compare n Q.zero) 0 then Mc.PsatzZ else
+         Mc.PsatzC (Ml2C.bigint (Q.to_bigint n))
     | Square t -> Mc.PsatzSquare (term_to_z_pol  t)
     | Eqmul (t, y) ->
        let is_unit =
          match t with
-         | Const n -> n =/ Int 1
+         | Const n -> Q.(equal one) n
          |   _     -> false in
        if is_unit
        then _cert_of_pos y
@@ -637,8 +636,6 @@ let  z_cert_of_pos  pos =
     Given a constraint, all the coefficients are always integers.
  *)
 open Mutils
-open Num
-open Big_int
 open Polynomial
 
 
@@ -659,30 +656,29 @@ let pivot v (c1,p1) (c2,p2) =
     (
       {coeffs = Vect.add (Vect.mul cv1 v1) (Vect.mul cv2 v2) ;
        op = opAdd op1 op2 ;
-       cst = n1 */ cv1 +/ n2 */ cv2 },
+       cst = Q.add (Q.mul n1 cv1) (Q.mul n2 cv2) },
 
       AddPrf(mul_cst_proof  cv1 p1,mul_cst_proof  cv2 p2)) in
 
-  match Vect.get v v1 , Vect.get v v2 with
-  | Int 0 , _ | _ , Int 0 -> None
-  |  a   ,  b   ->
-      if Int.equal ((sign_num a) * (sign_num b)) (-1)
-      then
-        let cv1 = abs_num b
-        and cv2 = abs_num a  in
-        Some (xpivot cv1 cv2)
-      else
-        if op1 == Eq
-        then
-          let cv1 = minus_num (b */ (Int (sign_num a)))
-          and cv2 = abs_num a in
-          Some (xpivot cv1 cv2)
-        else if op2 == Eq
-        then
-          let cv1 = abs_num b
-          and cv2 = minus_num (a */ (Int  (sign_num b))) in
-          Some (xpivot cv1 cv2)
-        else  None (* op2 could be Eq ... this might happen *)
+  let a, b = Vect.get v v1, Vect.get v v2 in
+  if Q.(equal zero) a || Q.(equal zero) b then None else
+  if Int.equal ((Q.sign a) * (Q.sign b)) (-1)
+  then
+    let cv1 = Q.abs b
+    and cv2 = Q.abs a  in
+    Some (xpivot cv1 cv2)
+  else
+  if op1 == Eq
+  then
+    let cv1 = Q.neg (Q.mul b (Q.of_int (Q.sign a)))
+    and cv2 = Q.abs a in
+    Some (xpivot cv1 cv2)
+  else if op2 == Eq
+  then
+    let cv1 = Q.abs b
+    and cv2 = Q.neg (Q.mul a (Q.of_int (Q.sign b))) in
+    Some (xpivot cv1 cv2)
+  else  None (* op2 could be Eq ... this might happen *)
 
 
 let simpl_sys sys = 
@@ -709,7 +705,7 @@ let rec ext_gcd a b =
 let extract_coprime (c1,p1) (c2,p2) = 
   if c1.op == Eq && c2.op == Eq
   then Vect.exists2 (fun n1 n2 ->
-           Int.equal (compare_big_int (gcd_big_int (numerator n1) (numerator n2)) unit_big_int) 0)
+           Int.equal (compare_big_int (gcd_big_int (Q.num n1) (Q.num n2)) unit_big_int) 0)
            c1.coeffs c2.coeffs
   else None
 
@@ -740,12 +736,12 @@ let reduce_coprime psys =
   match oeq with
   | None -> None (* Nothing to do *)
   | Some((v,n1,n2),(c1,p1),(c2,p2) ) ->
-     let (l1,l2) = ext_gcd (numerator n1) (numerator n2) in
-     let l1' = Big_int l1 and l2' = Big_int l2 in
+     let (l1,l2) = ext_gcd (Q.num n1) (Q.num n2) in
+     let l1' = Q.of_bigint l1 and l2' = Q.of_bigint l2 in
      let cstr =
        {coeffs = Vect.add (Vect.mul l1' c1.coeffs) (Vect.mul l2' c2.coeffs);
         op = Eq ;
-        cst = (l1' */ c1.cst) +/ (l2' */ c2.cst)
+        cst = Q.add (Q.mul l1' c1.cst) (Q.mul l2' c2.cst)
        } in
      let prf = add_proof (mul_cst_proof  l1' p1) (mul_cst_proof  l2' p2) in
 
@@ -756,7 +752,7 @@ let reduce_unary psys =
   let is_unary_equation (cstr,prf) =
     if cstr.op == Eq
     then
-      Vect.find (fun v n -> if n =/ (Int 1) || n=/ (Int (-1)) then Some v else None) cstr.coeffs
+      Vect.find (fun v n -> if Q.(equal one) n || Q.(equal minus_one) n then Some v else None) cstr.coeffs
     else None in
 
   let (oeq,sys) =  extract is_unary_equation psys in
@@ -772,9 +768,9 @@ let reduce_var_change psys =
     match Vect.choose vect with
     | None -> None
     | Some(x,v,vect) ->
-       let v = numerator v in
+       let v = Q.num v in
        match Vect.find (fun x' v' ->
-                           let v' = numerator v' in
+                           let v' = Q.num v' in
                            if eq_big_int (gcd_big_int  v v') unit_big_int
                            then  Some(x',v') else None) vect with
        | Some(x',v') ->  Some ((x,v),(x', v'))
@@ -788,16 +784,16 @@ let reduce_var_change psys =
   | None -> None
   | Some(((x,v),(x',v')),(c,p)) ->
      let (l1,l2) = ext_gcd  v  v' in
-     let l1,l2 = Big_int l1 , Big_int l2 in
+     let l1,l2 = Q.of_bigint l1 , Q.of_bigint l2 in
 
 
      let pivot_eq (c',p') =
        let {coeffs = coeffs ; op = op ; cst = cst} = c' in
        let vx = Vect.get x coeffs in
        let vx' = Vect.get x' coeffs in
-       let m = minus_num (vx */ l1 +/ vx' */ l2) in
+       let m = Q.neg (Q.add (Q.mul vx l1) (Q.mul vx' l2)) in
        Some ({coeffs =
-                Vect.add (Vect.mul m c.coeffs) coeffs ; op = op ; cst = m */ c.cst +/ cst} ,
+                Vect.add (Vect.mul m c.coeffs) coeffs ; op ; cst = Q.add (Q.mul m c.cst) cst} ,
              AddPrf(MulC((LinPoly.constant m),p),p')) in
 
      Some (apply_and_normalise check_int_sat pivot_eq sys)
@@ -817,7 +813,7 @@ let get_bound sys =
   let is_small (v,i) =
     match Itv.range i with
     | None -> false
-    | Some i -> i <=/ (Int 1) in
+    | Some i -> Q.leq (Q.of_bigint i) Q.one in
 
   let select_best (x1,i1) (x2,i2) =
     if Itv.smaller_itv i1 i2
@@ -853,14 +849,14 @@ let get_bound sys =
   in
   match smallest_interval with
   | Some (lb,e,ub) ->
-     let (lbn,lbd) = (sub_big_int (numerator lb)  unit_big_int, denominator lb) in
-     let (ubn,ubd) = (add_big_int unit_big_int (numerator ub) , denominator ub) in
+     let (lbn,lbd) = (sub_big_int (Q.num lb)  unit_big_int, Q.den lb) in
+     let (ubn,ubd) = (add_big_int unit_big_int (Q.num ub) , Q.den ub) in
      (match
         (* x <= ub ->  x  > ub *)
-        direct_linear_prover   ({coeffs = Vect.mul (Big_int ubd)  e ; op = Ge ; cst = Big_int ubn} :: sys),
+        direct_linear_prover   ({coeffs = Vect.mul (Q.of_bigint ubd)  e ; op = Ge ; cst = Q.of_bigint ubn} :: sys),
         (* lb <= x  -> lb > x *)
         direct_linear_prover
-          ({coeffs = Vect.mul (minus_num (Big_int lbd)) e ; op = Ge ; cst = minus_num (Big_int lbn)} :: sys)
+          ({coeffs = Vect.mul (Q.neg (Q.of_bigint lbd)) e ; op = Ge ; cst = Q.neg (Q.of_bigint lbn)} :: sys)
       with
       | Some cub , Some clb  -> Some(List.tl (Vect.to_list clb),(lb,e,ub), List.tl (Vect.to_list cub))
       |         _            -> failwith "Interval without proof"
@@ -869,7 +865,7 @@ let get_bound sys =
 
 
 let check_sys sys = 
-  List.for_all (fun (c,p) -> Vect.for_all (fun _ n -> sign_num n <> 0) c.coeffs) sys
+  List.for_all (fun (c,p) -> Vect.for_all (fun _ n -> Q.sign n <> 0) c.coeffs) sys
 
 
 let xlia (can_enum:bool)  reduction_equations  sys = 
@@ -883,8 +879,8 @@ let xlia (can_enum:bool)  reduction_equations  sys =
     match get_bound nsys with
     | None -> None (* Is the systeme really unbounded ? *)
     | Some(prf1,(lb,e,ub),prf2) ->
-       if debug then Printf.printf "Found interval: %a in [%s;%s] -> " Vect.pp e (string_of_num lb) (string_of_num ub) ;
-       (match start_enum  id  e  (ceiling_num lb)  (floor_num ub) sys
+       if debug then Printf.printf "Found interval: %a in [%s;%s] -> " Vect.pp e (Q.to_string lb) (Q.to_string ub) ;
+       (match start_enum  id  e  (Sos_lib.ceilingQ lb)  (Sos_lib.floorQ ub) sys
         with
         | Some prfl ->
            Some(Enum(id,proof_of_farkas (env_of_list prf) (Vect.from_list prf1),e,
@@ -893,14 +889,14 @@ let xlia (can_enum:bool)  reduction_equations  sys =
        )
 
   and start_enum id e clb cub sys =
-    if clb >/ cub
+    if Q.gt clb cub
     then Some []
     else
       let eq = {coeffs = e ; op = Eq ; cst = clb} in
       match aux_lia (id+1) ((eq, Def id) :: sys) with
       | None -> None
       | Some prf  ->
-         match start_enum id e (clb +/ (Int 1)) cub sys with
+         match start_enum id e (Q.add clb Q.one) cub sys with
          | None -> None
          | Some l -> Some (prf::l)
 

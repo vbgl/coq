@@ -8,8 +8,8 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
+open Sos_lib
 open Util
-open Num
 open Polynomial
 open Vect
 
@@ -72,12 +72,12 @@ let pp_cstr o (vect,bnd) =
     let (l,r) = bnd in
       (match l with
 	| None -> ()
-	| Some n -> Printf.fprintf o "%s <= " (string_of_num n))
+        | Some n -> Printf.fprintf o "%s <= " (Q.to_string n))
       ;
         Vect.pp o vect ;
       (match r with
 	      | None -> output_string o"\n"
-	      | Some n -> Printf.fprintf o "<=%s\n" (string_of_num n))
+              | Some n -> Printf.fprintf o "<=%s\n" (Q.to_string n))
 
 
 let pp_system o sys=
@@ -134,10 +134,10 @@ let normalise_cstr vect cinfo =
     | None -> Contradiction
     | Some (l,r) ->
        match Vect.choose vect with
-       | None -> if Itv.in_bound (l,r) (Int 0) then Redundant else Contradiction
+       | None -> if Itv.in_bound (l,r) Q.zero then Redundant else Contradiction
        | Some (_,n,_) -> Cstr(Vect.div n vect,
-			     let divn x = x // n in
-			       if Int.equal (sign_num n) 1
+                             let divn x = Q.div x n in
+                               if Int.equal (Q.sign n) 1
                                then{cinfo with bound = (Option.map divn l , Option.map  divn r) }
                                else {cinfo with pos = cinfo.neg ; neg = cinfo.pos ; bound = (Option.map divn r , Option.map divn l)})
 
@@ -147,7 +147,7 @@ let normalise_cstr vect cinfo =
 
 let count v =
   Vect.fold (fun (n,p) _ vl ->
-      let sg = sign_num vl in
+      let sg = Q.sign vl in
       assert (sg <> 0) ;
       if Int.equal sg 1 then (n,p+1)else (n+1, p)) (0,0) v
 
@@ -197,8 +197,8 @@ let system_list sys =
 *)
 
 let add (v1,c1)  (v2,c2)  =
-    assert (c1 <>/ Int 0 && c2 <>/ Int 0) ;
-    let res = mul_add (Int 1 // c1) v1 (Int 1 // c2)  v2 in
+    assert (not Q.(equal zero c1 || equal zero c2));
+    let res = mul_add (Q.inv c1) v1 (Q.inv c2)  v2 in
     (res, count res)
 
 let add (v1,c1)   (v2,c2)  =
@@ -217,7 +217,7 @@ let add (v1,c1)   (v2,c2)  =
 
 let split x (vect: vector) info (l,m,r) =
     match get x vect with
-      | Int 0 -> (* The constraint does not mention [x], store it in m *)
+      | vl when Q.(equal zero) vl -> (* The constraint does not mention [x], store it in m *)
 	  (l,(vect,info)::m,r)
       |  vl -> (* otherwise *)
 
@@ -227,7 +227,7 @@ let split x (vect: vector) info (l,m,r) =
               | Some bnd -> (vl,vect,{info with bound = Some bnd,None})::lst in
 
           let lb,rb = info.bound in
-            if Int.equal (sign_num vl) 1
+            if Int.equal (Q.sign vl) 1
             then  (cons_bound l lb,m,cons_bound r rb)
             else (* sign_num vl = -1 *)
               (cons_bound l rb,m,cons_bound r lb)
@@ -251,8 +251,8 @@ let project vr sys =
 
       let bnd1 = Option.get (fst bound1)
       and bnd2 = Option.get (fst bound2) in
-      let bound = (bnd1 // v1) +/ (bnd2 // minus_num v2) in
-      let vres,(n,p) = add (vect1,v1) (vect2,minus_num v2)  in
+      let bound = Q.add (Q.div bnd1 v1) (Q.div bnd2 (Q.neg v2)) in
+      let vres,(n,p) = add (vect1,v1) (vect2, Q.neg v2)  in
         (vres,{neg = n ; pos = p ; bound = (Some bound, None); prf = Elim(vr,info1.prf,info2.prf)}) in
 
       List.iter(fun  l_elem -> List.iter (fun r_elem ->
@@ -275,18 +275,18 @@ let project vr sys =
 
 let project_using_eq vr c vect bound  prf (vect',info') =
     match get vr vect' with
-    | Int 0 -> (vect',info')
+    | c2 when Q.(equal zero) c2 -> (vect',info')
     | c2    ->
-	let c1 = if c2 >=/ Int 0 then minus_num c else c in
+        let c1 = if Q.(leq zero) c2 then Q.neg c else c in
 
-	let c2 = abs_num c2 in
+        let c2 = Q.abs c2 in
 
 	let (vres,(n,p)) = add (vect,c1) (vect', c2)  in
 
-	let cst = bound // c1 in
+        let cst = Q.div bound c1 in
 
 	let bndres =
-	  let f x = cst +/ x // c2 in
+          let f x = Q.add cst (Q.div x c2) in
 	  let (l,r) = info'.bound in
             (Option.map f l , Option.map f r) in
 
@@ -324,18 +324,18 @@ let  eval_vect map vect =
   Vect.fold (fun (sum,rst) v vl ->
       try
         let val_v = IMap.find v map in
-        (sum +/ (val_v */ vl), rst)
+        (Q.add sum (Q.mul val_v vl), rst)
       with
-        Not_found -> (sum, Vect.set v vl rst)) (Int 0,Vect.null) vect
+        Not_found -> (sum, Vect.set v vl rst)) (Q.zero,Vect.null) vect
 
 
 
 (** [restrict_bound n sum itv] returns the interval of [x]
     given that (fst itv) <=  x * n + sum <= (snd itv) *)
 let restrict_bound n sum (itv:interval) =
-  let f x  = (x -/ sum) // n in
+  let f x  = Q.div (Q.sub x sum) n in
   let l,r = itv in
-    match sign_num n with
+    match Q.sign n with
       | 0 -> if in_bound itv sum
 	then (None,None) (* redundant *)
 	else failwith "SystemContradiction"
@@ -352,7 +352,7 @@ let bound_of_variable map v sys =
       match inter bnd (restrict_bound vl sum (!iref).bound) with
       | None ->
          Printf.fprintf stdout "bound_of_variable: eval_vecr %a = %s,%a\n"
-           Vect.pp vect (Num.string_of_num sum) Vect.pp rst ;
+           Vect.pp vect (Q.to_string sum) Vect.pp rst ;
          Printf.fprintf stdout "current interval:  %a\n" Itv.pp (!iref).bound;
          failwith "bound_of_variable: impossible"
 	| Some itv -> itv) sys  (None,None)
@@ -361,14 +361,14 @@ let bound_of_variable map v sys =
 (** [pick_small_value bnd] picks a value being closed to zero within the interval *)
 let pick_small_value bnd =
   match bnd with
-    | None , None   ->  Int 0
-    | None , Some i ->  if  (Int 0) <=/ (floor_num  i) then Int 0 else floor_num i
-    | Some i,None   ->  if i <=/ (Int 0) then Int 0 else ceiling_num i
+    | None , None   ->  Q.zero
+    | None , Some i ->  if  Q.(leq zero) (floorQ i) then Q.zero else floorQ i
+    | Some i,None   ->  if Q.(geq zero) i then Q.zero else ceilingQ i
     | Some i,Some j ->
-	if i <=/ Int 0 && Int 0 <=/ j
-	then Int 0
-	else if ceiling_num i <=/ floor_num j
-	then ceiling_num i (* why not *) else i
+        if Q.(geq zero) i && Q.(leq zero) j
+        then Q.zero
+        else if Q.leq (ceilingQ i) (floorQ j)
+        then ceilingQ i (* why not *) else i
 
 
 (** [solution s1 sys_l  = Some(sn,\[(vn-1,sn-1);...; (v1,s1)\]\@sys_l)]
@@ -387,7 +387,7 @@ let solve_sys black_v choose_eq choose_variable sys sys_l =
       try
 	let (v,vect,cst,ln) =  fst (List.find (fun ((v,_,_,_),_) -> v <> black_v) eqs) in
 	  if debug then
-            (Printf.printf "\nE %a = %s variable %i\n" Vect.pp vect (string_of_num cst) v ;
+            (Printf.printf "\nE %a = %s variable %i\n" Vect.pp vect (Q.to_string cst) v ;
 	     flush stdout);
 	  let sys' = elim_var_using_eq v vect cst ln sys in
 	    solve_sys sys' ((v,sys)::sys_l)
@@ -438,7 +438,7 @@ struct
 		      | Some bnd -> info.neg+info.pos::lst in
 
 		  let lb,rb = info.bound in
-		    if Int.equal (sign_num vl) 1
+                    if Int.equal (Q.sign vl) 1
 		    then  xpart rl ((rl1,info)::ltl) (cons_bound n lb) z (cons_bound p rb)
 		    else  xpart rl ((rl1,info)::ltl) (cons_bound n rb) z (cons_bound p lb)
 		else
@@ -477,7 +477,7 @@ struct
 
   let itv_point bnd =
     match bnd with
-      |(Some a, Some b) -> a =/ b
+      |(Some a, Some b) -> Q.equal a b
       | _   -> false
 
   let rec unroll_until v l =
@@ -541,7 +541,7 @@ struct
       (fun  l (vect,info) ->
 	match  info.bound with
 	  | Some a , Some b ->
-	      if a =/ b then (* This an equation *)
+              if Q.equal a b then (* This an equation *)
 		(vect,a,info.prf,info.neg+info.pos)::l else l
 	  |   _ -> l
       ) [] sys_l  in
@@ -589,9 +589,9 @@ struct
     let fresh =
       List.fold_left (fun fr c -> Pervasives.max fr (Vect.fresh c.coeffs)) 0 l in
     let cstr = {
-      coeffs = Vect.set fresh (Int (-1)) vect ;
+      coeffs = Vect.set fresh Q.minus_one vect ;
       op = Eq ;
-      cst = (Int 0)} in
+      cst = Q.zero } in
       match solve fresh choose_equality_var choose_variable (cstr::l) with
 	| Inr prf -> None (* This is an unsatisfiability proof *)
 	| Inl (s,_) ->
@@ -660,26 +660,25 @@ struct
     let {coeffs = v1 ; op = op1 ; cst = n1} = c1
     and {coeffs = v2 ; op = op2 ; cst = n2} = c2 in
 
-      match Vect.get v v1 , Vect.get v v2 with
-        | Int 0 , _ | _ , Int 0 -> None
-        |  a   ,  b   ->
-            if Int.equal ((sign_num a) * (sign_num b)) (-1)
-            then 
-	      Some (add (p1,abs_num a) (p2,abs_num b) ,
-                      {coeffs = add (v1,abs_num a) (v2,abs_num b) ;
-                       op = add_op op1 op2 ;
-                       cst = n1 // (abs_num a) +/ n2 // (abs_num b) })
-            else if op1 == Eq
-            then Some (add (p1,minus_num (a // b)) (p2,Int 1),
-                      {coeffs = add (v1,minus_num (a// b)) (v2 ,Int 1) ;
-                       op     = add_op op1 op2;
-                       cst    = n1 // (minus_num (a// b)) +/ n2 // (Int 1)})
-            else if op2 == Eq
-	    then
-	      Some (add (p2,minus_num (b // a)) (p1,Int 1),
-                   {coeffs = add (v2,minus_num (b// a)) (v1 ,Int 1) ;
-                    op     = add_op op1 op2;
-                    cst    = n2 // (minus_num (b// a)) +/ n1 // (Int 1)})
+    let a, b = Vect.get v v1, Vect.get v v2 in
+    if Q.(equal zero) a || Q.(equal zero) b then None else
+    if Int.equal ((Q.sign a) * (Q.sign b)) (-1)
+    then
+            Some (add (p1, Q.abs a) (p2, Q.abs b),
+           { coeffs = add (v1, Q.abs a) (v2, Q.abs b) ;
+             op = add_op op1 op2 ;
+             cst = Q.add (Q.div n1 (Q.abs a)) (Q.div n2 (Q.abs b)) })
+    else if op1 == Eq
+    then Some (add (p1, Q.neg (Q.div a b)) (p2, Q.one),
+               { coeffs = add (v1, Q.neg (Q.div a b)) (v2, Q.one) ;
+                 op = add_op op1 op2;
+                 cst = Q.add (Q.div n1 (Q.neg (Q.div a b))) (Q.div n2 Q.one) })
+    else if op2 == Eq
+          then
+           Some (add (p2, Q.neg (Q.div b a)) (p1, Q.one),
+          { coeffs = add (v2, Q.neg (Q.div b a)) (v1, Q.one) ;
+            op = add_op op1 op2;
+            cst = Q.add (Q.div n2 (Q.neg (Q.div b a))) (Q.div n1 Q.one) })
 	    else  None (* op2 could be Eq ... this might happen *)
 
 
@@ -694,7 +693,7 @@ struct
               | Cstr(v,info)  -> Inl ((prf,cstr,v,info)::acc)) (Inl []) l
 
 
-  type oproof = (vector * cstr * num) option
+  type oproof = (vector * cstr * Q.t) option
 
   let merge_proof (oleft:oproof) (prf,cstr,v,info) (oright:oproof) =
     let (l,r) = info.bound in
@@ -706,17 +705,17 @@ struct
         | Some _ , None -> ob
         | Some(prfl,cstrl,bl) , Some b -> if p bl b then Some(prf,cstr, b) else ob in
 
-    let oleft  = keep (<=/) oleft l in
-    let oright = keep (>=/) oright r in
+    let oleft  = keep Q.leq oleft l in
+    let oright = keep Q.geq oright r in
       (* Now, there might be a contradiction *)
       match oleft , oright with
         | None , _ | _ , None -> Inl (oleft,oright)
         | Some(prfl,cstrl,l) , Some(prfr,cstrr,r) ->
-            if l <=/ r
+            if Q.leq l r
             then Inl (oleft,oright)
             else (* There is a contradiction - it should show up by scaling up the vectors - any pivot should do*)
               match Vect.choose cstrr.coeffs with
-                | None -> Inr (add (prfl,Int 1) (prfr,Int 1), cstrr) (* this is wrong *)
+                | None -> Inr (add (prfl, Q.one) (prfr, Q.one), cstrr) (* this is wrong *)
                 | Some(v,_,_) ->
                     match pivot v (prfl,cstrl) (prfr,cstrr) with
                       | None -> failwith "merge_proof : pivot is not possible"
@@ -730,7 +729,7 @@ let  mk_proof hyps prf =
 
   let rec mk_proof prf =
     match prf with
-      | Assum i -> [ (Vect.set i (Int 1) Vect.null , List.nth hyps i) ]
+      | Assum i -> [ Vect.set i Q.one Vect.null, List.nth hyps i ]
 
       | Elim(v,prf1,prf2) ->
           let prfsl = mk_proof prf1

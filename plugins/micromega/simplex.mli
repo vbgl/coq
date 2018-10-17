@@ -9,7 +9,7 @@
 (************************************************************************)
 open Polynomial
 
-val optimise : Vect.t -> cstr list -> (Num.num option * Num.num option) option
+val optimise : Vect.t -> cstr list -> (Q.t option * Q.t option) option
 
 val find_point : cstr list -> Vect.t option
 

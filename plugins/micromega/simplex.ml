@@ -10,7 +10,6 @@
 
 (** A naive simplex *)
 open Polynomial
-open Num
 open Util
 open Mutils
 
@@ -84,7 +83,7 @@ let output_vars o m =
 
 let unfeasible (rst:Restricted.t) tbl =
   Restricted.fold rst (fun k v m ->
-      if Vect.get_cst v >=/ Int 0 then m
+      if Q.(leq zero) (Vect.get_cst v) then m
       else IMap.add k () m)  tbl IMap.empty
 
 
@@ -104,7 +103,7 @@ let is_feasible rst tb = IMap.is_empty (unfeasible rst tb)
 
 let is_maximised_vect rst v =
   Vect.for_all (fun xi ai ->
-      if ai >/ Int 0
+      if Q.(lt zero) ai
       then false
       else Restricted.is_restricted xi rst) v
 
@@ -138,13 +137,13 @@ let is_maximised rst v =
  *)
 
 type result =
-  | Max of num   (** Maximum is reached *)
+  | Max of Q.t   (** Maximum is reached *)
   | Ubnd of var  (** Problem is unbounded *)
   | Feas         (** Problem is feasible *)
 
 type pivot =
   | Done of result
-  | Pivot of int * int * num
+  | Pivot of int * int * Q.t
 
 
 
@@ -163,7 +162,7 @@ This is the entering variable.
 let rec find_pivot_column (rst:Restricted.t) (r:Vect.t)  =
   match Vect.choose r with
   | None -> failwith "find_pivot_column"
-  | Some(xi,ai,r') -> if ai </ Int 0
+  | Some(xi,ai,r') -> if Q.lt ai Q.zero
                    then if Restricted.is_restricted xi rst
                         then find_pivot_column rst r' (* ai.xi cannot be improved *)
                         else  (xi, -1) (* r is not restricted, sign of ai does not matter *)
@@ -181,17 +180,17 @@ let min_score s (i1,sc1) =
   match s with
   | None  -> Some (i1,sc1)
   | Some(i0,sc0) ->
-     if sc0 </ sc1 then s
-     else if sc1 </ sc0 then Some (i1,sc1)
+     if Q.lt sc0 sc1 then s
+     else if Q.lt sc1 sc0 then Some (i1,sc1)
      else if i0 < i1 then s else Some(i1,sc1)
 
 let find_pivot_row rst tbl j sgn =
   Restricted.fold rst
     (fun i' v res ->
       let aij = Vect.get j v in
-      if (Int sgn) */ aij </ Int 0
+      if Q.(lt (mul (of_int sgn) aij) zero)
       then (* This would improve *)
-        let score' = Num.abs_num ((Vect.get_cst v) // aij) in
+        let score' = Q.abs (Q.div (Vect.get_cst v) aij) in
         min_score res (i',score')
       else res) tbl None
 
@@ -229,11 +228,11 @@ let find_pivot vr (rst:Restricted.t) tbl =
 
 let solve_column (c : var) (r : var) (e : Vect.t) :  Vect.t =
   let a = Vect.get c e in
-  if a =/ Int 0
+  if Q.(equal zero) a
   then failwith "Cannot solve column"
   else
-    let a' = (Int (-1) // a) in
-    Vect.mul a' (Vect.set r (Int (-1)) (Vect.set c (Int 0) e))
+    let a' = Q.(div minus_one a) in
+    Vect.mul a' (Vect.set r Q.minus_one (Vect.set c Q.zero e))
 
 (** [pivot_row r c e]
     @param c is such that c = e
@@ -242,9 +241,9 @@ let solve_column (c : var) (r : var) (e : Vect.t) :  Vect.t =
 
 let pivot_row (row: Vect.t) (c : var) (e : Vect.t) : Vect.t =
   let g = Vect.get c row in
-  if g =/ Int 0
+  if Q.(equal zero) g
   then row
-  else Vect.mul_add g e (Int 1) (Vect.set c (Int 0) row)
+  else Vect.mul_add g e Q.one (Vect.set c Q.zero row)
 
 let pivot_with (m : tableau) (v: var) (p : Vect.t) =
   IMap.map (fun (r:Vect.t) -> pivot_row r v p) m
@@ -256,7 +255,7 @@ let pivot (m : tableau) (r : var) (c : var) =
 
 
 let adapt_unbounded vr x rst tbl =
-  if Vect.get_cst (IMap.find vr tbl) >=/ Int 0
+  if Q.geq (Vect.get_cst (IMap.find vr tbl)) Q.zero
   then tbl
   else pivot tbl vr x
 
@@ -287,7 +286,7 @@ let rec simplex opt vr rst tbl =
       Printf.fprintf stdout "Error for variables %a\n" output_vars m
     end;
 
-  if not opt &&   (Vect.get_cst (IMap.find vr tbl) >=/ Int 0)
+  if not opt && Q.geq (Vect.get_cst (IMap.find vr tbl)) Q.zero
   then  Opt(tbl,Feas)
   else
     match find_pivot vr rst tbl with
@@ -301,7 +300,7 @@ let rec simplex opt vr rst tbl =
        end
     | Pivot(i,j,s) ->
        if debug then begin
-           Printf.fprintf stdout "Find pivot for x%i(%s)\n" vr (string_of_num s);
+           Printf.fprintf stdout "Find pivot for x%i(%s)\n" vr (Q.to_string s);
            Printf.fprintf stdout "Leaving variable x%i\n" i;
            Printf.fprintf stdout "Entering variable x%i\n" j;
          end;
@@ -350,15 +349,15 @@ let push_real (opt : bool) (nw : var) (v : Vect.t) (rst: Restricted.t) (t : tabl
      | Feas -> Sat (t',None)
      | Max n ->
         if debug then begin
-          Printf.printf "The objective is maximised %s\n" (string_of_num n);
+          Printf.printf "The objective is maximised %s\n" (Q.to_string n);
           Printf.printf "%a = %a\n" LinPoly.pp_var nw pp_row (IMap.find nw t')
           end;
 
-          if n >=/ Int 0
+          if Q.(leq zero) n
         then Sat (t',None)
         else
           let v' = safe_find "push_real" nw t' in
-          Unsat (Vect.set nw (Int 1) (Vect.set 0 (Int 0) (Vect.mul (Int (-1)) v')))
+          Unsat (Vect.set nw Q.one (Vect.set 0 Q.zero (Vect.mul Q.minus_one v')))
 
 
 (** One complication is that equalities needs some pre-processing.contents
@@ -379,7 +378,7 @@ let fresh_var l  =
 let make_certificate vm l =
   Vect.normalise (Vect.fold (fun acc x n ->
                       let (x',b) = IMap.find x vm in
-                      Vect.set x' (if b then  n else Num.minus_num n) acc) Vect.null l)
+                      Vect.set x' (if b then  n else Q.neg n) acc) Vect.null l)
 
 
 
@@ -390,10 +389,10 @@ let eliminate_equalities (vr0:var) (l:Polynomial.cstr list) =
     match l with
     | [] -> (vr,vm,acc)
     | c::l -> match c.op with
-              | Ge -> let v = Vect.set 0 (minus_num c.cst) c.coeffs in
+              | Ge -> let v = Vect.set 0 (Q.neg c.cst) c.coeffs in
                       elim (idx+1) (vr+1) (IMap.add vr (idx,true) vm) l ((vr,v)::acc)
-              | Eq -> let v1 = Vect.set 0 (minus_num c.cst) c.coeffs in
-                      let v2 = Vect.mul (Int (-1)) v1 in
+              | Eq -> let v1 = Vect.set 0 (Q.neg c.cst) c.coeffs in
+                      let v2 = Vect.mul Q.minus_one v1 in
                       let vm = IMap.add vr (idx,true) (IMap.add (vr+1) (idx,false) vm) in
                       elim (idx+1) (vr+2) vm l ((vr,v1)::(vr+1,v2)::acc)
               | Gt -> raise Strict in
@@ -405,9 +404,9 @@ let find_solution rst tbl =
                              else Vect.set vr (Vect.get_cst v) res) tbl Vect.null
 
 let choose_conflict (sol:Vect.t) (l: (var * Vect.t) list) =
-  let esol = Vect.set 0 (Int 1) sol in
+  let esol = Vect.set 0 Q.one sol in
   let is_conflict (x,v) =
-    if Vect.dotproduct esol v >=/ Int 0
+    if Q.(leq zero) (Vect.dotproduct esol v)
     then None else Some(x,v) in
   let (c,r) = extract is_conflict l in
   match c with
@@ -468,7 +467,7 @@ let optimise obj l =
 
   let bound pos res =
     match res with
-    | Opt(_,Max n) -> Some (if pos then n else minus_num n)
+    | Opt(_,Max n) -> Some (if pos then n else Q.neg n)
     | Opt(_,Ubnd _)  -> None
     | Opt(_,Feas)    -> None
   in
@@ -498,7 +497,7 @@ let make_farkas_certificate (env: WithProof.t IMap.t) vm v =
           try
             let (x',b) = IMap.find x vm in
             (mul_cst_proof
-               (if b then n else (Num.minus_num n))
+               (if b then n else (Q.neg n))
                (snd (IMap.find x' env)))
           with Not_found -> (* This is an introduced hypothesis *)
             (mul_cst_proof n (snd (IMap.find x env)))
@@ -509,7 +508,7 @@ let make_farkas_proof (env: WithProof.t IMap.t) vm v =
       WithProof.addition wp   begin
           try
             let (x', b) = IMap.find x vm in
-            let n =  if b then n else Num.minus_num n in
+            let n =  if b then n else Q.neg n in
             WithProof.mult (Vect.cst n) (IMap.find x' env)
           with Not_found ->
             WithProof.mult (Vect.cst n) (IMap.find x env)
@@ -528,15 +527,15 @@ let cut env rmin sol vm (rst:Restricted.t) (x,v) =
   else *)
   let (n,r) = Vect.decomp_cst v in
 
-  let nf = Num.floor_num n in
-  if nf =/ n
+  let nf = Sos_lib.floorQ n in
+  if Q.equal nf n
   then None (* The solution is integral *)
   else
     (* This is potentially a cut *)
     let cut = Vect.normalise
                 (Vect.fold (fun acc x n ->
                      if Restricted.is_restricted x rst then
-                       Vect.set x (n -/ (Num.floor_num n)) acc
+                       Vect.set x (Q.sub n (Sos_lib.floorQ n)) acc
                      else acc
                    ) Vect.null r) in
     if debug then Printf.fprintf stdout "Cut vector for %a : %a\n" LinPoly.pp_var x LinPoly.pp cut ;
@@ -551,7 +550,7 @@ let cut env rmin sol vm (rst:Restricted.t) (x,v) =
          end;
        if Pervasives.(=) (snd v) Eq
        then (* Unsat *) Some (x,(v,prf))
-       else if eval_op Ge (Vect.dotproduct (fst v) (Vect.set 0 (Int 1) sol)) (Int 0)
+       else if eval_op Ge (Vect.dotproduct (fst v) (Vect.set 0 Q.one sol)) Q.zero
        then begin
            (* Can this happen? *)
            if debug then  Printf.printf "The cut is feasible - drop it\n";

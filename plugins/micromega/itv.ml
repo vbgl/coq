@@ -10,10 +10,8 @@
 
 (** Intervals (extracted from mfourier.ml) *)
 
-open Num
-
   (** The type of intervals is *)
-  type interval = num option * num option
+  type interval = Q.t option * Q.t option
       (** None models the absence of bound i.e. infinity
           As a result,
           - None , None   -> \]-oo,+oo\[
@@ -26,14 +24,15 @@ open Num
   let pp o (n1,n2) =
       (match n1 with
        | None -> output_string o "]-oo"
-       | Some n  -> Printf.fprintf o "[%s" (string_of_num n)
+       | Some n  -> Printf.fprintf o "[%s" (Q.to_string n)
       );
       output_string o ",";
       (match n2 with
        | None -> output_string o "+oo["
-       | Some n -> Printf.fprintf o "%s]" (string_of_num n)
+       | Some n -> Printf.fprintf o "%s]" (Q.to_string n)
       )
 
+let ( <=/ ) = Q.leq
 
 
   (** if then interval [itv] is empty, [norm_itv itv] returns [None]
@@ -57,18 +56,22 @@ open Num
         | None  , Some _ -> o2
         | Some n1 , Some n2 -> Some (f n1 n2) in
 
-    norm_itv (inter max_num l1 l2 , inter min_num r1 r2)
+    norm_itv (inter Q.max l1 l2 , inter Q.min r1 r2)
+
+  let floor q : Z.t = Z.fdiv (Q.num q) (Q.den q)
+  let ceiling q : Z.t = Z.cdiv (Q.num q) (Q.den q)
 
   let range = function
-    | None,_ | _,None -> None
-    | Some i,Some j -> Some (floor_num j -/ceiling_num i +/ (Int 1))
+    | None, _ | _, None -> None
+    | Some i, Some j ->
+      Some (Z.add (Z.sub (floor j) (ceiling i)) Z.one)
 
 
   let smaller_itv i1 i2 =
     match  range i1 ,  range i2  with
       | None , _ -> false
       |  _   , None -> true
-      | Some i , Some j -> i <=/ j
+      | Some i , Some j -> Z.leq i j
 
 
 (** [in_bound bnd v] checks whether [v] is within the bounds [bnd] *)
