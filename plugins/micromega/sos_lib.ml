@@ -32,9 +32,6 @@ let (o) = fun f g x -> f(g x);;
 let pow2 n = Q.of_bigint (Z.pow (Z.of_int 2) n)
 let pow10 = Z.pow (Z.of_int 10)
 
-let floorQ q : Q.t = Z.fdiv (Q.num q) (Q.den q) |> Q.of_bigint
-let ceilingQ q : Q.t = Z.cdiv (Q.num q) (Q.den q) |> Q.of_bigint
-
 (*
 let gcd_num n1 n2 =
   num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2));;

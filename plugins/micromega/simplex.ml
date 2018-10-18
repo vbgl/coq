@@ -527,7 +527,7 @@ let cut env rmin sol vm (rst:Restricted.t) (x,v) =
   else *)
   let (n,r) = Vect.decomp_cst v in
 
-  let nf = Sos_lib.floorQ n in
+  let nf = Sos_types.floorQ n in
   if Q.equal nf n
   then None (* The solution is integral *)
   else
@@ -535,7 +535,7 @@ let cut env rmin sol vm (rst:Restricted.t) (x,v) =
     let cut = Vect.normalise
                 (Vect.fold (fun acc x n ->
                      if Restricted.is_restricted x rst then
-                       Vect.set x (Q.sub n (Sos_lib.floorQ n)) acc
+                       Vect.set x (Q.sub n (Sos_types.floorQ n)) acc
                      else acc
                    ) Vect.null r) in
     if debug then Printf.fprintf stdout "Cut vector for %a : %a\n" LinPoly.pp_var x LinPoly.pp cut ;

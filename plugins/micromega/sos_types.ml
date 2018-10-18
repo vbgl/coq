@@ -62,3 +62,6 @@ let rec output_psatz o = function
   | Eqmul (t,ps)   -> Printf.fprintf o "%a * %a" output_term t output_psatz ps
   | Sum (t1,t2)    -> Printf.fprintf o "%a + %a" output_psatz t1 output_psatz t2
   | Product (t1,t2)    -> Printf.fprintf o "%a * %a" output_psatz t1 output_psatz t2
+
+let floorQ q : Q.t = Z.fdiv (Q.num q) (Q.den q) |> Q.of_bigint
+let ceilingQ q : Q.t = Z.cdiv (Q.num q) (Q.den q) |> Q.of_bigint

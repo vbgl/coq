@@ -38,3 +38,6 @@ type positivstellensatz =
  | Product of positivstellensatz * positivstellensatz
 
 val output_psatz : out_channel -> positivstellensatz -> unit
+
+val floorQ : Q.t -> Q.t
+val ceilingQ : Q.t -> Q.t

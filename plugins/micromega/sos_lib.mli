@@ -13,9 +13,6 @@ val o : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val pow10 : int -> Z.t
 val pow2 : int -> Q.t
 
-val floorQ : Q.t -> Q.t
-val ceilingQ : Q.t -> Q.t
-
 val implode : string list -> string
 val explode : string -> string list
 

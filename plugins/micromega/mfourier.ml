@@ -8,7 +8,6 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
-open Sos_lib
 open Util
 open Polynomial
 open Vect
@@ -362,14 +361,13 @@ let bound_of_variable map v sys =
 let pick_small_value bnd =
   match bnd with
     | None , None   ->  Q.zero
-    | None , Some i ->  if  Q.(leq zero) (floorQ i) then Q.zero else floorQ i
-    | Some i,None   ->  if Q.(geq zero) i then Q.zero else ceilingQ i
+    | None , Some i ->  if  Q.(leq zero) (Sos_types.floorQ i) then Q.zero else Sos_types.floorQ i
+    | Some i,None   ->  if Q.(geq zero) i then Q.zero else Sos_types.ceilingQ i
     | Some i,Some j ->
         if Q.(geq zero) i && Q.(leq zero) j
         then Q.zero
-        else if Q.leq (ceilingQ i) (floorQ j)
-        then ceilingQ i (* why not *) else i
-
+        else if Q.leq (Sos_types.ceilingQ i) (Sos_types.floorQ j)
+        then Sos_types.ceilingQ i (* why not *) else i
 
 (** [solution s1 sys_l  = Some(sn,\[(vn-1,sn-1);...; (v1,s1)\]\@sys_l)]
     then [sn] is a  system which contains only [black_v] -- if it existed in [s1]

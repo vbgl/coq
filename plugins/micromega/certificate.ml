@@ -344,7 +344,7 @@ let check_int_sat (cstr, prf) =
          | Ge ->
             let cstr = {
                 coeffs = Vect.div gcd coeffs;
-                op = op ; cst = Sos_lib.ceilingQ (Q.div cst gcd)
+                op = op ; cst = Sos_types.ceilingQ (Q.div cst gcd)
               } in Cut(cstr,CutPrf prf)
          | Gt -> failwith "check_sat : Unexpected operator"
 
@@ -880,7 +880,7 @@ let xlia (can_enum:bool)  reduction_equations  sys =
     | None -> None (* Is the systeme really unbounded ? *)
     | Some(prf1,(lb,e,ub),prf2) ->
        if debug then Printf.printf "Found interval: %a in [%s;%s] -> " Vect.pp e (Q.to_string lb) (Q.to_string ub) ;
-       (match start_enum  id  e  (Sos_lib.ceilingQ lb)  (Sos_lib.floorQ ub) sys
+       (match start_enum  id  e  (Sos_types.ceilingQ lb)  (Sos_types.floorQ ub) sys
         with
         | Some prfl ->
            Some(Enum(id,proof_of_farkas (env_of_list prf) (Vect.from_list prf1),e,
