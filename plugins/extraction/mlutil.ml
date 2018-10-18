@@ -394,7 +394,8 @@ let rec eq_ml_ast t1 t2 = match t1, t2 with
 | MLdummy k1, MLdummy k2 -> k1 == k2
 | MLaxiom, MLaxiom -> true
 | MLmagic t1, MLmagic t2 -> eq_ml_ast t1 t2
-| _ -> false
+| MLuint i1, MLuint i2 -> Uint63.equal i1 i2
+| _, _ -> false
 
 and eq_ml_pattern p1 p2 = match p1, p2 with
 | Pcons (gr1, p1), Pcons (gr2, p2) ->
