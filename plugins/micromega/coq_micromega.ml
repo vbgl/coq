@@ -1953,15 +1953,15 @@ let really_call_csdpcert : provername -> micromega_polys -> Sos_types.positivste
 
   Lazy.force require_csdp;
 
-  let cmdname =
-    List.fold_left Filename.concat (Envars.coqlib ())
-      ["plugins"; "micromega"; "csdpcert" ^ Coq_config.exec_extension] in
+  let cmdname = "csdpcert" in
+    (* List.fold_left Filename.concat (Envars.coqlib ())
+     *   ["plugins"; "micromega"; "csdpcert" ^ Coq_config.exec_extension] in *)
 
-    match ((command cmdname [|cmdname|] (provername,poly)) : csdp_certificate) with
-    | F str ->
-       if debug then Printf.fprintf stdout "really_call_csdpcert : %s\n" str;
-       raise (failwith str)
-      | S res -> res
+  match ((command cmdname [|cmdname|] (provername,poly)) : csdp_certificate) with
+  | F str ->
+    if debug then Printf.fprintf stdout "really_call_csdpcert : %s\n" str;
+    raise (failwith str)
+  | S res -> res
 
 (**
   * Check the cache before calling the prover.

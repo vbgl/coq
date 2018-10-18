@@ -13,3 +13,8 @@
  (modules csdpcert)
  (flags :standard -open Micromega_plugin)
  (libraries coq.plugins.micromega))
+
+; (install
+;  (section lib)
+;  (package coq)
+;  (files (csdpcert.exe as plugins/micromega/csdpcert)))
