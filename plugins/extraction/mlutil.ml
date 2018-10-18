@@ -310,7 +310,7 @@ let isMLdummy = function MLdummy _ -> true | _ -> false
 
 let sign_of_id = function
   | Dummy -> Kill Kprop
-  | _ -> Keep
+  | (Id _ | Tmp _) -> Keep
 
 (* Classification of signatures *)
 
@@ -370,7 +370,10 @@ let eq_ml_ident i1 i2 = match i1, i2 with
 | Dummy, Dummy -> true
 | Id id1, Id id2 -> Id.equal id1 id2
 | Tmp id1, Tmp id2 -> Id.equal id1 id2
-| _ -> false
+| Dummy, (Id _ | Tmp _)
+| Id _, (Dummy | Tmp _)
+| Tmp _, (Dummy | Id _)
+  -> false
 
 let rec eq_ml_ast t1 t2 = match t1, t2 with
 | MLrel i1, MLrel i2 ->
