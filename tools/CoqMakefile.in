@@ -112,7 +112,7 @@ CAMLDEBUG ?=
 COQDEBUG ?=
 
 # Extra packages to be linked in (as in findlib -package)
-CAMLPKGS ?=
+CAMLPKGS ?= -package zarith
 
 # Option for making timing files
 TIMING?=
@@ -610,11 +610,11 @@ $(MLLIBFILES:.mllib=.cmxs): %.cmxs: %.cmxa
 
 $(MLLIBFILES:.mllib=.cma): %.cma: | %.mllib
 	$(SHOW)'CAMLC -a -o $@'
-	$(HIDE)$(CAMLLINK) $(CAMLDEBUG) $(CAMLFLAGS) $(CAMLPKGS) -a -o $@ $^
+	$(HIDE)$(CAMLLINK) $(CAMLDEBUG) $(CAMLFLAGS) -a -o $@ $^
 
 $(MLLIBFILES:.mllib=.cmxa): %.cmxa: | %.mllib
 	$(SHOW)'CAMLOPT -a -o $@'
-	$(HIDE)$(CAMLOPTLINK) $(CAMLDEBUG) $(CAMLFLAGS) $(CAMLPKGS) -a -o $@ $^
+	$(HIDE)$(CAMLOPTLINK) $(CAMLDEBUG) $(CAMLFLAGS) -a -o $@ $^
 
 
 $(MLPACKFILES:.mlpack=.cmxs): %.cmxs: %.cmxa
@@ -628,7 +628,7 @@ $(MLPACKFILES:.mlpack=.cmxa): %.cmxa: %.cmx
 
 $(MLPACKFILES:.mlpack=.cma): %.cma: %.cmo | %.mlpack
 	$(SHOW)'CAMLC -a -o $@'
-	$(HIDE)$(CAMLLINK) $(CAMLDEBUG) $(CAMLFLAGS) $(CAMLPKGS) -a -o $@ $^
+	$(HIDE)$(CAMLLINK) $(CAMLDEBUG) $(CAMLFLAGS) -a -o $@ $^
 
 $(MLPACKFILES:.mlpack=.cmo): %.cmo: | %.mlpack
 	$(SHOW)'CAMLC -pack -o $@'
@@ -641,7 +641,7 @@ $(MLPACKFILES:.mlpack=.cmx): %.cmx: | %.mlpack
 # This rule is for _CoqProject with no .mllib nor .mlpack
 $(filter-out $(MLLIBFILES:.mllib=.cmxs) $(MLPACKFILES:.mlpack=.cmxs) $(addsuffix .cmxs,$(PACKEDFILES)) $(addsuffix .cmxs,$(LIBEDFILES)),$(MLFILES:.ml=.cmxs) $(MLGFILES:.mlg=.cmxs)): %.cmxs: %.cmx
 	$(SHOW)'[deprecated,use-mllib-or-mlpack] CAMLOPT -shared -o $@'
-	$(HIDE)$(CAMLOPTLINK) $(CAMLDEBUG) $(CAMLFLAGS) $(CAMLPKGS) \
+	$(HIDE)$(CAMLOPTLINK) $(CAMLDEBUG) $(CAMLFLAGS) \
 		-shared -o $@ $<
 
 ifneq (,$(TIMING))

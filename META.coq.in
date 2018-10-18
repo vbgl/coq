@@ -120,7 +120,7 @@ package "interp" (
   description = "Coq Term Interpretation"
   version     = "8.10"
 
-  requires    = "coq.pretyping"
+  requires    = "zarith, coq.pretyping"
   directory   = "interp"
 
   archive(byte)    = "interp.cma"
