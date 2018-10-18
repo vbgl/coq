@@ -66,7 +66,8 @@ let rec eq_ml_type t1 t2 = match t1, t2 with
 | Tdummy k1, Tdummy k2 -> k1 == k2
 | Tunknown, Tunknown -> true
 | Taxiom, Taxiom -> true
-| _ -> false
+| (Tarr _ | Tglob _ | Tvar _ | Tvar' _ | Tmeta _ | Tdummy _ | Tunknown | Taxiom), _
+  -> false
 
 and eq_ml_meta m1 m2 =
  Int.equal m1.id m2.id && Option.equal eq_ml_type m1.contents m2.contents
@@ -107,7 +108,7 @@ let rec type_occurs alpha t =
   | Tmeta {contents=Some u} -> type_occurs alpha u
   | Tarr (t1, t2) -> type_occurs alpha t1 || type_occurs alpha t2
   | Tglob (r,l) -> List.exists (type_occurs alpha) l
-  | _ -> false
+  | (Tdummy _ | Tvar _ | Tvar' _ | Taxiom | Tunknown) -> false
 
 (*s Most General Unificator *)
 
