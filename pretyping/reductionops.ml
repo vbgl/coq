@@ -1084,8 +1084,9 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
          (lazy (EConstr.to_constr sigma (Stack.zip sigma (x,stack))));
       if CClosure.RedFlags.red_set flags (CClosure.RedFlags.fCONST c) then
        let u' = EInstance.kind sigma u in
-       (try
-          let body = constant_value_in env (c, u') in
+       match constant_value_in env (c, u') with
+       | body ->
+         begin
           let body = EConstr.of_constr body in
           if not tactic_mode
           then whrec (if refold then Cst_stack.add_cst (mkConstU const) cst_l else cst_l)
@@ -1123,14 +1124,15 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
                               | Some (bef,arg,s') ->
                                 whrec Cst_stack.empty
                                         (arg,Stack.Cst(Stack.Cst_const (fst const, u'),curr,remains,bef,cst_l)::s')
-        with NotEvaluableConst (IsPrimitive p) when Stack.check_native_args p stack ->
+         end
+       | exception NotEvaluableConst (IsPrimitive p) when Stack.check_native_args p stack ->
           let kargs = CPrimitives.kind p in
           let (kargs,o) = Stack.get_next_primitive_args kargs stack in
           (* Should not fail thanks to [check_native_args] *)
           let (before,a,after) = Option.get o in
           whrec Cst_stack.empty (a,Stack.Primitive(p,const,before,kargs,cst_l)::after)
-           | NotEvaluableConst _ -> fold ()
-       ) else fold ()
+       | exception NotEvaluableConst _ -> fold ()
+      else fold ()
     | Proj (p, c) when CClosure.RedFlags.red_projection flags p ->
       (let npars = Projection.npars p in
          if not tactic_mode then
