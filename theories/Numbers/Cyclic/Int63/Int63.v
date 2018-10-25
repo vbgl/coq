@@ -1701,6 +1701,15 @@ Proof.
   symmetry; apply Z.mod_small. split. lia. exact h.
 Qed.
 
+Lemma of_Z_spec n : [| of_Z n |] = n mod wB.
+Proof.
+  destruct n. reflexivity.
+  { now simpl; unfold of_pos; rewrite of_pos_rec_spec by lia. }
+  simpl; unfold of_pos; rewrite opp_spec.
+  rewrite of_pos_rec_spec; [ |auto]; fold wB.
+  now rewrite <-(Z.sub_0_l), Zminus_mod_idemp_r.
+Qed.
+
 (* General lemmas *)
 Lemma negbE a b : a = negb b → negb a = b.
 Proof. intros ->; apply negb_involutive. Qed.
