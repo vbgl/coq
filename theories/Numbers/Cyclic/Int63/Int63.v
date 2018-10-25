@@ -1691,15 +1691,19 @@ Proof.
     subst a; lia.
 Qed.
 
+Lemma of_Z_spec n : [| of_Z n |] = n mod wB.
+Proof.
+  destruct n. reflexivity.
+  { now simpl; unfold of_pos; rewrite of_pos_rec_spec by lia. }
+  simpl; unfold of_pos; rewrite opp_spec.
+  rewrite of_pos_rec_spec; [ |auto]; fold wB.
+  now rewrite <-(Z.sub_0_l), Zminus_mod_idemp_r.
+Qed.
+
 Lemma is_int n :
   0 <= n < 2 ^ φ digits →
   n = φ (of_Z n).
-Proof.
-  destruct n. reflexivity. 2: lia.
-  intros [_ h]. simpl.
-  unfold of_pos. rewrite of_pos_rec_spec by lia.
-  symmetry; apply Z.mod_small. split. lia. exact h.
-Qed.
+Proof. now intro h; rewrite of_Z_spec, Z.mod_small. Qed.
 
 (* General lemmas *)
 Lemma negbE a b : a = negb b → negb a = b.
