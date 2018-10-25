@@ -9,14 +9,18 @@ let maxuint63 = Int64.of_string "0x7FFFFFFFFFFFFFFF"
 let maxuint31 = Int64.of_string "0x7FFFFFFF"
 (* let sign_bit = Int64.of_string "0x4000000000000000" *)
 
+let zero = Int64.zero
+let one = Int64.one
+
     (* conversion from an int *)
 let mask63 i = Int64.logand i maxuint63
 let of_int i = Int64.of_int i
-let to_intint i = (Int64.to_int (Int64.shift_right_logical i 31), Int64.to_int i)
+let to_int2 i = (Int64.to_int (Int64.shift_right_logical i 31), Int64.to_int i)
 let of_int64 i = i
 let hash i =
-  let (h,l) = to_intint i in
-  Hashset.combine h l
+  let (h,l) = to_int2 i in
+  (*Hashset.combine h l*)
+  h * 65599 + l
 
     (* conversion of an uint63 to a string *)
 let to_string i = Int64.to_string i
@@ -53,8 +57,12 @@ let l_xor x y = Int64.logxor x y
     (* addition of int63 *)
 let add x y = mask63 (Int64.add x y)
 
+let addcarry x y = add (add x y) Int64.one
+
     (* subtraction *)
 let sub x y = mask63 (Int64.sub x y)
+
+let subcarry x y = sub (sub x y) Int64.one
 
     (* multiplication *)
 let mul x y = mask63 (Int64.mul x y)
@@ -67,8 +75,47 @@ let div x y =
 let rem x y =
   if y = 0L then 0L else Int64.rem x y
 
+let addmuldiv p x y =
+  l_or (l_sl x p) (l_sr y Int64.(sub (of_int uint_size) p))
+
+(* A few helper functions on 128 bits *)
+let lt128 xh xl yh yl =
+  lt xh yh || (xh = yh && lt xl yl)
+
+let le128 xh xl yh yl =
+  lt xh yh || (xh = yh && le xl yl)
+
     (* division of two numbers by one *)
-let div21 xh xl y = 0L, 0L
+let div21 xh xl y =
+  let maskh = ref zero in
+  let maskl = ref one in
+  let dh = ref zero in
+  let dl = ref y in
+  let cmp = ref true in
+  while le zero !dh && !cmp do
+    cmp := lt128 !dh !dl xh xl;
+    (* We don't use addmuldiv below to avoid checks on 1 *)
+    dh := l_or (l_sl !dh one) (l_sr !dl (of_int (uint_size - 1)));
+    dl := l_sl !dl one;
+    maskh := l_or (l_sl !maskh one) (l_sr !maskl (of_int (uint_size - 1)));
+    maskl := l_sl !maskl one
+  done; (* mask = 2^N, d = 2^N * d, d >= x *)
+  let remh = ref xh in
+  let reml = ref xl in
+  let quotient = ref zero in
+  while not (Int64.equal (l_or !maskh !maskl) zero) do
+    if le128 !dh !dl !remh !reml then begin (* if rem >= d, add one bit and subtract d *)
+      quotient := l_or !quotient !maskl;
+      remh := if lt !reml !dl then sub (sub !remh !dh) one else sub !remh !dh;
+      reml := sub !reml !dl
+    end;
+    maskl := l_or (l_sr !maskl one) (l_sl !maskh (of_int (uint_size - 1)));
+    maskh := l_sr !maskh one;
+    dl := l_or (l_sr !dl one) (l_sl !dh (of_int (uint_size - 1)));
+    dh := l_sr !dh one
+  done;
+  !quotient, !reml
+
 
      (* exact multiplication *)
 (* TODO: check that none of these additions could be a logical or *)
@@ -87,9 +134,11 @@ let mulc x y =
   hr := Int64.add !hr (Int64.shift_right_logical !lr 63);
   lr := Int64.add (Int64.shift_left !ly 31) (mask63 !lr);
   hr := Int64.add !hr (Int64.shift_right_logical !lr 63);
-  (!hr, !lr)
+  if Int64.logand !lr Int64.min_int <> 0L
+  then Int64.(sub !hr one, mask63 !lr)
+  else (!hr, !lr)
 
-let eq x y = mask63 x = mask63 y
+let equal x y = mask63 x = mask63 y
 
 let compare x y = Int64.compare x y
 
@@ -118,3 +167,31 @@ let tail0 x =
   if Int64.logand !x 0x3L = 0L    then (x := Int64.shift_right !x 2;  r := !r + 2);
   if Int64.logand !x 0x1L = 0L    then (                r := !r + 1);
   Int64.of_int !r
+
+(* Register all exported functions so that they can be called from C code *)
+
+let () =
+  Callback.register "uint63 add" add;
+  Callback.register "uint63 addcarry" addcarry;
+  Callback.register "uint63 addmuldiv" addmuldiv;
+  Callback.register "uint63 div" div;
+  Callback.register "uint63 div21_ml" div21;
+  Callback.register "uint63 eq" equal;
+  Callback.register "uint63 eq0" (equal Int64.zero);
+  Callback.register "uint63 head0" head0;
+  Callback.register "uint63 land" l_and;
+  Callback.register "uint63 leq" le;
+  Callback.register "uint63 lor" l_or;
+  Callback.register "uint63 lsl" l_sl;
+  Callback.register "uint63 lsl1" (fun x -> l_sl x Int64.one);
+  Callback.register "uint63 lsr" l_sr;
+  Callback.register "uint63 lsr1" (fun x -> l_sr x Int64.one);
+  Callback.register "uint63 lt" lt;
+  Callback.register "uint63 lxor" l_xor;
+  Callback.register "uint63 mod" rem;
+  Callback.register "uint63 mul" mul;
+  Callback.register "uint63 mulc_ml" mulc;
+  Callback.register "uint63 one" one;
+  Callback.register "uint63 sub" sub;
+  Callback.register "uint63 subcarry" subcarry;
+  Callback.register "uint63 tail0" tail0

@@ -10,7 +10,6 @@ let maxuint31 = 0x7FFFFFFF
     (* conversion from an int *)
 let to_uint64 i = Int64.logand (Int64.of_int i) maxuint63
 let of_int i = i
-let to_int i = i
 let to_int2 i = (0,i)
 let of_int64 _i = assert false
 
@@ -30,6 +29,7 @@ let of_string s =
 let compile i = Printf.sprintf "Uint63.of_int (%i)" i
 
 let zero = 0
+let one = 1
 
     (* logical shift *)
 let l_sl x y =

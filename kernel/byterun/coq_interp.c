@@ -1309,7 +1309,7 @@ value coq_interprete
         value divisor;
         divisor = *sp++;
         if (uint63_eq0(divisor)) {
-          accu = uint63_zero;
+          accu = divisor;
 	}
 	else {
           accu = uint63_div(accu, divisor);
@@ -1323,7 +1323,7 @@ value coq_interprete
         value divisor;
         divisor = *sp++;
         if (uint63_eq0(divisor)) {
-          accu = uint63_zero;
+          accu = divisor;
 	}
         else {
           accu = uint63_mod(accu,divisor);
@@ -1341,8 +1341,8 @@ value coq_interprete
         divisor = *sp++;
         if (uint63_eq0(divisor)) {
           Alloc_small(accu, 2, 1); /* ( _ , arity, tag ) */
-          Field(accu, 0) = uint63_zero;
-          Field(accu, 1) = uint63_zero;
+          Field(accu, 0) = divisor;
+          Field(accu, 1) = divisor;
         }
         else {
           value modulus;
@@ -1382,8 +1382,8 @@ value coq_interprete
         divisor = *sp++;
         if (uint63_eq0(divisor)) {
           Alloc_small(accu, 2, 1);
-          Field(accu, 0) = uint63_zero;
-          Field(accu, 1) = uint63_zero;
+          Field(accu, 0) = divisor;
+          Field(accu, 1) = divisor;
 	}
         else {
           value quo, mod;
@@ -1439,7 +1439,7 @@ value coq_interprete
           accu = uint63_lsl1(accu);
           Next;
         } else {
-          *--sp = uint63_one;
+          *--sp = uint63_one();
           *--sp = accu;
           accu = Field(coq_global_data, *pc++);
           goto apply2;
@@ -1447,13 +1447,13 @@ value coq_interprete
       }
 
       Instruct(CHECKLSRINT63CONST1) {
-        print_instr("CHECKLSLINT63CONST1");
+        print_instr("CHECKLSRINT63CONST1");
         if (Is_uint63(accu)) {
           pc++;
           accu = uint63_lsr1(accu);
           Next;
         } else {
-          *--sp = uint63_one;
+          *--sp = uint63_one();
           *--sp = accu;
           accu = Field(coq_global_data, *pc++);
           goto apply2;

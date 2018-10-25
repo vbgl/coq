@@ -162,6 +162,7 @@ and nf_whd env sigma whd typ =
       let capp,ctyp = construct_of_constr_block env tag typ in
       let args = nf_bargs env sigma b ofs ctyp in
       mkApp(capp,args)
+  | Vint64 i -> i |> Uint63.of_int64 |> mkInt
   | Vatom_stk(Aid idkey, stk) ->
       constr_type_of_idkey env sigma idkey stk
   | Vatom_stk(Aind ((mi,i) as ind), stk) ->

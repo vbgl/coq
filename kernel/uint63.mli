@@ -5,7 +5,6 @@ val maxuint31 : t
 
       (* conversion to int *)
 val of_int : int -> t
-val to_int : t -> int
 val to_int2 : t -> int * int (* msb, lsb *)
 val of_int64 : Int64.t -> t
 (*
@@ -22,6 +21,7 @@ val compile : t -> string
 
 (* constants *)
 val zero    : t
+val one : t
 
       (* logical operations *)
 val l_sl    : t -> t -> t

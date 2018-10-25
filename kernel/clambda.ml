@@ -766,7 +766,7 @@ let rec lambda_of_constr env c =
     let lc = lambda_of_constr env c in
     Lproj (Projection.repr p,lc)
 
-  | Int i -> Lint (Uint63.to_int i)
+  | Int i -> Luint i
 
 and lambda_of_app env f args =
   match Constr.kind f with

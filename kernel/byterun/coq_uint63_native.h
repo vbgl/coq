@@ -4,7 +4,7 @@
 //#define Val_intint(x,y) ((value)(((uint64_t)(x)) << 1 + ((uint64_t)(y) << 64)))
 
 #define uint63_zero ((value) 1) /* 2*0 + 1 */
-#define uint63_one ((value) 3) /* 2*1 + 1 */
+#define uint63_one() ((value) 3) /* 2*1 + 1 */
 
 #define uint63_eq(x,y) ((x) == (y))
 #define uint63_eq0(x) ((x) == (uint64_t)1)

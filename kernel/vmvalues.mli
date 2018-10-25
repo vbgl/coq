@@ -126,6 +126,7 @@ type whd =
   | Vcofix of vcofix * to_update * arguments option
   | Vconstr_const of int
   | Vconstr_block of vblock
+  | Vint64 of int64
   | Vatom_stk of atom * stack
   | Vuniv_level of Univ.Level.t
 

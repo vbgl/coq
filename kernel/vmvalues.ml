@@ -74,7 +74,9 @@ let rec eq_structured_values v1 v2 =
     let t2 = Obj.tag o2 in
     if Int.equal t1 t2 &&
        Int.equal (Obj.size o1) (Obj.size o2)
-    then begin
+    then if Int.equal t1 Obj.custom_tag
+      then Int64.equal (Obj.magic v1 : int64) (Obj.magic v2 : int64)
+    else begin
       assert (t1 <= Obj.last_non_constant_constructor_tag &&
               t2 <= Obj.last_non_constant_constructor_tag);
       let i = ref 0 in
@@ -281,6 +283,7 @@ type whd =
   | Vcofix of vcofix * to_update * arguments option
   | Vconstr_const of int
   | Vconstr_block of vblock
+  | Vint64 of int64
   | Vatom_stk of atom * stack
   | Vuniv_level of Univ.Level.t
 
@@ -311,8 +314,9 @@ let uni_lvl_val (v : values) : Univ.Level.t =
         | Vcofix _ -> str "Vcofix"
         | Vconstr_const _i -> str "Vconstr_const"
         | Vconstr_block _b -> str "Vconstr_block"
+        | Vint64 _ -> str "Vint64"
         | Vatom_stk (_a,_stk) -> str "Vatom_stk"
-        | _ -> assert false
+        | Vuniv_level _ -> assert false
       in
       CErrors.anomaly
         Pp.(   strbrk "Parsing virtual machine value expected universe level, got "
@@ -368,6 +372,8 @@ let rec whd_accu a stk =
       | [Zapp args] -> Vcofix(vcofix, res, Some args)
       | _           -> assert false
       end
+  | i when Int.equal i Obj.custom_tag ->
+    Vint64 (Obj.magic i)
   | tg ->
     CErrors.anomaly
       Pp.(strbrk "Failed to parse VM value. Tag = " ++ int tg ++ str ".")
@@ -396,6 +402,7 @@ let whd_val : values -> whd =
            | 2 -> Vfix(Obj.obj (Obj.field o 1), Some (Obj.obj o))
            | 3 -> Vatom_stk(Aid(RelKey(int_tcode (fun_code o) 1)), [])
            | _ -> CErrors.anomaly ~label:"Vm.whd " (Pp.str "kind_of_closure does not work."))
+        else if Int.equal tag Obj.custom_tag then Vint64 (Obj.magic v)
         else
            Vconstr_block(Obj.obj o)
 
@@ -667,6 +674,7 @@ and pr_whd w =
   | Vcofix _ -> str "Vcofix"
   | Vconstr_const i -> str "Vconstr_const(" ++ int i ++ str ")"
   | Vconstr_block _b -> str "Vconstr_block"
+  | Vint64 i -> i |> Format.sprintf "Vint64(%LiL)" |> str
   | Vatom_stk (a,stk) -> str "Vatom_stk(" ++ pr_atom a ++ str ", " ++ pr_stack stk ++ str ")"
   | Vuniv_level _ -> assert false)
 and pr_stack stk =
