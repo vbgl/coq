@@ -9,6 +9,7 @@
 (************************************************************************)
 
 Require Import Utf8.
+Require Import ssrfun.
 Require Export DoubleType.
 Require Import Lia.
 Require Import Zpow_facts.
@@ -306,9 +307,12 @@ Notation "[|| x ||]" :=
 
 (* Bijection : int63 <-> Bvector size *)
 
-Axiom to_Z_inj : forall x y, [| x |] = [| y |] -> x = y.
-
 Axiom of_to_Z : forall x, of_Z [| x |] = x.
+
+Notation "'φ' x" := [| x |] (at level 0) : int63_scope.
+
+Lemma to_Z_inj x y : φ x = φ y → x = y.
+Proof. exact (λ e, can_inj of_to_Z e). Qed.
 
 (** Specification of logical operations *)
 Local Open Scope Z_scope.
@@ -681,7 +685,6 @@ Proof. now intros h; rewrite (to_Z_inj _ 0 h). Qed.
 Lemma tail00_spec x : [| x |] = 0 -> [|tail0 x|] = [|digits|].
 Proof. now intros h; rewrite (to_Z_inj _ 0 h). Qed.
 
-Notation "'φ' x" := [| x |] (at level 0) : int63_scope.
 Infix "≡" := (eqm wB) (at level 80) : int63_scope.
 
 Lemma eqm_mod x y : x mod wB ≡ y mod wB → x ≡ y.
@@ -819,6 +822,13 @@ Proof.
  rewrite to_Z_0, Zmult_0_l, Zmod_0_l; auto.
 Qed.
 
+Lemma lsl0_r i : i << 0 = i.
+Proof.
+ apply to_Z_inj.
+ rewrite -> lsl_spec, to_Z_0, Z.mul_1_r.
+ apply Zmod_small; apply (to_Z_bounded i).
+Qed.
+
 Lemma lsl_add_distr x y n: (x + y) << n = ((x << n) + (y << n))%int63.
 Proof.
  apply to_Z_inj; rewrite -> !lsl_spec, !add_spec, Zmult_mod_idemp_l.
@@ -884,7 +894,7 @@ Qed.
 Lemma bit_lsr x i j :
  (bit (x >> i) j = if j <= i + j then bit x (i + j) else false)%int63.
 Proof.
- unfold bit; rewrite lsr_add; case Int63.leb; auto.
+  unfold bit; rewrite lsr_add; case (_ ≤ _); auto.
 Qed.
 
 Lemma bit_b2i (b: bool) i : bit b i = (i == 0) && b.
@@ -1170,11 +1180,11 @@ Proof.
  rewrite (fun x y => Zmod_small (x - y)); auto with zarith.
  intros n; rewrite -> bit_lsl, bit_lsr.
  generalize (add_le_r (digits - p) n).
- case Int63.leb; try discriminate.
+ case (_ ≤ _); try discriminate.
  rewrite -> sub_spec, Zmod_small; auto with zarith; intros H1.
  case_eq (n < p)%int63; try discriminate.
  rewrite <- not_true_iff_false, ltb_spec; intros H2.
- case Int63.leb; try discriminate.
+ case (_ ≤ _); try discriminate.
  intros _; rewrite bit_M; try discriminate.
  rewrite -> leb_spec, add_spec, Zmod_small, sub_spec, Zmod_small; auto with zarith.
  rewrite -> sub_spec, Zmod_small; auto with zarith.
@@ -1198,6 +1208,14 @@ Lemma is_even_spec x : if is_even x then [|x|] mod 2 = 0 else [|x|] mod 2 = 1.
 Proof.
 rewrite is_even_bit.
 generalize (bit_0_spec x); case bit; simpl; auto.
+Qed.
+
+Lemma is_even_0 : is_even 0 = true.
+Proof. apply refl_equal. Qed.
+
+Lemma is_even_lsl_1 i : is_even (i << 1) = true.
+Proof.
+ rewrite is_even_bit, bit_lsl; auto.
 Qed.
 
 (* Sqrt *)
@@ -1677,7 +1695,6 @@ Proof.
       rewrite Z.pow_pos_fold, Zpos_P_of_succ_nat, Zpower_Zsucc by lia.
       change (Zpos p~0) with (2 ^ 1 * Zpos p)%Z.
       rewrite Z.mul_mod_distr_l; auto with zarith.
-    (* FIXME: déjà vu *)
     set (a := Z.of_nat n).
     set (b := Zpos p).
     change (2 ^ 1) with 2.
@@ -1831,3 +1848,66 @@ Proof.
   apply (Z.lt_trans _ _ _ hd).
   apply Zpower2_lt_lin. lia.
 Qed.
+
+Lemma landC i j : i land j = j land i.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !land_spec, andb_comm; auto.
+Qed.
+
+Lemma landA i j k : i land (j land k) = i land j land k.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !land_spec, andb_assoc; auto.
+Qed.
+
+Lemma land0 i : 0 land i = 0%int63.
+Proof.
+ apply bit_ext; intros n.
+ rewrite land_spec, bit_0; auto.
+Qed.
+
+Lemma land0_r i : i land 0 = 0%int63.
+Proof. rewrite landC; exact (land0 i). Qed.
+
+Lemma lorC i j : i lor j = j lor i.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !lor_spec, orb_comm; auto.
+Qed.
+
+Lemma lorA i j k : i lor (j lor k) = i lor j lor k.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !lor_spec, orb_assoc; auto.
+Qed.
+
+Lemma lor0 i : 0 lor i = i.
+Proof.
+ apply bit_ext; intros n.
+ rewrite lor_spec, bit_0; auto.
+Qed.
+
+Lemma lor0_r i : i lor 0 = i.
+Proof. rewrite lorC; exact (lor0 i). Qed.
+
+Lemma lxorC i j : i lxor j = j lxor i.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !lxor_spec, xorb_comm; auto.
+Qed.
+
+Lemma lxorA i j k : i lxor (j lxor k) = i lxor j lxor k.
+Proof.
+ apply bit_ext; intros n.
+ rewrite !lxor_spec, xorb_assoc; auto.
+Qed.
+
+Lemma lxor0 i : 0 lxor i = i.
+Proof.
+ apply bit_ext; intros n.
+ rewrite lxor_spec, bit_0, xorb_false_l; auto.
+Qed.
+
+Lemma lxor0_r i : i lxor 0 = i.
+Proof. rewrite lxorC; exact (lxor0 i). Qed.
