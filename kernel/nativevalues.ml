@@ -216,8 +216,9 @@ type kind_of_value =
   | Vaccu of accumulator
   | Vfun of (t -> t)
   | Vconst of int
+  | Vint64 of int64
   | Vblock of block
-	
+
 let kind_of_value (v:t) =
   let o = Obj.repr v in
   if Obj.is_int o then Vconst (Obj.magic v)
@@ -225,8 +226,8 @@ let kind_of_value (v:t) =
     let tag = Obj.tag o in
     if Int.equal tag accumulate_tag then
       Vaccu (Obj.magic v)
-    else 
-      if (tag < Obj.lazy_tag) then Vblock (Obj.magic v)
+    else if Int.equal tag Obj.custom_tag then Vint64 (Obj.magic v)
+    else if (tag < Obj.lazy_tag) then Vblock (Obj.magic v)
       else
         (* assert (tag = Obj.closure_tag || tag = Obj.infix_tag); 
            or ??? what is 1002*)

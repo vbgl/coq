@@ -107,6 +107,7 @@ type kind_of_value =
   | Vaccu of accumulator
   | Vfun of (t -> t)
   | Vconst of int
+  | Vint64 of int64
   | Vblock of block
 
 val kind_of_value : t -> kind_of_value
