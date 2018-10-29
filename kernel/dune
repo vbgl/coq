@@ -3,13 +3,18 @@
  (synopsis "The Coq Kernel")
  (public_name coq.kernel)
  (wrapped false)
- (modules_without_implementation nativeinstr)
+ (modules (:standard \ uint63_x86 uint63_amd64 write_uint63))
  (libraries clib config lib byterun))
 
 (rule
  (targets copcodes.ml)
  (deps (:h-file byterun/coq_instruct.h) make-opcodes)
  (action (run ./make_opcodes.sh %{h-file} %{targets})))
+
+(rule
+ (targets uint63.ml)
+ (deps write_uint63.ml uint63_x86.ml uint63_amd64.ml)
+ (action (run %{ocaml} unix.cma write_uint63.ml)))
 
 (documentation
  (package coq))

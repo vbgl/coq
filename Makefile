@@ -94,7 +94,7 @@ EXISTINGMLI := $(call find, '*.mli')
 ## Files that will be generated
 
 GENMLGFILES:= $(MLGFILES:.mlg=.ml)
-export GENMLFILES:=$(LEXFILES:.mll=.ml) $(YACCFILES:.mly=.ml) $(GENMLGFILES)  ide/coqide_os_specific.ml kernel/copcodes.ml
+export GENMLFILES:=$(LEXFILES:.mll=.ml) $(YACCFILES:.mly=.ml) $(GENMLGFILES)  ide/coqide_os_specific.ml kernel/copcodes.ml kernel/uint63.ml
 export GENHFILES:=kernel/byterun/coq_jumptbl.h
 export GENFILES:=$(GENMLFILES) $(GENMLIFILES) $(GENHFILES)
 

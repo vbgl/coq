@@ -402,6 +402,13 @@ grammar/%.cmi: grammar/%.mli
 
 
 ###########################################################################
+# Specific rules for Uint63
+###########################################################################
+kernel/uint63.ml: kernel/write_uint63.ml kernel/uint63_x86.ml kernel/uint63_amd64.ml
+	$(SHOW)'WRITE $@'
+	$(HIDE)(cd kernel && ocaml unix.cma $(shell basename $<))
+
+###########################################################################
 # Main targets (coqtop.opt, coqtop.byte)
 ###########################################################################
 
