@@ -52,11 +52,11 @@ type case_info =
 
 type t
 type constr = t
+
 (** [types] is the same as [constr] but is intended to be used for
    documentation to indicate that such or such function specifically works
    with {e types} (i.e. terms of type a sort).
    (Rem:plurial form since [type] is a reserved ML keyword) *)
-
 type types = constr
 
 (** {5 Functions for dealing with constr terms. }
