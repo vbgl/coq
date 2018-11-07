@@ -60,11 +60,11 @@ let compare_stack_shape stk1 stk2 =
         Int.equal bal 0 (* && c1.ci_ind  = c2.ci_ind *) && compare_rec 0 s1 s2
     | (Zfix(_,a1)::s1, Zfix(_,a2)::s2) ->
         Int.equal bal 0 && compare_rec 0 a1 a2 && compare_rec 0 s1 s2
-    | Znative(op1,_,rargs1, _kargs1)::s1, Znative(op2,_,rargs2, _kargs2)::s2 ->
+    | Zprimitive(op1,_,rargs1, _kargs1)::s1, Zprimitive(op2,_,rargs2, _kargs2)::s2 ->
         bal=0 && op1=op2 && List.length rargs1=List.length rargs2 &&
         compare_rec 0 s1 s2
     | [], _ :: _
-    | (Zproj _ | ZcaseT _ | Zfix _ | Znative _) :: _, _ -> false
+    | (Zproj _ | ZcaseT _ | Zfix _ | Zprimitive _) :: _, _ -> false
   in
   compare_rec 0 stk1 stk2
 
@@ -111,8 +111,8 @@ let pure_stack lfts stk =
                 (l, Zlfix((lfx,fx),pa)::pstk)
             | (ZcaseT(ci,p,br,e),(l,pstk)) ->
                 (l,Zlcase(ci,l,p,br,e)::pstk)
-            | (Znative(op,c,rargs,kargs),(l,pstk)) ->
-                (l,Zlnative(op,c,List.map (fun t -> (l,t)) rargs,
+            | (Zprimitive(op,c,rargs,kargs),(l,pstk)) ->
+                (l,Zlprimitive(op,c,List.map (fun t -> (l,t)) rargs,
                             List.map (fun (k,t) -> (k,(l,t))) kargs)::pstk))
   in
   snd (pure_rec lfts stk)
@@ -381,7 +381,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
                let rargs, a, nargs, v1 = get_native_args1 op c v1 in
                ((lft1,
                  whd_stack infos.cnv_inf tab1 a
-                   (Zupdate a::(Znative(op,c,rargs,nargs)::v1))),
+                   (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v1))),
                 appr2)
              | Undef _ | OpaqueDef _ | Primitive _ ->
                begin match unfold_reference infos.cnv_inf tab2 fl2 with
@@ -394,7 +394,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
                    (appr1,
                     (lft2,
                      whd_stack infos.cnv_inf tab2 a
-                                         (Zupdate a::(Znative(op,c,rargs,nargs)::v2))))
+                                         (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v2))))
                              | _ -> raise NotConvertible
                            end
            in
@@ -444,7 +444,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
         eqappr cv_pb l2r infos appr1
          (lft2,
           whd_stack infos.cnv_inf infos.rgt_tab a
-            (Zupdate a::(Znative(op,c,rargs,nargs)::v2))) cuniv
+            (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v2))) cuniv
       | _ -> raise NotConvertible)
    | _ -> raise NotConvertible))
       
@@ -465,7 +465,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
                eqappr cv_pb l2r infos
                (lft1,
                  whd_stack infos.cnv_inf infos.lft_tab a
-                   (Zupdate a::(Znative(op,c,rargs,nargs)::v1)))
+                   (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v1)))
                 appr2 cuniv
              | Undef _ | OpaqueDef _ | Primitive _ -> raise NotConvertible)
 	  | _ -> raise NotConvertible))
@@ -529,7 +529,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
           let rargs, a, nargs, v1 = get_native_args1 op c v1 in
           eqappr cv_pb l2r infos
             (lft1, whd_stack infos.cnv_inf infos.lft_tab a
-               (Zupdate a::(Znative(op,c,rargs,nargs)::v1)))
+               (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v1)))
             appr2 cuniv
         | _ ->
           (match c2 with
@@ -556,7 +556,7 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
           eqappr cv_pb l2r infos
             appr1
             (lft2, whd_stack infos.cnv_inf infos.rgt_tab a
-               (Zupdate a::(Znative(op,c,rargs,nargs)::v2)))
+               (Zupdate a::(Zprimitive(op,c,rargs,nargs)::v2)))
                   cuniv
         | _ ->
           match c1 with
@@ -680,12 +680,12 @@ and convert_stacks l2r infos lft1 lft2 stk1 stk2 cuniv =
                   raise NotConvertible;
                 let cu2 = f (l1, mk_clos e1 p1) (l2, mk_clos e2 p2) cu1 in
                 convert_branches l2r infos ci1 e1 e2 l1 l2 br1 br2 cu2
-            | (Zlnative(op1,_,rargs1,kargs1),Zlnative(op2,_,rargs2,kargs2)) ->
+            | (Zlprimitive(op1,_,rargs1,kargs1),Zlprimitive(op2,_,rargs2,kargs2)) ->
               if not (CPrimitives.equal op1 op2) then raise NotConvertible else
                 let cu2 = List.fold_right2 f rargs1 rargs2 cu1 in
                 let fk (_,a1) (_,a2) cu = f a1 a2 cu in
                 List.fold_right2 fk kargs1 kargs2 cu2
-            | ((Zlapp _ | Zlproj _ | Zlfix _| Zlcase _| Zlnative _), _) -> assert false)
+            | ((Zlapp _ | Zlproj _ | Zlfix _| Zlcase _| Zlprimitive _), _) -> assert false)
       | _ -> cuniv in
   if compare_stack_shape stk1 stk2 then
     cmp_rec (pure_stack lft1 stk1) (pure_stack lft2 stk2) cuniv

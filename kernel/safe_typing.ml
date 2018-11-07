@@ -1171,8 +1171,6 @@ let typing senv = Typeops.infer (env_of_senv senv)
 
 (** {6 Retroknowledge / native compiler } *)
 
-(* This function serves only for inlining constants in native compiler for now,
-but it is meant to become a replacement for environ.register *)
 let register_inline kn senv =
   let open Environ in
   if not (evaluable_constant kn senv.env) then
@@ -1184,21 +1182,21 @@ let register_inline kn senv =
 
 let check_register_ind (mind,i) r env =
   let mb = Environ.lookup_mind mind env in
-  let error b s =
+  let error_if b s =
     if b then
       CErrors.user_err ~hdr:"check_register_ind" (Pp.str s) in
-  error (Array.length mb.mind_packets <> 1) "A non mutual inductive is expected";
+  error_if (Array.length mb.mind_packets <> 1) "A non mutual inductive is expected";
   let ob = mb.mind_packets.(i) in
   let check_nconstr n =
-    error (Array.length ob.mind_consnames <> n)
+    error_if (Array.length ob.mind_consnames <> n)
       ("an inductive type with "^(string_of_int n)^" constructors is expected")
   in
   let check_name pos s =
-    error (ob.mind_consnames.(pos) <> Id.of_string s)
+    error_if (ob.mind_consnames.(pos) <> Id.of_string s)
       ("the "^(string_of_int (pos + 1))^
        "th constructor does not have the expected name") in (* FIXME: stupid message *)
   let check_type pos t =
-    error (not (Constr.equal t ob.mind_user_lc.(pos)))
+    error_if (not (Constr.equal t ob.mind_user_lc.(pos)))
       ("the "^(string_of_int (pos + 1))^
        "th constructor does not have the expected type") in (* FIXME: stupid message *)
   let check_type_cte pos = check_type pos (Constr.mkRel 1) in
@@ -1214,11 +1212,11 @@ let check_register_ind (mind,i) r env =
     let test_type pos =
       let c = ob.mind_user_lc.(pos) in
       let s = "the "^(string_of_int (pos + 1))^
-              "th constructor as not the expected type" in
-      error (not (Constr.isProd c)) s;
+              "th constructor does not have the expected type" in
+      error_if (not (Constr.isProd c)) s;
       let (_,d,cd) = Constr.destProd c in
-      error (not (Constr.is_Type d)) s;
-      error
+      error_if (not (Constr.is_Type d)) s;
+      error_if
         (not (Constr.equal
                 (mkProd (Anonymous,mkRel 1, mkApp (mkRel 3,[|mkRel 2|])))
                 cd))
@@ -1232,15 +1230,15 @@ let check_register_ind (mind,i) r env =
     check_name 0 "pair";
     let c = ob.mind_user_lc.(0) in
     let s =  "the "^(string_of_int 1)^
-             "th constructor as not the expected type" in
+             "th constructor does not have the expected type" in
     begin match Term.decompose_prod c with
       | ([_,b;_,a;_,_B;_,_A], codom) ->
-        error (not (is_Type _A)) s;
-        error (not (is_Type _B)) s;
-        error (not (Constr.equal a (mkRel 2))) s;
-        error (not (Constr.equal b (mkRel 2))) s;
-        error (not (Constr.equal codom (mkApp (mkRel 5,[|mkRel 4; mkRel 3|])))) s
-      | _ -> error true s
+        error_if (not (is_Type _A)) s;
+        error_if (not (is_Type _B)) s;
+        error_if (not (Constr.equal a (mkRel 2))) s;
+        error_if (not (Constr.equal b (mkRel 2))) s;
+        error_if (not (Constr.equal codom (mkApp (mkRel 5,[|mkRel 4; mkRel 3|])))) s
+      | _ -> error_if true s
     end
   | CPrimitives.PIT_cmp ->
     check_nconstr 3;

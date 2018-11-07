@@ -156,7 +156,7 @@ and infer_stack infos variances (stk:CClosure.stack) =
         infer_vect infos variances (Array.map (mk_clos e) br)
       | Zshift _ -> variances
       | Zupdate _ -> variances
-      | Znative _ -> variances (* FIXME check this *)
+      | Zprimitive _ -> variances (* FIXME check this *)
     in
     infer_stack infos variances stk
 
