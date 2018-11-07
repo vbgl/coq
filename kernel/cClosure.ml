@@ -354,7 +354,7 @@ type stack_member =
   | ZcaseT of case_info * constr * constr array * fconstr subs
   | Zproj of Projection.Repr.t
   | Zfix of fconstr * stack
-  | Znative of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
+  | Zprimitive of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
        (* operator, constr def, arguments already seen (in rev order), next arguments *)
   | Zshift of int
   | Zupdate of fconstr

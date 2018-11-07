@@ -183,3 +183,6 @@ let tail0 x =
   if !x land 0x3 = 0    then (x := !x lsr 2;  r := !r + 2);
   if !x land 0x1 = 0    then (                r := !r + 1);
   !r
+
+let is_uint63 t =
+  Obj.is_int t

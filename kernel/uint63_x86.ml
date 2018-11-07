@@ -195,3 +195,7 @@ let () =
   Callback.register "uint63 sub" sub;
   Callback.register "uint63 subcarry" subcarry;
   Callback.register "uint63 tail0" tail0
+
+let is_uint63 t =
+  Obj.is_block t && Int.equal (Obj.tag t) Obj.custom_tag
+  && le (Obj.magic t) maxuint63

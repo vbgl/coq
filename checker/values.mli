@@ -21,6 +21,7 @@ type value =
   | Annot of string * value
   | Dyn
   | Proxy of value ref
+  | Uint63
 
 val v_univopaques : value
 val v_libsum : value

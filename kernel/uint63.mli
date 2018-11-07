@@ -51,3 +51,5 @@ val compare : t -> t -> int
       (* head and tail *)
 val head0   : t -> t
 val tail0   : t -> t
+
+val is_uint63 : Obj.t -> bool
