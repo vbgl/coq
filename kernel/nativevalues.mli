@@ -77,10 +77,14 @@ val force_cofix : t -> t
 val mk_const : tag -> t
 val mk_block : tag -> t array -> t
 
-val mk_wf_accu : (t -> t) -> t -> t
 val mk_bool : bool -> t
+[@@ocaml.inline always]
+
 val mk_int : int -> t
+[@@ocaml.inline always]
+
 val mk_uint : Uint63.t -> t
+[@@ocaml.inline always]
 
 val napply : t -> t array -> t
 (* Functions over accumulators *)
@@ -91,6 +95,8 @@ val args_of_accu : accumulator -> t array
 val accu_nargs : accumulator -> int
 
 val cast_accu : t -> accumulator
+[@@ocaml.inline always]
+
 (* Functions over block: i.e constructors *)
     
 type block
@@ -153,37 +159,75 @@ val le      : t -> t -> t -> t
 val compare : t -> t -> t -> t 
 
 val print : t -> t
-val foldi : t -> t -> t -> t -> t
-val foldi_down : t -> t -> t -> t -> t
 
 (* Function without check *)
 val no_check_head0 : t -> t
+[@@ocaml.inline always]
+
 val no_check_tail0 : t -> t
+[@@ocaml.inline always]
 
 val no_check_add : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_sub : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_mul : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_div : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_rem : t -> t -> t
+[@@ocaml.inline always]
 
 val no_check_l_sr  : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_l_sl  : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_l_and : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_l_xor : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_l_or  : t -> t -> t
+[@@ocaml.inline always]
 
 val no_check_addc      : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_subc      : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_addCarryC : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_subCarryC : t -> t -> t
+[@@ocaml.inline always]
 
 val no_check_mulc    : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_diveucl : t -> t -> t
+[@@ocaml.inline always]
 
 val no_check_div21     : t -> t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_addMulDiv : t -> t -> t -> t
+[@@ocaml.inline always]
 
 val no_check_eq      : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_lt      : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_le      : t -> t -> t
+[@@ocaml.inline always]
+
 val no_check_compare : t -> t -> t 

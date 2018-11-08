@@ -22,7 +22,6 @@ type lambda =
   | Lprim         of pconstant option * CPrimitives.t * lambda array
         (* No check if None *)
   | Lcase         of case_info * reloc_table * lambda * lambda * lam_branches
-  | Lareint       of lambda array
   | Lif           of lambda * lambda * lambda
   | Lfix          of (int array * int) * fix_decl
   | Lcofix        of int * fix_decl
@@ -154,10 +153,6 @@ let rec pp_lam lam =
          (str "(PRIM_NC " ++ str (CPrimitives.to_string op) ++  spc() ++
             prlist_with_sep spc pp_lam (Array.to_list args) ++
             str")")
-  | Lareint a->
-     hov 1
-         (str "(are_int " ++ (prlist_with_sep spc pp_lam (Array.to_list a))
-          ++ str ")")
   | Lproj(p,arg) ->
     hov 1
       (str "(proj " ++ Projection.Repr.print p ++ str "(" ++ pp_lam arg
@@ -257,9 +252,6 @@ let map_lam_with_binders g f n lam =
   | Lprim(kn,op,args) ->
     let args' = Array.Smart.map (f n) args in
     if args == args' then lam else Lprim(kn,op,args')
-  | Lareint a ->
-      let a' = Array.Smart.map (f n) a in
-      if a == a' then lam else Lareint a'
   | Lproj(p,arg) ->
     let arg' = f n arg in
     if arg == arg' then lam else Lproj(p,arg')
@@ -451,8 +443,6 @@ let rec occurrence k kind lam =
     let kind = occurrence_args k kind ltypes in
     let _ = occurrence_args (k+Array.length ids) false lbodies in
     kind
-  | Lareint a ->
-      occurrence_args k kind a
   | Lproj(_,arg) ->
     occurrence k kind arg
 

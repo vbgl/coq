@@ -75,7 +75,7 @@ type typing_flags = {
  * the OpaqueDef *)
 type constant_body = {
     const_hyps : Constr.named_context; (** New: younger hyp at top *)
-    const_body : Constr.t Mod_subst.substituted constant_def; (* FIXME ? *)
+    const_body : Constr.t Mod_subst.substituted constant_def;
     const_type : types;
     const_body_code : Cemitcodes.to_patch_substituted option;
     const_universes : constant_universes;

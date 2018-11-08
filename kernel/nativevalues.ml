@@ -196,11 +196,17 @@ let dummy_value : unit -> t =
   fun () _ -> anomaly ~label:"native" (Pp.str "Evaluation failed.")
 
 let cast_accu v = (Obj.magic v:accumulator)
+[@@ocaml.inline always]
 
 let mk_int (x : int) = (Obj.magic x : t)
+[@@ocaml.inline always]
+
 (* Coq's booleans are reversed... *)
 let mk_bool (b : bool) = (Obj.magic (not b) : t)
+[@@ocaml.inline always]
+
 let mk_uint (x : Uint63.t) = (Obj.magic x : t)
+[@@ocaml.inline always]
 
 type block
 
@@ -240,60 +246,14 @@ let is_int (x:t) =
   Obj.is_int o || Int.equal (Obj.tag o) Obj.custom_tag
 
 let val_to_int (x:t) = (Obj.magic x : int)
+[@@ocaml.inline always]
 
 let to_uint (x:t) = (Obj.magic x : Uint63.t)
-
-[@@@warning "-37"]
-type acc =
-  | Acc_accu of t
-  | Acc_intro of (t -> t -> t)
-[@@@warning "+37"]
-
-let mk_wf_accu accu x =
-  let rec mk_wf_accu x =
-    let acc = Acc_intro (fun y _ ->
-        if is_int y && Uint63.lt (Obj.magic y) (Obj.magic x) then mk_wf_accu y else accu y)
-    in
-    Obj.magic acc
-  in
-  if is_int x then mk_wf_accu x else accu x
-
-(** In case allocation becomes a bottleneck, this version which compares only to
-the first x might be correct because of the guard condition *)
-      (*
-let mk_wf_accu accu x =
-  let rec mk_wf_accu =
-    let acc = Acc_intro (fun y _ ->
-        if is_int y && Uint63.lt (Obj.magic y) (Obj.magic x) then mk_wf_accu () else accu y)
-    in
-    fun () ->
-    Obj.magic acc
-  in
-  if is_int x then mk_wf_accu () else accu x
-*)
-
-(*
-let mk_wf_accu accu =
-  let rec mk_wf_accu =
-    let acc = Acc_intro (fun y _ -> mk_wf_accu y)
-    in
-    fun x -> if is_int x then Obj.magic acc else accu x
-  in
-  mk_wf_accu
-
-let mk_wf_accu accu x =
-  let r = ref x in
-  let rec mk_wf_accu =
-    let acc = Acc_intro (fun y _ ->
-        if is_int y && Uint63.lt (Obj.magic y) (Obj.magic !r) then (r := y; mk_wf_accu ()) else accu y)
-    in
-    fun () -> Obj.magic acc
-  in
-  if is_int x then mk_wf_accu () else accu x
-   *)
+[@@ocaml.inline always]
 
 let no_check_head0 x =
  mk_uint (Uint63.head0 (to_uint x))
+[@@ocaml.inline always]
 
 let head0 accu x =
  if is_int x then  no_check_head0 x
@@ -301,6 +261,7 @@ let head0 accu x =
 
 let no_check_tail0 x =
   mk_uint (Uint63.tail0 (to_uint x))
+[@@ocaml.inline always]
 
 let tail0 accu x =
  if is_int x then no_check_tail0 x
@@ -308,6 +269,7 @@ let tail0 accu x =
 
 let no_check_add  x y =
   mk_uint (Uint63.add (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let add accu x y =
   if is_int x && is_int y then no_check_add x y 
@@ -315,6 +277,7 @@ let add accu x y =
 
 let no_check_sub x y =
   mk_uint (Uint63.sub (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let sub accu x y =
   if is_int x && is_int y then no_check_sub x y
@@ -322,6 +285,7 @@ let sub accu x y =
 
 let no_check_mul x y =
   mk_uint (Uint63.mul (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let mul accu x y =
   if is_int x && is_int y then no_check_mul x y
@@ -329,6 +293,7 @@ let mul accu x y =
 
 let no_check_div x y =
   mk_uint (Uint63.div (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let div accu x y =
   if is_int x && is_int y then no_check_div x y 
@@ -336,6 +301,7 @@ let div accu x y =
 
 let no_check_rem x y =
   mk_uint (Uint63.rem (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let rem accu x y =
   if is_int x && is_int y then no_check_rem x y
@@ -343,6 +309,7 @@ let rem accu x y =
 
 let no_check_l_sr x y =
   mk_uint (Uint63.l_sr (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let l_sr accu x y =
   if is_int x && is_int y then no_check_l_sr x y
@@ -350,6 +317,7 @@ let l_sr accu x y =
 
 let no_check_l_sl x y =
   mk_uint (Uint63.l_sl (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let l_sl accu x y =
   if is_int x && is_int y then no_check_l_sl x y
@@ -357,6 +325,7 @@ let l_sl accu x y =
 
 let no_check_l_and x y =
   mk_uint (Uint63.l_and (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let l_and accu x y =
   if is_int x && is_int y then no_check_l_and x y
@@ -364,6 +333,7 @@ let l_and accu x y =
 
 let no_check_l_xor x y =
   mk_uint (Uint63.l_xor (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let l_xor accu x y =
   if is_int x && is_int y then no_check_l_xor x y
@@ -371,6 +341,7 @@ let l_xor accu x y =
 
 let no_check_l_or x y =
   mk_uint (Uint63.l_or (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let l_or accu x y =
   if is_int x && is_int y then no_check_l_or x y
@@ -398,6 +369,7 @@ let mkCarry b i =
 let no_check_addc x y =
   let s = Uint63.add (to_uint x) (to_uint y) in
   mkCarry (Uint63.lt s (to_uint x)) s
+[@@ocaml.inline always]
 
 let addc accu x y =
   if is_int x && is_int y then no_check_addc x y
@@ -406,6 +378,7 @@ let addc accu x y =
 let no_check_subc x y =
   let s = Uint63.sub (to_uint x) (to_uint y) in
   mkCarry (Uint63.lt (to_uint x) (to_uint y)) s
+[@@ocaml.inline always]
 
 let subc accu x y =
   if is_int x && is_int y then no_check_subc x y
@@ -416,6 +389,7 @@ let no_check_addCarryC x y =
     Uint63.add (Uint63.add (to_uint x) (to_uint y))
       (Uint63.of_int 1) in
   mkCarry (Uint63.le s (to_uint x)) s
+[@@ocaml.inline always]
 
 let addCarryC accu x y =
   if is_int x && is_int y then no_check_addCarryC x y
@@ -426,6 +400,7 @@ let no_check_subCarryC x y =
     Uint63.sub (Uint63.sub (to_uint x) (to_uint y))
       (Uint63.of_int 1) in
   mkCarry (Uint63.le (to_uint x) (to_uint y)) s
+[@@ocaml.inline always]
 
 let subCarryC accu x y =
   if is_int x && is_int y then no_check_subCarryC x y
@@ -433,6 +408,7 @@ let subCarryC accu x y =
 
 let of_pair (x, y) =
   (Obj.magic (PPair(mk_uint x, mk_uint y)):t)
+[@@ocaml.inline always]
 
 let zn2z_of_pair (x,y) =
   if Uint63.equal x Uint63.zero &&
@@ -441,6 +417,7 @@ let zn2z_of_pair (x,y) =
 
 let no_check_mulc x y =
   zn2z_of_pair(Uint63.mulc (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let mulc accu x y =
   if is_int x && is_int y then no_check_mulc x y
@@ -449,6 +426,7 @@ let mulc accu x y =
 let no_check_diveucl x y =
   let i1, i2 = to_uint x, to_uint y in
   of_pair(Uint63.div i1 i2, Uint63.rem i1 i2)
+[@@ocaml.inline always]
 
 let diveucl accu x y =
   if is_int x && is_int y then no_check_diveucl x y
@@ -457,6 +435,7 @@ let diveucl accu x y =
 let no_check_div21 x y z =
   let i1, i2, i3 = to_uint x, to_uint y, to_uint z in
   of_pair (Uint63.div21 i1 i2 i3)
+[@@ocaml.inline always]
 
 let div21 accu x y z =
   if is_int x && is_int y && is_int z then no_check_div21 x y z
@@ -465,6 +444,7 @@ let div21 accu x y z =
 let no_check_addMulDiv x y z =
   let p, i, j = to_uint x, to_uint y, to_uint z in
   mk_uint (Uint63.addmuldiv p i j)
+[@@ocaml.inline always]
 
 let addMulDiv accu x y z =
   if is_int x && is_int y && is_int z then no_check_addMulDiv x y z
@@ -482,8 +462,9 @@ type coq_cmp =
   | CmpLt
   | CmpGt
 
-let no_check_eq x y =     
+let no_check_eq x y =
   mk_bool (Uint63.equal (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let eq accu x y =
   if is_int x && is_int y then no_check_eq x y
@@ -491,6 +472,7 @@ let eq accu x y =
 
 let no_check_lt x y =
   mk_bool (Uint63.lt (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let lt accu x y =
   if is_int x && is_int y then no_check_lt x y
@@ -498,6 +480,7 @@ let lt accu x y =
 
 let no_check_le x y =
   mk_bool (Uint63.le (to_uint x) (to_uint y))
+[@@ocaml.inline always]
 
 let le accu x y =
   if is_int x && is_int y then no_check_le x y
@@ -517,22 +500,6 @@ let print x =
   Printf.fprintf stderr "%s" (Uint63.to_string (to_uint x));
   flush stderr;
   x
-
-let foldi f min max a =
-  let imin = to_uint min and imax = to_uint max in
-  let rec aux i =
-    if Uint63.lt i imax then
-      f (mk_uint i) (aux (Uint63.add i (Uint63.of_int 1)))
-    else a in
-  aux imin
-
-let foldi_down f max min a =
-  let imax = to_uint max and imin = to_uint min in
-  let rec aux i =
-    if Uint63.lt imin i then
-      f (mk_uint i) (aux (Uint63.sub i (Uint63.of_int 1)))
-    else a in
-  aux imax
 
 let hobcnv = Array.init 256 (fun i -> Printf.sprintf "%02x" i)
 let bohcnv = Array.init 256 (fun i -> i -

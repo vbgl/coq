@@ -61,7 +61,6 @@ type instruction =
   | Kensurestackcapacity of int
   | Kbranch of Label.t                  (* jump to label *)
   | Kprim of CPrimitives.t * pconstant option
-  | Kprim_const of CPrimitives.t * pconstant option * int
   | Kareint of int
 
 and bytecodes = instruction list
@@ -146,10 +145,6 @@ let rec pp_instr i =
   | Kensurestackcapacity size -> str "growstack " ++ int size
 
   | Kprim (op, id) -> str (CPrimitives.to_string op) ++ str " " ++
-        (match id with Some (id,_u) -> Constant.print id | None -> str "")
-  | Kprim_const (op, id, i) ->
-      str (CPrimitives.to_string op) ++ str "_const " ++
-        int i ++ str " " ++
         (match id with Some (id,_u) -> Constant.print id | None -> str "")
 
   | Kareint n -> str "areint " ++ int n

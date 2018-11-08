@@ -961,7 +961,7 @@ let rec extern inctx scopes vars r =
       CCast (sub_extern true scopes vars c,
              map_cast_type (extern_typ scopes vars) c')
   | GInt i ->
-     CPrim(Numeral (Uint63.to_string i,true)) (* FIXME *)
+     CPrim(Numeral (Uint63.to_string i,true))
 
   in insert_coercion coercion (CAst.make ?loc c)
 

@@ -27,11 +27,9 @@ type lambda =
   | Lapp          of lambda * lambda array
   | Lconst        of prefix * pconstant
   | Lproj         of prefix * inductive * int (* prefix, inductive, index starting from 0 *)
-  | Lprim         of (prefix * pconstant) option * CPrimitives.t * lambda array
-        (* No check if None *)
+  | Lprim         of prefix * pconstant * CPrimitives.t * lambda array
   | Lcase         of annot_sw * lambda * lambda * lam_branches
                   (* annotations, term being matched, accu, branches *)
-  | Lareint       of lambda array
   | Lif           of lambda * lambda * lambda
   | Lfix          of (int array * (string * inductive) array * int) * fix_decl
   | Lcofix        of int * fix_decl

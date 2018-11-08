@@ -331,17 +331,6 @@ let emit_instr env = function
       out env (check_prim_op op);
       slot_for_getglobal env q
 
-  | Kprim_const(Int63lsl,Some (q,_u),i) ->
-      assert (i=1);
-      out env opCHECKLSLINT63CONST1;
-      slot_for_getglobal env q
-  | Kprim_const(Int63lsr,Some (q,_u),i) ->
-      assert (i=1);
-      out env opCHECKLSRINT63CONST1;
-      slot_for_getglobal env q
-
-  | Kprim_const(_,_,_) -> assert false
-
   | Kareint 1 -> out env opISINT
   | Kareint 2 -> out env opAREINT2;
 

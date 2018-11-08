@@ -118,7 +118,7 @@ let hcons_rel_context l = List.Smart.map hcons_rel_decl l
 
 let hcons_const_def = function
   | Undef inl -> Undef inl
-  | Primitive p -> Primitive p (* FIXME *)
+  | Primitive p -> Primitive p
   | Def l_constr ->
     let constr = force_constr l_constr in
     Def (from_val (Constr.hcons constr))

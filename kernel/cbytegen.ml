@@ -774,23 +774,7 @@ let rec compile_lam env cenv lam sz cont =
     comp_args (compile_lam env) cenv args sz cont
 
   | Lprim (kn, op, args) ->
-    (* FIXME document this *)
-    (* let nargs = Array.length args in *)
-      begin match op with
-        (* FIXME
-      | CPrimitives.Int63lsl when nargs = 2 && args.(1) = Lint 1 ->
-        comp_args (compile_lam env) reloc args 0 1 sz (Kprim_const(op,kn,1)::cont)
-      | CPrimitives.Int63lsr when nargs = 2 && args.(1) = Lint 1 ->
-        comp_args env reloc args 0 1 sz (Kprim_const(op,kn,1)::cont)
-        *)
-      | _ ->
-        comp_args (compile_lam env) cenv args sz (Kprim(op, kn)::cont)
-      end
-
-  | Lareint args ->
-    let nargs = Array.length args in
-    comp_args (compile_lam env) cenv args sz
-      (Kareint nargs :: cont)
+    comp_args (compile_lam env) cenv args sz (Kprim(op, kn)::cont)
 
 and compile_get_global cenv (kn,u) sz cont =
   set_max_stack_size sz;

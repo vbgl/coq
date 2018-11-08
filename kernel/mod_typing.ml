@@ -78,7 +78,7 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
         match cb.const_universes, ctx with
         | Monomorphic_const _, None ->
           let c',cst = match cb.const_body with
-            | Undef _ | OpaqueDef _ | Primitive _ (* FIXME *) ->
+            | Undef _ | OpaqueDef _ ->
               let j = Typeops.infer env' c in
               let typ = cb.const_type in
               let cst' = Reduction.infer_conv_leq env' (Environ.universes env')
@@ -87,6 +87,8 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
             | Def cs ->
               let c' = Mod_subst.force_constr cs in
               c, Reduction.infer_conv env' (Environ.universes env') c c'
+            | Primitive _ ->
+              error_incorrect_with_constraint lab
           in
           c', Monomorphic_const Univ.ContextSet.empty, cst
         | Polymorphic_const uctx, Some ctx ->
@@ -97,7 +99,7 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
           (** Terms are compared in a context with De Bruijn universe indices *)
 	  let env' = Environ.push_context ~strict:false (Univ.AUContext.repr uctx) env in
 	  let cst = match cb.const_body with
-            | Undef _ | OpaqueDef _ | Primitive _ (* FIXME *) ->
+            | Undef _ | OpaqueDef _ ->
 	      let j = Typeops.infer env' c in
 	      let typ = cb.const_type in
 	      let cst' = Reduction.infer_conv_leq env' (Environ.universes env')
@@ -107,8 +109,10 @@ let rec check_with_def env struc (idl,(c,ctx)) mp equiv =
 	       let c' = Mod_subst.force_constr cs in
 	       let cst' = Reduction.infer_conv env' (Environ.universes env') c c' in
 	        cst'
-	  in
-	    if not (Univ.Constraint.is_empty cst) then
+     | Primitive _ ->
+       error_incorrect_with_constraint lab
+    in
+      if not (Univ.Constraint.is_empty cst) then
 	      error_incorrect_with_constraint lab;
             c, Polymorphic_const ctx, Univ.Constraint.empty
         | _ -> error_incorrect_with_constraint lab

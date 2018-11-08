@@ -9,11 +9,16 @@ let maxuint31 = 0x7FFFFFFF
 
     (* conversion from an int *)
 let to_uint64 i = Int64.logand (Int64.of_int i) maxuint63
+
 let of_int i = i
+[@@ocaml.inline always]
+
 let to_int2 i = (0,i)
+
 let of_int64 _i = assert false
 
 let hash i = i
+[@@ocaml.inline always]
 
     (* conversion of an uint63 to a string *)
 let to_string i = Int64.to_string (to_uint64 i)
@@ -39,17 +44,25 @@ let l_sr x y =
   if 0 <= y && y < 63 then x lsr y else 0
 
 let l_and x y = x land y
+[@@ocaml.inline always]
+
 let l_or x y = x lor y
+[@@ocaml.inline always]
+
 let l_xor x y = x lxor y
+[@@ocaml.inline always]
 
     (* addition of int63 *)
 let add x y = x + y
+[@@ocaml.inline always]
 
     (* subtraction *)
 let sub x y = x - y
+[@@ocaml.inline always]
 
     (* multiplication *)
 let mul x y = x * y
+[@@ocaml.inline always]
 
     (* division *)
 let div (x : int) (y : int) =
@@ -65,9 +78,11 @@ let addmuldiv p x y =
     (* comparison *)
 let lt (x : int) (y : int) =
   (x lxor 0x4000000000000000) < (y lxor 0x4000000000000000)
+[@@ocaml.inline always]
 
 let le (x : int) (y : int) =
   (x lxor 0x4000000000000000) <= (y lxor 0x4000000000000000)
+[@@ocaml.inline always]
 
 (* A few helper functions on 128 bits *)
 let lt128 xh xl yh yl =
@@ -150,6 +165,7 @@ let mulc x y =
     (h + (x lsr 1), l')
 
 let equal (x : int) (y : int) = x = y
+[@@ocaml.inline always]
 
 let compare (x:int) (y:int) =
   let x = x lxor 0x4000000000000000 in
@@ -186,3 +202,4 @@ let tail0 x =
 
 let is_uint63 t =
   Obj.is_int t
+[@@ocaml.inline always]

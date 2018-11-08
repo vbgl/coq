@@ -198,6 +198,16 @@ let rec subst_structure sub do_delta sign =
   in
   List.Smart.map subst_body sign
 
+and subst_retro : type a. Mod_subst.substitution -> a module_retroknowledge -> a module_retroknowledge =
+  fun sub retro ->
+    match retro with
+    | ModTypeRK as r -> r
+    | ModBodyRK l as r ->
+      let l' = List.Smart.map (fun (pt,c as ptc) ->
+          let c' = subst_mps sub c in
+          if c' == c then ptc else (pt,c')) l in
+      if l == l' then r else ModBodyRK l
+
 and subst_body : 'a. _ -> _ -> (_ -> 'a -> 'a) -> _ -> 'a generic_module_body -> 'a generic_module_body =
   fun is_mod sub subst_impl do_delta mb ->
     let { mod_mp=mp; mod_expr=me; mod_type=ty; mod_type_alg=aty;
@@ -211,17 +221,7 @@ and subst_body : 'a. _ -> _ -> (_ -> 'a -> 'a) -> _ -> 'a generic_module_body ->
   let ty' = subst_signature sub do_delta ty in
   let me' = subst_impl sub me in
   let aty' = Option.Smart.map (subst_expression sub id_delta) aty in
- (* Check This  FIXME *)
-let retro'=retro in
-(*  let retro' =
-    match retro with
-    | ModTypeRK as r -> r
-    | ModBodyRK l as r ->
-      let l' = List.smartmap (fun (pt,c as ptc) ->
-        let c' = subst_mps sub c in
-        if c' == c then ptc else (pt,c')) l in
-      if l == l' then r else ModBodyRK l
-  in*)
+  let retro' = subst_retro sub retro in
   let delta' = do_delta mb.mod_delta sub in
   if mp==mp' && me==me' && ty==ty' && aty==aty'
      && retro==retro' && delta'==mb.mod_delta
@@ -233,7 +233,8 @@ let retro'=retro in
       mod_type = ty';
       mod_type_alg = aty';
       mod_retroknowledge = retro';
-      mod_delta = delta' }
+      mod_delta = delta';
+    }
 
 and subst_module sub do_delta mb =
   subst_body true sub subst_impl do_delta mb

@@ -240,16 +240,6 @@ let type_of_prim env t =
   in
   nary_int63_op (CPrimitives.arity t) return_ty
 
-let internal_type_of_int env = type_of_int env
-(* FIXME optimization
-  if renv.int_checked then renv.int_constr
-  else
-    let c = type_of_int env in
-    renv.int_checked <- true;
-    renv.int_constr <- c;
-    c
- *)
-
 let judge_of_int env i =
   make_judge (Constr.mkInt i) (type_of_int env)
 
@@ -536,7 +526,7 @@ let rec execute env cstr =
         check_cofix env cofix; fix_ty
 
     (* Primitive types *)
-    | Int _ -> internal_type_of_int env
+    | Int _ -> type_of_int env
 	  
     (* Partial proofs: unsupported by the kernel *)
     | Meta _ ->

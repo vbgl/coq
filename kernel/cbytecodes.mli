@@ -60,7 +60,6 @@ type instruction =
 
   | Kbranch of Label.t                  (** jump to label, is it needed ? *)
   | Kprim of CPrimitives.t * pconstant option
-  | Kprim_const of CPrimitives.t * pconstant option * int
 
   | Kareint of int
 

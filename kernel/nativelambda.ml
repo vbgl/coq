@@ -32,11 +32,10 @@ type lambda =
   | Lapp          of lambda * lambda array
   | Lconst        of prefix * pconstant
   | Lproj         of prefix * inductive * int (* prefix, inductive, index starting from 0 *)
-  | Lprim         of (prefix * pconstant) option * CPrimitives.t * lambda array
+  | Lprim         of prefix * pconstant * CPrimitives.t * lambda array
         (* No check if None *)
   | Lcase         of annot_sw * lambda * lambda * lam_branches
                   (* annotations, term being matched, accu, branches *)
-  | Lareint       of lambda array
   | Lif           of lambda * lambda * lambda
   | Lfix          of (int array * (string * inductive) array * int) * fix_decl
   | Lcofix        of int * fix_decl
@@ -141,9 +140,9 @@ let map_lam_with_binders g f n lam =
       let fct' = f n fct in
       let args' = Array.Smart.map (f n) args in
       if fct == fct' && args == args' then lam else mkLapp fct' args'
-  | Lprim(okn,op,args) ->
+  | Lprim(prefix,kn,op,args) ->
       let args' = Array.Smart.map (f n) args in
-      if args == args' then lam else Lprim(okn,op,args')
+      if args == args' then lam else Lprim(prefix,kn,op,args')
   | Lcase(annot,t,a,br) ->
       let t' = f n t in
       let a' = f n a in
@@ -176,9 +175,6 @@ let map_lam_with_binders g f n lam =
   | Levar (evk, args) ->
     let args' = Array.Smart.map (f n) args in
     if args == args' then lam else Levar (evk, args')
-  | Lareint a ->
-      let a' = Array.Smart.map (f n) a in
-      if a == a' then lam else Lareint a'
 
 (*s Lift and substitution *)
  
@@ -361,7 +357,7 @@ let rec get_alias env (kn, u as p) =
 
 let prim env kn p args =
   let prefix = get_const_prefix env (fst kn) in
-  Lprim(Some (prefix, kn), p, args)
+  Lprim(prefix, kn, p, args)
 
 let expand_prim env kn op arity =
   let ids = Array.make arity Anonymous in
