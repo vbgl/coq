@@ -100,6 +100,7 @@ struct
             init_size seen (fun n -> fold (succ i) (accu + 1 + n) k) os.(i)
         in
         fold 0 1 (fun size -> let () = LargeArray.set !sizes p size in k size)
+      | Int63 _ -> () (* FIXME *)
       | String s ->
         let size = 2 + (String.length s / ws) in
         let () = LargeArray.set !sizes p size in
@@ -116,6 +117,7 @@ struct
   | Ptr p ->
     match LargeArray.get !memory p with
     | Struct (tag, os) -> BLOCK (tag, os)
+    | Int63 _ -> OTHER (* FIXME *)
     | String s -> STRING s
 
   let input ch =

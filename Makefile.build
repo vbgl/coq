@@ -583,7 +583,7 @@ $(FAKEIDEBYTE): $(FAKEIDECMO) | $(IDETOPBYTE)
 
 # votour: a small vo explorer (based on the checker)
 
-VOTOURCMO:=clib/cObj.cmo checker/analyze.cmo checker/values.cmo checker/votour.cmo
+VOTOURCMO:=clib/cObj.cmo kernel/uint63.cmo checker/analyze.cmo checker/values.cmo checker/votour.cmo
 
 bin/votour: $(call bestobj, $(VOTOURCMO))
 	$(SHOW)'OCAMLBEST -o $@'
