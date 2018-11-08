@@ -7,7 +7,6 @@ let uint_size = 63
 
 let maxuint63 = Int64.of_string "0x7FFFFFFFFFFFFFFF"
 let maxuint31 = Int64.of_string "0x7FFFFFFF"
-(* let sign_bit = Int64.of_string "0x4000000000000000" *)
 
 let zero = Int64.zero
 let one = Int64.one
@@ -168,6 +167,11 @@ let tail0 x =
   if Int64.logand !x 0x1L = 0L    then (                r := !r + 1);
   Int64.of_int !r
 
+(* May an object be safely cast into an Uint63.t ? *)
+let is_uint63 t =
+  Obj.is_block t && Int.equal (Obj.tag t) Obj.custom_tag
+  && le (Obj.magic t) maxuint63
+
 (* Register all exported functions so that they can be called from C code *)
 
 let () =
@@ -195,7 +199,3 @@ let () =
   Callback.register "uint63 sub" sub;
   Callback.register "uint63 subcarry" subcarry;
   Callback.register "uint63 tail0" tail0
-
-let is_uint63 t =
-  Obj.is_block t && Int.equal (Obj.tag t) Obj.custom_tag
-  && le (Obj.magic t) maxuint63
