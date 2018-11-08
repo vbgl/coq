@@ -42,8 +42,6 @@ let int63_scope = "int63_scope"
 (*** Definition of the Non_closed exception, used in the pretty printing ***)
 exception Non_closed
 
-(*** Parsing for int31 in digital notation ***)
-
 (*** Parsing for int63 in digital notation ***)
 
 (* parses a *non-negative* integer (from bigint.ml) into an int63
@@ -66,8 +64,15 @@ let int63_of_pos_bigint ?loc n =
 let error_negative ?loc =
   CErrors.user_err ?loc ~hdr:"interp_int63" (Pp.str "int63 are only non-negative numbers.")
 
+let error_overflow ?loc n =
+  CErrors.user_err ?loc ~hdr:"interp_int63" Pp.(str "overflow in int63 literal: " ++ str (to_string n))
+
 let interp_int63 ?loc n =
-  if is_pos_or_zero n then int63_of_pos_bigint ?loc n
+  if is_pos_or_zero n
+  then
+    if less_than n (pow two 63)
+    then int63_of_pos_bigint ?loc n
+    else error_overflow ?loc n
   else error_negative ?loc
 
 (* Pretty prints an int63 *)
