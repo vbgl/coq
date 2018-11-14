@@ -1378,7 +1378,7 @@ let read_coqide_args argv =
   let coqtop,project_files,bindings_files,argv = filter_coqtop None None [] [] argv in
   Ideutils.custom_coqtop := coqtop;
   custom_project_file := project_files;
-  Preferences.load_unicode_bindings_files bindings_files;
+  Unicode_bindings.load_files bindings_files;
   argv
 
 
