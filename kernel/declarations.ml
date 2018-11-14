@@ -288,7 +288,7 @@ and module_type_body = unit generic_module_body
 
 and _ module_retroknowledge =
 | ModBodyRK :
-  (Retroknowledge.action * Constr.t) list -> module_implementation module_retroknowledge
+  Retroknowledge.action list -> module_implementation module_retroknowledge
 | ModTypeRK : unit module_retroknowledge
 
 (** Extra invariants :

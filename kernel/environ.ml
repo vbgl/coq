@@ -706,74 +706,94 @@ let is_type_in_type env r =
   | IndRef ind -> type_in_type_ind ind env
   | ConstructRef cstr -> type_in_type_ind (inductive_of_constructor cstr) env
 
-(*spiwack: the following functions assemble the pieces of the retroknowledge
-   note that the "consistent" register function is available in the module
-   Safetyping, Environ only synchronizes the proactive and the reactive parts*)
-
 (* Reduction of native operators *)
 open CPrimitives
 open Retroknowledge
 
 let retroknowledge env = env.retroknowledge
 
-let add_retroknowledge env (pt,c) =
-  match pt with
-  | Retro_type PT_int63 ->
-    let cte = destConst c in
+let add_retroknowledge env action =
+  match action with
+  | Register_type(PT_int63,c) ->
     let retro = retroknowledge env in
     let retro =
       match retro.retro_int63 with
-      | None -> { retro with retro_int63 = Some (cte,c) }
-      | Some(cte',_) -> assert (cte = cte'); retro in
+      | None -> { retro with retro_int63 = Some c }
+      | Some c' -> assert (Constant.equal c c'); retro in
     { env with retroknowledge = retro }
-  | Retro_ind pit ->
-    let (ind,u) = destInd c in
+  | Register_ind(pit,ind) ->
     let retro = retroknowledge env in
     let retro =
       match pit with
       | PIT_bool ->
         let r =
           match retro.retro_bool with
-          | None -> (((ind,1),u), ((ind,2),u))
-          | Some ((((ind',_),_),_) as t) -> assert (eq_ind ind ind'); t in
-        { retro with Retroknowledge.retro_bool = Some r }
+          | None -> ((ind,1), (ind,2))
+          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
+        { retro with retro_bool = Some r }
       | PIT_carry ->
         let r =
           match retro.retro_carry with
-          | None -> (((ind,1), u), ((ind,2),u))
-          | Some ((((ind',_),_),_) as t) -> assert (eq_ind ind ind'); t in
+          | None -> ((ind,1), (ind,2))
+          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
         { retro with retro_carry = Some r }
       | PIT_pair ->
         let r =
           match retro.retro_pair with
-          | None -> ((ind,1),u)
-          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
+          | None -> (ind,1)
+          | Some ((ind',_) as t) -> assert (eq_ind ind ind'); t in
         { retro with retro_pair = Some r }
       | PIT_cmp ->
         let r =
           match retro.retro_cmp with
-          | None -> (((ind,1), u), ((ind,2),u), ((ind,3),u))
-          | Some ((((ind',_),_),_,_) as t) -> assert (eq_ind ind ind'); t in
+          | None -> ((ind,1), (ind,2), (ind,3))
+          | Some (((ind',_),_,_) as t) -> assert (eq_ind ind ind'); t in
         { retro with retro_cmp = Some r }
       | PIT_eq ->
         let r =
           match retro.retro_refl with
-          | None -> ((ind,1),u)
-          | Some (((ind',_),_) as t) -> assert (eq_ind ind ind'); t in
+          | None -> (ind,1)
+          | Some ((ind',_) as t) -> assert (eq_ind ind ind'); t in
         { retro with retro_refl = Some r }
     in
     { env with retroknowledge = retro }
-  | Retro_inline ->
-    let (kn, _univs) = destConst c in
-    let (cb,r) = Cmap_env.find kn env.env_globals.env_constants in
+  | Register_inline(c) ->
+    let (cb,r) = Cmap_env.find c env.env_globals.env_constants in
     let cb = {cb with const_inline_code = true} in
     let new_constants =
-      Cmap_env.add kn (cb,r) env.env_globals.env_constants in
+      Cmap_env.add c (cb,r) env.env_globals.env_constants in
     let new_globals =
       { env.env_globals with
         env_constants = new_constants } in
     { env with env_globals = new_globals }
 
+let get_int_type env =
+  match env.retroknowledge.retro_int63 with
+  | Some c -> c
+  | None -> anomaly Pp.(str"Reduction of primitive: int63 not registered")
+
+let get_bool_constructors env =
+  match env.retroknowledge.retro_bool with
+  | Some r -> r
+  | None -> anomaly Pp.(str"Reduction of primitive: bool not registered")
+
+let get_carry_constructors env =
+  match env.retroknowledge.retro_carry with
+  | Some r -> r
+  | None -> anomaly Pp.(str"Reduction of primitive: carry not registered")
+
+let get_pair_constructor env =
+  match env.retroknowledge.retro_pair with
+  | Some c  -> c
+  | None -> anomaly Pp.(str"Reduction of primitive: pair not registered")
+
+let get_cmp_constructors env =
+  match env.retroknowledge.retro_cmp with
+  | Some r -> r
+  | None -> anomaly Pp.(str"Reduction of primitive: cmp not registered")
+
+
+(* FIXME move somewhere, remove exception? *)
 exception NativeDestKO
 
 module type RedNativeEntries =
@@ -783,8 +803,6 @@ module type RedNativeEntries =
 
     val get : args -> int -> elem
     val get_int :  elem -> Uint63.t
-    val is_refl : elem -> bool
-    val mk_int_refl : env -> elem -> elem
     val mkInt : env -> Uint63.t -> elem
     val mkBool : env -> bool -> elem
     val mkCarry : env -> bool -> elem -> elem (* true if carry *)
@@ -792,7 +810,6 @@ module type RedNativeEntries =
     val mkLt : env -> elem
     val mkEq : env -> elem
     val mkGt : env -> elem
-    val mkClos : Name.t -> constr -> constr -> elem array -> elem
 
   end
 

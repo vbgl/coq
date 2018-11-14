@@ -186,10 +186,9 @@ let do_primitive id prim =
     | CPrimitives.OT_op op -> Typeops.type_of_prim env op
     | CPrimitives.OT_type ty -> Typeops.type_of_prim_type env ty
   in
-  (* let evd, (t,imps) = interp_assumption (Evd.from_env env) env ienv [] ty in *)
   let evd = Evd.minimize_universes (Evd.from_env env) in
   let uvars = Vars.universes_of_constr ty in
   let evd = Evd.restrict_universe_context evd uvars in
-  let uctx = Evd.check_univ_decl ~poly:false evd UState.default_univ_decl in
+  let uctx = UState.check_mono_univ_decl (Evd.evar_universe_context evd) UState.default_univ_decl in
   let _kn = declare_constant id.CAst.v (PrimitiveEntry((ty,uctx),prim),IsPrimitive) in
   register_message id.CAst.v

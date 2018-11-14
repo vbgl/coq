@@ -199,13 +199,11 @@ let rec subst_structure sub do_delta sign =
   List.Smart.map subst_body sign
 
 and subst_retro : type a. Mod_subst.substitution -> a module_retroknowledge -> a module_retroknowledge =
-  fun sub retro ->
+  fun subst retro ->
     match retro with
     | ModTypeRK as r -> r
     | ModBodyRK l as r ->
-      let l' = List.Smart.map (fun (pt,c as ptc) ->
-          let c' = subst_mps sub c in
-          if c' == c then ptc else (pt,c')) l in
+      let l' = List.Smart.map (subst_retro_action subst) l in
       if l == l' then r else ModBodyRK l
 
 and subst_body : 'a. _ -> _ -> (_ -> 'a -> 'a) -> _ -> 'a generic_module_body -> 'a generic_module_body =

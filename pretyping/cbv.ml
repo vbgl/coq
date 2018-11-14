@@ -211,160 +211,34 @@ module VNativeEntries =
           | _ -> raise Environ.NativeDestKO)
       | _ -> raise Environ.NativeDestKO
 
-    let dummy = VAL (0,mkRel 0)
-
-    let current_retro = ref Retroknowledge.empty
-    let defined_int = ref false
-    let vint = ref dummy
-
-    let init_int retro =
-      match retro.Retroknowledge.retro_int63 with
-      | Some (cte, c) ->
-          defined_int := true;
-          vint := VAL(0,c)
-      | None -> defined_int := false
-
-    let defined_bool = ref false
-    let vtrue = ref dummy
-    let vfalse = ref dummy
-
-    let init_bool retro =
-      match retro.Retroknowledge.retro_bool with
-      | Some (ct,cf) ->
-        defined_bool := true;
-        vtrue := CONSTR(ct,[||]);
-        vfalse := CONSTR(cf,[||])
-      | None -> defined_bool :=false
-
-    let dummy_construct =
-      let did = Id.of_string "dummy" in
-      let dp = DirPath.make [did] in
-      let mind =
-        MutInd.make2 (Names.MPfile dp) (Names.Label.make "dummy") in
-      (((mind ,0),0), Univ.Instance.empty)
-
-    let defined_carry = ref false
-    let cC0 = ref dummy_construct
-    let cC1 = ref dummy_construct
-
-    let init_carry retro =
-      match retro.Retroknowledge.retro_carry with
-      | Some(c0,c1) ->
-        defined_carry := true;
-        cC0 := c0;
-        cC1 := c1
-      | None -> defined_carry := false
-
-    let defined_pair = ref false
-    let cPair = ref dummy_construct
-
-    let init_pair retro =
-      match retro.Retroknowledge.retro_pair with
-      | Some c ->
-        defined_pair := true;
-        cPair := c
-      | None -> defined_pair := false
-
-    let defined_cmp = ref false
-    let vEq = ref dummy
-    let vLt = ref dummy
-    let vGt = ref dummy
-
-    let init_cmp retro =
-      match retro.Retroknowledge.retro_cmp with
-      | Some (cEq, cLt, cGt) ->
-          defined_cmp := true;
-          vEq := CONSTR(cEq,[||]);
-          vLt := CONSTR(cLt,[||]);
-          vGt := CONSTR(cGt,[||])
-      | None -> defined_cmp := false
-
-    let defined_refl = ref false
-
-    let crefl = ref dummy_construct
-
-    let init_refl retro =
-      match retro.Retroknowledge.retro_refl with
-      | Some crefl' ->
-          defined_refl := true;
-          crefl := crefl'
-      | None -> defined_refl := false
-
-    let init env =
-      current_retro := Environ.retroknowledge env;
-      init_int !current_retro;
-      init_bool !current_retro;
-      init_carry !current_retro;
-      init_pair !current_retro;
-      init_cmp !current_retro;
-      init_refl !current_retro
-
-    let check_env env =
-      if not (!current_retro == Environ.retroknowledge env) then init env
-
-    let check_int env =
-      check_env env;
-      assert (!defined_int)
-
-    let check_bool env =
-      check_env env;
-      assert (!defined_bool)
-
-    let check_carry env =
-      check_env env;
-      assert (!defined_carry && !defined_int)
-
-    let check_pair env =
-      check_env env;
-      assert (!defined_pair && !defined_int)
-
-    let check_cmp env =
-      check_env env;
-      assert (!defined_cmp)
-
-    let check_refl env =
-      check_env env;
-      assert (!defined_refl && !defined_int)
-
-    let is_refl e =
-      match e with
-      | CONSTR(_,_) -> true
-      | _ -> false
-
-    let mk_int_refl env e =
-      check_refl env;
-      CONSTR(!crefl,[|!vint;e|])
-
-    let mkInt env i =
-      check_int env;
-      VAL(0, mkInt i)
+    let mkInt env i = VAL(0, mkInt i)
 
     let mkBool env b =
-      check_bool env;
-      if b then !vtrue else !vfalse
+      let (ct,cf) = Environ.get_bool_constructors env in
+      CONSTR(Univ.in_punivs (if b then ct else cf), [||])
+
+    let int_ty env = VAL(0, mkConst @@ Environ.get_int_type env)
 
     let mkCarry env b e =
-      check_carry env;
-      CONSTR((if b then !cC1 else !cC0), [|!vint;e|])
+      let (c0,c1) = Environ.get_carry_constructors env in
+      CONSTR(Univ.in_punivs (if b then c1 else c0), [|int_ty env;e|])
 
     let mkIntPair env e1 e2 =
-      check_pair env;
-      CONSTR(!cPair, [|!vint;!vint;e1;e2|])
+      let int_ty = int_ty env in
+      let c = Environ.get_pair_constructor env in
+      CONSTR(Univ.in_punivs c, [|int_ty;int_ty;e1;e2|])
 
     let mkLt env =
-      check_cmp env;
-      !vLt
+      let (_eq,lt,_gt) = Environ.get_cmp_constructors env in
+      CONSTR(Univ.in_punivs lt, [||])
 
     let mkEq env =
-      check_cmp env;
-      !vEq
+      let (eq,_lt,_gt) = Environ.get_cmp_constructors env in
+      CONSTR(Univ.in_punivs eq, [||])
 
     let mkGt env =
-      check_cmp env;
-      !vGt
-
-    let mkClos id t body s =
-      LAM(1,[id,t],body, Esubst.subs_cons (s,Esubst.subs_id 0))
+      let (_eq,_lt,gt) = Environ.get_cmp_constructors env in
+      CONSTR(Univ.in_punivs gt, [||])
 
   end
 

@@ -8,21 +8,21 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
-open Constr
+open Names
 
 type retroknowledge = {
-    retro_int63 : (pconstant * constr) option;
-    retro_bool : (pconstructor * pconstructor) option; (* true, false *)
-    retro_carry : (pconstructor * pconstructor) option; (* C0, C1 *)
-    retro_pair : pconstructor option;
-    retro_cmp : (pconstructor * pconstructor * pconstructor) option;
+    retro_int63 : Constant.t option;
+    retro_bool : (constructor * constructor) option; (* true, false *)
+    retro_carry : (constructor * constructor) option; (* C0, C1 *)
+    retro_pair : constructor option;
+    retro_cmp : (constructor * constructor * constructor) option;
                     (* Eq, Lt, Gt *)
-    retro_refl : pconstructor option;
+    retro_refl : constructor option;
 }
 
 val empty : retroknowledge
 
 type action =
-  | Retro_ind of CPrimitives.prim_ind
-  | Retro_type of CPrimitives.prim_type
-  | Retro_inline
+  | Register_ind of CPrimitives.prim_ind * inductive
+  | Register_type of CPrimitives.prim_type * Constant.t
+  | Register_inline of Constant.t

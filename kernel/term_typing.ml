@@ -92,29 +92,23 @@ let infer_declaration (type a) ~(trust : a trust) env (dcl : a constant_entry) =
         cook_context = ctx;
       }
 
-  (** We suppose that Primitives are never universe polymorphic *)
-  | PrimitiveEntry ((t,uctx),op_t) ->
-      let env = match uctx with
-        | Monomorphic_const_entry uctx -> push_context_set ~strict:true uctx env
-        | Polymorphic_const_entry uctx -> push_context ~strict:false uctx env
-      in
+    (** Primitives cannot be universe polymorphic *)
+    | PrimitiveEntry ((t,uctx),op_t) ->
+      let env = push_context_set ~strict:true uctx env in
       let j = infer env t in
       check_primitive_type env op_t t;
       let cd =
         match op_t with
         | CPrimitives.OT_op op -> Declarations.Primitive op
         | CPrimitives.OT_type _ -> Undef None in
-   let usubst, univs =
-     abstract_constant_universes uctx
-   in
-   let c = Typeops.assumption_of_judgment env j in
-   let t = Constr.hcons (Vars.subst_univs_level_constr usubst c) in
-  { Cooking.cook_body = cd;
-    cook_type = t;
-    cook_universes = univs;
-    cook_inline = false;
-    cook_context = None
-  }
+      let c = Typeops.assumption_of_judgment env j in
+      let t = Constr.hcons c in
+      { Cooking.cook_body = cd;
+        cook_type = t;
+        cook_universes = Monomorphic_const uctx;
+        cook_inline = false;
+        cook_context = None
+      }
 
   (** Definition [c] is opaque (Qed), non polymorphic and with a specified type,
       so we delay the typing and hash consing of its body.

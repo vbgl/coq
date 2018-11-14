@@ -333,7 +333,13 @@ val no_link_info : link_info
 
 (** {5 Reduction of primitive} *)
 val retroknowledge : env -> Retroknowledge.retroknowledge
-val add_retroknowledge : env -> Retroknowledge.action * constr -> env
+val add_retroknowledge : env -> Retroknowledge.action -> env
+
+val get_int_type : env -> Constant.t
+val get_bool_constructors : env -> constructor * constructor
+val get_carry_constructors : env -> constructor * constructor
+val get_pair_constructor : env -> constructor
+val get_cmp_constructors : env -> constructor * constructor * constructor
 
 exception NativeDestKO (* Should be raised by get_* functions on failure *)
 
@@ -344,8 +350,6 @@ module type RedNativeEntries =
 
     val get : args -> int -> elem
     val get_int :  elem -> Uint63.t
-    val is_refl : elem -> bool
-    val mk_int_refl : env -> elem -> elem
     val mkInt : env -> Uint63.t -> elem
     val mkBool : env -> bool -> elem
     val mkCarry : env -> bool -> elem -> elem (* true if carry *)
@@ -353,7 +357,6 @@ module type RedNativeEntries =
     val mkLt : env -> elem
     val mkEq : env -> elem
     val mkGt : env -> elem
-    val mkClos : Name.t -> constr -> constr -> elem array -> elem
   end
 
 module type RedNative =

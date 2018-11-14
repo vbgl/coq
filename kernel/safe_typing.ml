@@ -129,7 +129,7 @@ type safe_environment =
     engagement : engagement option;
     required : vodigest DPMap.t;
     loads : (ModPath.t * module_body) list;
-    local_retroknowledge : (Retroknowledge.action * Constr.t) list;
+    local_retroknowledge : Retroknowledge.action list;
     native_symbols : Nativecode.symbols DPMap.t }
 
 and modvariant =
@@ -803,8 +803,7 @@ let add_constant ~in_section l decl senv =
   let senv =
     match decl with
     | ConstantEntry (_,(Entries.PrimitiveEntry (_,CPrimitives.OT_type t))) ->
-          let pttc = Retroknowledge.Retro_type t, Constr.mkConst kn in
-      add_retroknowledge pttc senv
+      add_retroknowledge (Retroknowledge.Register_type(t,kn)) senv
     | _ -> senv
   in
   kn, senv
@@ -1182,23 +1181,23 @@ let register_inline kn senv =
 
 let check_register_ind (mind,i) r env =
   let mb = Environ.lookup_mind mind env in
-  let error_if b s =
-    if b then
+  let check_if b s =
+    if not b then
       CErrors.user_err ~hdr:"check_register_ind" (Pp.str s) in
-  error_if (Array.length mb.mind_packets <> 1) "A non mutual inductive is expected";
+  check_if (Int.equal (Array.length mb.mind_packets) 1) "A non mutual inductive is expected";
   let ob = mb.mind_packets.(i) in
   let check_nconstr n =
-    error_if (Array.length ob.mind_consnames <> n)
+    check_if (Int.equal (Array.length ob.mind_consnames) n)
       ("an inductive type with "^(string_of_int n)^" constructors is expected")
   in
   let check_name pos s =
-    error_if (ob.mind_consnames.(pos) <> Id.of_string s)
+    check_if (Id.equal ob.mind_consnames.(pos) (Id.of_string s))
       ("the "^(string_of_int (pos + 1))^
-       "th constructor does not have the expected name") in (* FIXME: stupid message *)
+       "th constructor does not have the expected name: " ^ s) in
   let check_type pos t =
-    error_if (not (Constr.equal t ob.mind_user_lc.(pos)))
+    check_if (Constr.equal t ob.mind_user_lc.(pos))
       ("the "^(string_of_int (pos + 1))^
-       "th constructor does not have the expected type") in (* FIXME: stupid message *)
+       "th constructor does not have the expected type") in
   let check_type_cte pos = check_type pos (Constr.mkRel 1) in
   match r with
   | CPrimitives.PIT_bool ->
@@ -1213,13 +1212,13 @@ let check_register_ind (mind,i) r env =
       let c = ob.mind_user_lc.(pos) in
       let s = "the "^(string_of_int (pos + 1))^
               "th constructor does not have the expected type" in
-      error_if (not (Constr.isProd c)) s;
+      check_if (Constr.isProd c) s;
       let (_,d,cd) = Constr.destProd c in
-      error_if (not (Constr.is_Type d)) s;
-      error_if
-        (not (Constr.equal
+      check_if (Constr.is_Type d) s;
+      check_if
+        (Constr.equal
                 (mkProd (Anonymous,mkRel 1, mkApp (mkRel 3,[|mkRel 2|])))
-                cd))
+                cd)
         s in
     check_name 0 "C0";
     test_type 0;
@@ -1233,12 +1232,12 @@ let check_register_ind (mind,i) r env =
              "th constructor does not have the expected type" in
     begin match Term.decompose_prod c with
       | ([_,b;_,a;_,_B;_,_A], codom) ->
-        error_if (not (is_Type _A)) s;
-        error_if (not (is_Type _B)) s;
-        error_if (not (Constr.equal a (mkRel 2))) s;
-        error_if (not (Constr.equal b (mkRel 2))) s;
-        error_if (not (Constr.equal codom (mkApp (mkRel 5,[|mkRel 4; mkRel 3|])))) s
-      | _ -> error_if true s
+        check_if (is_Type _A) s;
+        check_if (is_Type _B) s;
+        check_if (Constr.equal a (mkRel 2)) s;
+        check_if (Constr.equal b (mkRel 2)) s;
+        check_if (Constr.equal codom (mkApp (mkRel 5,[|mkRel 4; mkRel 3|]))) s
+      | _ -> check_if false s
     end
   | CPrimitives.PIT_cmp ->
     check_nconstr 3;
@@ -1251,9 +1250,9 @@ let check_register_ind (mind,i) r env =
   | CPrimitives.PIT_eq ->
     Format.eprintf "Warning : check_register_ind not implemented for eq@."
 
-let register_inductive i pi senv =
-  check_register_ind i pi senv.env;
-  let action = (Retroknowledge.Retro_ind(pi),Constr.mkInd i) in (* FIXME *)
+let register_inductive ind prim senv =
+  check_register_ind ind prim senv.env;
+  let action = Retroknowledge.Register_ind(prim,ind) in
   { senv with
     env = Environ.add_retroknowledge senv.env action;
     local_retroknowledge = action::senv.local_retroknowledge

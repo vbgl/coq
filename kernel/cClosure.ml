@@ -964,9 +964,9 @@ module FNativeEntries =
 
     let init_int retro =
       match retro.Retroknowledge.retro_int63 with
-      | Some (cte, _) ->
+      | Some c ->
         defined_int := true;
-        fint := { norm = Norm; term = FFlex (ConstKey cte) }
+        fint := { norm = Norm; term = FFlex (ConstKey (Univ.in_punivs c)) }
       | None -> defined_int := false
 
     let defined_bool = ref false
@@ -977,8 +977,8 @@ module FNativeEntries =
       match retro.Retroknowledge.retro_bool with
       | Some (ct,cf) ->
         defined_bool := true;
-        ftrue := { norm = Cstr; term = FConstruct ct };
-        ffalse := { norm = Cstr; term = FConstruct cf }
+        ftrue := { norm = Cstr; term = FConstruct (Univ.in_punivs ct) };
+        ffalse := { norm = Cstr; term = FConstruct (Univ.in_punivs cf) }
       | None -> defined_bool :=false
 
     let defined_carry = ref false
@@ -989,8 +989,8 @@ module FNativeEntries =
       match retro.Retroknowledge.retro_carry with
       | Some(c0,c1) ->
         defined_carry := true;
-        fC0 := { norm = Cstr; term = FConstruct c0 };
-        fC1 := { norm = Cstr; term = FConstruct c1 }
+        fC0 := { norm = Cstr; term = FConstruct (Univ.in_punivs c0) };
+        fC1 := { norm = Cstr; term = FConstruct (Univ.in_punivs c1) }
       | None -> defined_carry := false
 
     let defined_pair = ref false
@@ -1000,7 +1000,7 @@ module FNativeEntries =
       match retro.Retroknowledge.retro_pair with
       | Some c ->
         defined_pair := true;
-        fPair := { norm = Cstr; term = FConstruct c }
+        fPair := { norm = Cstr; term = FConstruct (Univ.in_punivs c) }
       | None -> defined_pair := false
 
     let defined_cmp = ref false
@@ -1012,9 +1012,9 @@ module FNativeEntries =
       match retro.Retroknowledge.retro_cmp with
       | Some (cEq, cLt, cGt) ->
         defined_cmp := true;
-        fEq := { norm = Cstr; term = FConstruct cEq };
-        fLt := { norm = Cstr; term = FConstruct cLt };
-        fGt := { norm = Cstr; term = FConstruct cGt }
+        fEq := { norm = Cstr; term = FConstruct (Univ.in_punivs cEq) };
+        fLt := { norm = Cstr; term = FConstruct (Univ.in_punivs cLt) };
+        fGt := { norm = Cstr; term = FConstruct (Univ.in_punivs cGt) }
       | None -> defined_cmp := false
 
     let defined_refl = ref false
@@ -1025,7 +1025,7 @@ module FNativeEntries =
       match retro.Retroknowledge.retro_refl with
       | Some crefl ->
         defined_refl := true;
-        frefl := { norm = Cstr; term = FConstruct crefl }
+        frefl := { norm = Cstr; term = FConstruct (Univ.in_punivs crefl) }
       | None -> defined_refl := false
 
     let init env =
@@ -1060,21 +1060,6 @@ module FNativeEntries =
       check_env env;
       assert (!defined_cmp)
 
-    let check_refl env =
-      check_env env;
-      assert (!defined_refl && !defined_int)
-
-    (* TODO check this *)
-    let is_refl e =
-      match [@ocaml.warning "-4"] e.term with
-      | FApp({norm = _; term = FConstruct _},_) -> true
-      | _ -> false
-
-    let mk_int_refl env e =
-      check_refl env;
-      {norm = Cstr;
-       term = FApp (!frefl,[|!fint;e|])}
-
     let mkInt env i =
       check_int env;
       { norm = Norm; term = FInt i }
@@ -1103,10 +1088,6 @@ module FNativeEntries =
     let mkGt env =
       check_cmp env;
       !fGt
-
-    let mkClos id t body s =
-      { norm = Cstr;
-        term = FLambda(1,[id,t],body, Esubst.subs_cons(s,Esubst.subs_id 0)) }
 
   end
 

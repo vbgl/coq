@@ -864,152 +864,34 @@ struct
     | Int i -> i
     | _ -> raise NativeDestKO
 
-  let dummy = mkRel 0
-  let current_retro = ref Retroknowledge.empty
-  let defined_int = ref false
-  let cint = ref dummy
-
-  let init_int retro =
-    match retro.Retroknowledge.retro_int63 with
-    | Some (cte, c) ->
-      defined_int := true;
-      cint := EConstr.of_constr c
-    | None -> defined_int := false
-
-  let defined_bool = ref false
-  let ctrue = ref dummy
-  let cfalse = ref dummy
-
-  let init_bool retro =
-    match retro.Retroknowledge.retro_bool with
-    | Some (ct,cf) ->
-      defined_bool := true;
-      ctrue := mkConstruct (fst ct);
-      cfalse := mkConstruct (fst cf)
-    | None -> defined_bool := false
-
-  let defined_carry = ref false
-  let cC0 = ref dummy
-  let cC1 = ref dummy
-
-  let init_carry retro =
-    match retro.Retroknowledge.retro_carry with
-    | Some(c0,c1) ->
-      defined_carry := true;
-      cC0 := mkConstruct (fst c0);
-      cC1 := mkConstruct (fst c1)
-    | None -> defined_carry := false
-
-  let defined_pair = ref false
-  let cPair = ref dummy
-
-  let init_pair retro =
-    match retro.Retroknowledge.retro_pair with
-    | Some c ->
-      defined_pair := true;
-      cPair := mkConstruct (fst c)
-    | None -> defined_pair := false
-
-  let defined_cmp = ref false
-  let cEq = ref dummy
-  let cLt = ref dummy
-  let cGt = ref dummy
-
-  let init_cmp retro =
-    match retro.Retroknowledge.retro_cmp with
-    | Some (cEq', cLt', cGt') ->
-      defined_cmp := true;
-      cEq := mkConstruct (fst cEq');
-      cLt := mkConstruct (fst cLt');
-      cGt := mkConstruct (fst cGt')
-    | None -> defined_cmp := false
-
-  let defined_refl = ref false
-
-  let crefl = ref dummy
-
-  let init_refl retro =
-    match retro.Retroknowledge.retro_refl with
-    | Some crefl' ->
-      defined_refl := true;
-      crefl := mkConstruct (fst crefl')
-    | None -> defined_refl := false
-
-  let init env =
-    current_retro := retroknowledge env;
-    init_int !current_retro;
-    init_bool !current_retro;
-    init_carry !current_retro;
-    init_pair !current_retro;
-    init_cmp !current_retro;
-    init_refl !current_retro
-
-  let check_env env =
-    if not (!current_retro == retroknowledge env) then init env
-
-  let check_int env =
-    check_env env;
-    assert (!defined_int)
-
-  let check_bool env =
-    check_env env;
-    assert (!defined_bool)
-
-  let check_carry env =
-    check_env env;
-    assert (!defined_carry && !defined_int)
-
-  let check_pair env =
-    check_env env;
-    assert (!defined_pair && !defined_int)
-
-  let check_cmp env =
-    check_env env;
-    assert (!defined_cmp)
-
-  let check_refl env =
-    check_env env;
-    assert (!defined_refl && !defined_int)
-
-  let is_refl e =
-    match Constr.kind (EConstr.Unsafe.to_constr (* FIXME *) e) with
-    | App(f,_) when Constr.isConstruct f -> true
-    | _ -> false
-
-  let mk_int_refl env e =
-    check_refl env;
-    mkApp(!crefl,[|!cint;e|])
-
   let mkInt env i =
-    check_int env;
     mkInt i
 
   let mkBool env b =
-    check_bool env;
-    if b then !ctrue else !cfalse
+    let (ct,cf) = get_bool_constructors env in
+    mkConstruct (if b then ct else cf)
 
-  let mkCarry env b e =
-    check_carry env;
-    mkApp ((if b then !cC1 else !cC0),[|!cint;e|])
+    let mkCarry env b e =
+      let int_ty = mkConst @@ get_int_type env in
+      let (c0,c1) = get_carry_constructors env in
+      mkApp (mkConstruct (if b then c1 else c0),[|int_ty;e|])
 
-  let mkIntPair env e1 e2 =
-    check_pair env;
-    mkApp(!cPair, [|!cint;!cint;e1;e2|])
+    let mkIntPair env e1 e2 =
+    let int_ty = mkConst @@ get_int_type env in
+    let c = get_pair_constructor env in
+    mkApp(mkConstruct c, [|int_ty;int_ty;e1;e2|])
 
   let mkLt env =
-    check_cmp env;
-    !cLt
+    let (_eq, lt, _gt) = get_cmp_constructors env in
+    mkConstruct lt
 
   let mkEq env =
-    check_cmp env;
-    !cEq
+    let (eq, _lt, _gt) = get_cmp_constructors env in
+    mkConstruct eq
 
   let mkGt env =
-    check_cmp env;
-    !cGt
-
-  let mkClos id t body s =
-    substl (Array.to_list s) (EConstr.of_constr (Constr.mkLambda(id,t,body)))
+    let (_eq, _lt, gt) = get_cmp_constructors env in
+    mkConstruct gt
 
 end
 
