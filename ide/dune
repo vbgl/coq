@@ -53,3 +53,8 @@
  (targets default.bindings)
  (deps (:gen ./default_bindings_src.exe))
  (action (run %{gen} %{targets})))
+
+(install
+ (package coqide)
+ (section share)
+ (files default.bindings))
