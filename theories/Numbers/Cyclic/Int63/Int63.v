@@ -25,7 +25,9 @@ Register comparison as kernel.ind_cmp.
 Definition size := 63%nat.
 
 Primitive int := #int63_type.
+Register int as num.int63.type.
 Declare Scope int63_scope.
+Definition id_int : int -> int := fun x => x.
 Declare ML Module "int63_syntax_plugin".
 
 Delimit Scope int63_scope with int63.

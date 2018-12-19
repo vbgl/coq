@@ -127,6 +127,7 @@ type target_kind =
   | Int of int_ty (* Coq.Init.Decimal.int + uint *)
   | UInt of Names.inductive (* Coq.Init.Decimal.uint *)
   | Z of z_pos_ty (* Coq.Numbers.BinNums.Z and positive *)
+  | Int63 (* Coq.Numbers.Cyclic.Int63.Int63.int *)
 
 type string_target_kind =
   | ListByte
