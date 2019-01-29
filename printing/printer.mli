@@ -191,6 +191,8 @@ val print_and_diff : Proof.t option -> Proof.t option -> unit
 type axiom =
   | Constant of Constant.t (* An axiom or a constant. *)
   | Positive of MutInd.t (* A mutually inductive definition which has been assumed positive. *)
+  | TemplatePolymorphic of MutInd.t (* A mutually inductive definition whose template polymorphism
+                                       on parameter universes has not been checked. *)
   | Guarded of Constant.t (* a constant whose (co)fixpoints have been assumed to be guarded *)
 
 type context_object =

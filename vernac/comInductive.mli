@@ -77,3 +77,17 @@ val interp_mutual_inductive :
   decl_notation list -> cumulative_inductive_flag ->
   polymorphic -> private_flag -> Declarations.recursivity_kind ->
   mutual_inductive_entry * UnivNames.universe_binders * one_inductive_impls list
+
+val template_polymorphism_candidate :
+  Environ.env -> Entries.universes_entry -> Constr.rel_context -> Sorts.t option -> bool
+(** [template_polymorphism_candidate env uctx params conclsort] is
+   [true] iff an inductive with params [params] and conclusion
+   [conclsort] would be definable as template polymorphic.  It should
+   have at least one universe in its monomorphic universe context that
+   can be made parametric in its conclusion sort, if one is given.
+   If the [Template Check] flag is false we just check that the conclusion sort
+   is not small. *)
+
+val sign_level : Environ.env -> Evd.evar_map -> Constr.rel_declaration list -> Univ.Universe.t
+(** [sign_level env sigma ctx] computes the universe level of the context [ctx]
+    as the [sup] of its individual assumptions, which should be well-typed in [env] and [sigma] *)
