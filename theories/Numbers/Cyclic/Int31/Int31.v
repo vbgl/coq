@@ -477,6 +477,4 @@ Definition tail031 (i:int31) :=
     end)
    i On.
 
-Notation "'0'" := On : int31_scope.
-Notation "'1'" := In : int31_scope.
 Numeral Notation int31 phi_inv_nonneg phi : int31_scope.
