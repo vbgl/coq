@@ -144,20 +144,6 @@ let check_no_pending_proof () =
        str"Use \"Abort All\" first or complete proof(s).")
   end
 
-let pf_name_eq id ps =
-  let Proof.{ name } = Proof.data ps.proof in
-  Id.equal name id
-
-let discard_gen id =
-  pstates := List.filter (fun pf -> not (pf_name_eq id pf)) !pstates
-
-let discard {CAst.loc;v=id} =
-  let n = List.length !pstates in
-  discard_gen id;
-  if Int.equal (List.length !pstates) n then
-    CErrors.user_err ?loc
-      ~hdr:"Pfedit.delete_proof" (str"No such proof" ++ msg_proofs ())
-
 let discard_current () =
   if List.is_empty !pstates then raise NoCurrentProof else pstates := List.tl !pstates
 let discard_all () = pstates := []

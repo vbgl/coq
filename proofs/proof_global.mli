@@ -19,7 +19,6 @@ val check_no_pending_proof : unit -> unit
 val get_current_proof_name : unit -> Names.Id.t
 val get_all_proof_names : unit -> Names.Id.t list
 
-val discard : Names.lident -> unit
 val discard_current : unit -> unit
 val discard_all : unit -> unit
 
