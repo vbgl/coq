@@ -275,7 +275,7 @@ The ``.. coqtop::`` directive does *not* reset Coq after running its contents.  
 
       Lemma l2: 2 + 2 <> 1.
 
-Add either ``undo`` to the first block or ``reset`` to the second block to avoid nesting lemmas.
+Add ``reset`` to the second block to avoid nesting lemmas.
 
 Abbreviations and macros
 ------------------------
