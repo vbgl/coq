@@ -688,11 +688,11 @@ end
 
 (** Conversion from bigint to int63 *)
 let rec int63_of_pos_bigint i =
-  let open Bigint in
+  let open Z in
   if equal i zero then Uint63.of_int 0
   else
-    let (quo,rem) = div2_with_rest i in
-    if rem then Uint63.add (Uint63.of_int 1)
+    let quo = div i (add one one) in
+    if is_odd i then Uint63.add (Uint63.of_int 1)
       (Uint63.mul (Uint63.of_int 2) (int63_of_pos_bigint quo))
     else Uint63.mul (Uint63.of_int 2) (int63_of_pos_bigint quo)
 
@@ -861,20 +861,20 @@ let error_negative ?loc =
   CErrors.user_err ?loc ~hdr:"interp_int63" (Pp.str "int63 are only non-negative numbers.")
 
 let error_overflow ?loc n =
-  CErrors.user_err ?loc ~hdr:"interp_int63" Pp.(str "overflow in int63 literal: " ++ str (Bigint.to_string n))
+  CErrors.user_err ?loc ~hdr:"interp_int63" Pp.(str "overflow in int63 literal: " ++ str (Z.to_string n))
 
 let interp_int63 ?loc n =
-  let open Bigint in
-  if is_pos_or_zero n
+  let open Z in
+  if leq zero n
   then
-    if less_than n (pow two 63)
+    if lt n (pow (add one one) 63)
     then int63_of_pos_bigint ?loc n
     else error_overflow ?loc n
   else error_negative ?loc
 
 let bigint_of_int63 c =
   match Constr.kind c with
-  | Int i -> Bigint.of_string (Uint63.to_string i)
+  | Int i -> Z.of_string (Uint63.to_string i)
   | _ -> raise NotAValidPrimToken
 
 let big2raw n =

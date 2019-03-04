@@ -323,4 +323,4 @@ val entry_has_ident : notation_entry_level -> bool
 val with_notation_protection : ('a -> 'b) -> 'a -> 'b
 
 (** Conversion from bigint to int63 *)
-val int63_of_pos_bigint : Bigint.bigint -> Uint63.t
+val int63_of_pos_bigint : Z.t -> Uint63.t
