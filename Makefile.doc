@@ -208,11 +208,13 @@ install-doc-printable:
 	$(INSTALLLIB) doc/stdlib/Library.ps $(FULLDOCDIR)/ps
 
 install-doc-sphinx:
+	mv doc/sphinx/_build/doctrees .
 	$(MKDIR) $(FULLDOCDIR)/sphinx
 	(for f in `cd doc/sphinx/_build; find . -type f`; do \
 		$(MKDIR) $$(dirname $(FULLDOCDIR)/sphinx/$$f);\
 		$(INSTALLLIB) doc/sphinx/_build/$$f $(FULLDOCDIR)/sphinx/$$f;\
 	done)
+	mv doctrees doc/sphinx/_build/
 
 # For emacs:
 # Local Variables:
