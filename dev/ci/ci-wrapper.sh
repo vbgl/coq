@@ -15,5 +15,6 @@ cd "${DIR}/../.."
 
 export TIMED=1
 "${DIR}/${CI_SCRIPT}" 2>&1 | tee time-of-build.log
+LANG=C sed -i 's/[\d128-\d255]//g' time-of-build.log
 echo 'Aggregating timing log...'
 python ./tools/make-one-time-file.py time-of-build.log
