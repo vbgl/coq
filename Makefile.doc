@@ -31,7 +31,7 @@ DVIPS:=dvips
 HTMLSTYLE:=coqremote
 
 # Sphinx-related variables
-OSNAME:=$(shell uname -o)
+OSNAME:=$(shell uname -s)
 ifeq ($(OSNAME),Cygwin)
 WIN_CURDIR:=$(shell cygpath -w $(CURDIR))
 SPHINXENV:=COQBIN="$(CURDIR)/bin/" COQLIB="$(WIN_CURDIR)"
