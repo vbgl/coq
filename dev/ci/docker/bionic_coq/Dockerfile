@@ -1,4 +1,4 @@
-# CACHEKEY: "bionic_coq-V2019-04-20-V1"
+# CACHEKEY: "bionic_coq-V2019-05-10-V1"
 # ^^ Update when modifying this file.
 
 FROM ubuntu:bionic
@@ -41,22 +41,22 @@ ENV BASE_OPAM="num ocamlfind.1.8.0 dune.1.6.2 ounit.2.0.8 odoc.1.4.0" \
     CI_OPAM="menhir.20181113 elpi.1.2.0 ocamlgraph.1.8.8"
 
 # BASE switch; CI_OPAM contains Coq's CI dependencies.
-ENV COQIDE_OPAM="cairo2.0.6 lablgtk3-sourceview3.3.0.beta5"
+ENV COQIDE_OPAM="cairo2.0.6.1 lablgtk3-sourceview3.3.0.beta6"
 
 # Must add this to COQIDE_OPAM{,_EDGE} when we update the opam
 # packages "lablgtk3-gtksourceview3"
 
 # base switch
-RUN opam init -a --disable-sandboxing --compiler="$COMPILER" default https://opam.ocaml.org && eval $(opam env) && opam update && \
+RUN opam init -a --disable-sandboxing --compiler=ocaml-base-compiler."$COMPILER" default https://opam.ocaml.org && eval $(opam env) && opam update && \
     opam install $BASE_OPAM $COQIDE_OPAM $CI_OPAM
 
 # base+32bit switch
-RUN opam switch create "${COMPILER}+32bit" && eval $(opam env) && \
+RUN opam switch create ocaml-base-compiler."${COMPILER}+32bit" "${COMPILER}+32bit" && eval $(opam env) && \
     opam install $BASE_OPAM
 
 # EDGE switch
 ENV COMPILER_EDGE="4.07.1" \
-    COQIDE_OPAM_EDGE="cairo2.0.6 lablgtk3-sourceview3.3.0.beta5" \
+    COQIDE_OPAM_EDGE="cairo2.0.6 lablgtk3-sourceview3.3.0.beta6" \
     BASE_OPAM_EDGE="dune-release.1.1.0"
 
 # EDGE+flambda switch, we install CI_OPAM as to be able to use
