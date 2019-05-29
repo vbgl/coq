@@ -553,13 +553,10 @@ Lemma intP (x : Z) : Z_spec x x.
 Proof.
   destruct x as [|p|p].
   - now apply ZintNull.
-  - rewrite <-positive_nat_Z at 2.
-    apply ZintPos.
-    now rewrite positive_nat_Z.
-  - rewrite <-Pos2Z.opp_pos.
-    rewrite <-positive_nat_Z at 2.
-    apply ZintNeg.
-    now rewrite positive_nat_Z.
+  - rewrite <-positive_nat_Z.
+    now apply ZintPos.
+  - rewrite <-Pos2Z.opp_pos, <-positive_nat_Z.
+    now apply ZintNeg.
 Qed.
 
 End Z_compl.
