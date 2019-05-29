@@ -194,6 +194,9 @@ Section Defs.
   
 End Defs.
 
+(** Modes *)
+Hint Mode Reflexive - ! : typeclass_instances.
+
 (** Default rewrite crelations handled by [setoid_rewrite]. *)
 Instance: RewriteRelation impl.
 Defined.
