@@ -69,14 +69,14 @@
 ########################################################################
 # HoTT
 ########################################################################
-: "${HoTT_CI_REF:=93145f51419930b7d47c4231cf1010abe84b2f40}"
+: "${HoTT_CI_REF:=e91ddeb5d25f11ee23e4ad2ecbe384b01c9f412d}"
 : "${HoTT_CI_GITURL:=https://github.com/HoTT/HoTT}"
 : "${HoTT_CI_ARCHIVEURL:=${HoTT_CI_GITURL}/archive}"
 
 ########################################################################
 # CoqHammer
 ########################################################################
-: "${coqhammer_CI_REF:=6fb6a92c83cdfa4f629758737e464c20249510cc}"
+: "${coqhammer_CI_REF:=64938440d0d1f4407ad10a5e6ddcd95cdbf5e833}"
 : "${coqhammer_CI_GITURL:=https://github.com/lukaszcz/coqhammer}"
 : "${coqhammer_CI_ARCHIVEURL:=${coqhammer_CI_GITURL}/archive}"
 
@@ -111,7 +111,7 @@
 ########################################################################
 # VST
 ########################################################################
-: "${vst_CI_REF:=1b6854c822156c81cd5add0b25e40a8e6ba34e11}"
+: "${vst_CI_REF:=2f92105372f16f2d021a13d6e9f7641a1bffb1b3}"
 : "${vst_CI_GITURL:=https://github.com/PrincetonUniversity/VST}"
 : "${vst_CI_ARCHIVEURL:=${vst_CI_GITURL}/archive}"
 
@@ -173,7 +173,7 @@
 ########################################################################
 # Bignums
 ########################################################################
-: "${bignums_CI_REF:=0cd435d0a3c731605536c83d0a731c3fc336cce7}"
+: "${bignums_CI_REF:=V8.10+beta1}"
 : "${bignums_CI_GITURL:=https://github.com/coq/bignums}"
 : "${bignums_CI_ARCHIVEURL:=${bignums_CI_GITURL}/archive}"
 
@@ -201,7 +201,7 @@
 ########################################################################
 # fcsl-pcm
 ########################################################################
-: "${fcsl_pcm_CI_REF:=0b889701e2c38df031fc0c763d1b0d5c8e6c795d}"
+: "${fcsl_pcm_CI_REF:=581d17078eb2e813cda3db42070b8d0c67beba53}"
 : "${fcsl_pcm_CI_GITURL:=https://github.com/imdea-software/fcsl-pcm}"
 : "${fcsl_pcm_CI_ARCHIVEURL:=${fcsl_pcm_CI_GITURL}/archive}"
 
