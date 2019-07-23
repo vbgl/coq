@@ -143,7 +143,7 @@ static value uint63_div21_aux(value xh, value xl, value y, value* ql) {
       /* quotienth = quotienth | maskh */
       quotientl = quotientl | maskl;
       remh = (uint63_lt(reml,dl)) ? (remh - dh - 1) : (remh - dh);
-      reml = reml - dl;
+      reml = (reml - dl) & maxuint63;
     }
     maskl = (maskl >> 1) | ((maskh << (63 - 1)) & maxuint63);
     maskh = maskh >> 1;
