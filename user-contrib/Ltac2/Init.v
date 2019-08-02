@@ -8,6 +8,7 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
+Declare ML Module "ltac_plugin".
 Declare ML Module "ltac2_plugin".
 
 (** Primitive types *)
