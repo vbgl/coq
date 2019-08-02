@@ -546,13 +546,3 @@ Ltac2 Notation "typeclasses_eauto" "bfs" n(opt(tactic(0)))
   dbs(opt(seq("with", list1(ident)))) := Std.typeclasses_eauto (Some Std.BFS) n dbs.
 
 Ltac2 Notation typeclasses_eauto := typeclasses_eauto.
-
-(** Congruence *)
-
-Ltac2 f_equal0 () := ltac1:(f_equal).
-Ltac2 Notation f_equal := f_equal0 ().
-
-(** now *)
-
-Ltac2 now0 t := t (); ltac1:(easy).
-Ltac2 Notation "now" t(thunk(self)) := now0 t.
