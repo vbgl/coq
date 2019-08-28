@@ -101,10 +101,33 @@ type 'a decl =
     deriv: 'a
   (* Projections of insterest *) }
 
+(* Different type of declarations *)
+type decl_kind =
+  | PropOp
+  | InjTyp
+  | BinRel
+  | BinOp
+  | UnOp
+  | CstOp
+  | Saturate
+
+let string_of_decl = function
+  | PropOp -> "PropOp"
+  | InjTyp -> "InjTyp"
+  | BinRel -> "BinRel"
+  | BinOp  -> "BinOp"
+  | UnOp   -> "UnOp"
+  | CstOp  -> "CstOp"
+  | Saturate -> "Saturate"
+
+
+
+
+
 module type Elt = sig
   type elt
 
-  val name : string
+  val name : decl_kind
   (** [name]  of the table *)
 
   val get_key : int
@@ -126,6 +149,8 @@ module type S = sig
   val print : unit -> unit
 end
 
+let not_registered = Summary.ref ~name:"zify_to_register" []
+
 module MakeTable (E : Elt) = struct
   (** Given a term [c] and its arguments ai,
         we construct a HConstr.t table that is
@@ -141,7 +166,7 @@ module MakeTable (E : Elt) = struct
         failwith ("Cannot register term " ^ t)
     | Some a -> E.mk_elt evd i a
 
-  let table = Summary.ref ~name:("zify_" ^ E.name) HConstr.empty
+  let table = Summary.ref ~name:("zify_" ^ string_of_decl E.name) HConstr.empty
 
   let register_constr env evd c =
     let c = EConstr.of_constr c in
@@ -193,14 +218,12 @@ module MakeTable (E : Elt) = struct
 
   let register_obj : Constr.constr -> Libobject.obj =
     let cache_constr (_, c) =
-      let env = Global.env () in
-      let evd = Evd.from_env env in
-      register_constr env evd c
+      not_registered := (E.name,c)::!not_registered
     in
     let subst_constr (subst, c) = Mod_subst.subst_mps subst c in
     Libobject.declare_object
     @@ Libobject.superglobal_object_nodischarge
-         ("register-zify-" ^ E.name)
+         ("register-zify-" ^ string_of_decl E.name)
          ~cache:cache_constr ~subst:(Some subst_constr)
 
   (** [register c] is called from the VERNACULAR ADD [name] constr(t).
@@ -236,7 +259,7 @@ module InjElt = struct
       cstr: EConstr.t option
     (* forall x, pred (inj x) *) }
 
-  let name = "InjTyp"
+  let name = InjTyp
 
   let mk_elt evd i (a : EConstr.t array) =
     let isid = EConstr.eq_constr evd a.(0) a.(1) in
@@ -282,7 +305,7 @@ module EBinOp = struct
       tbop: EConstr.t
     (* TBOpInj *) }
 
-  let name = "BinOp"
+  let name = BinOp
 
   let mk_elt evd i a =
     { source1= a.(0)
@@ -303,7 +326,7 @@ end
 module ECstOp = struct
   type elt = {source: EConstr.t; target: EConstr.t; inj: EConstr.t}
 
-  let name = "CstOp"
+  let name = CstOp
 
   let mk_elt evd i a = {source= a.(0); target= a.(1); inj= a.(3)}
 
@@ -323,7 +346,7 @@ module EUnOp = struct
     ; inj2_t: EConstr.t
     ; unop: EConstr.t }
 
-  let name = "UnOp"
+  let name = UnOp
 
   let mk_elt evd i a =
     { source1= a.(0)
@@ -345,7 +368,7 @@ module EBinRel = struct
   type elt =
     {source: EConstr.t; target: EConstr.t; inj: EConstr.t; brel: EConstr.t}
 
-  let name = "BinRel"
+  let name = BinRel
 
   let mk_elt evd i a = {source= a.(0); target= a.(1); inj= a.(3); brel= a.(4)}
 
@@ -368,7 +391,7 @@ end
 module EPropOp = struct
   type elt = EConstr.t
 
-  let name = "PropOp"
+  let name = PropOp
 
   let mk_elt evd i a = i
 
@@ -381,7 +404,7 @@ end
 module ESat = struct
   type elt = {parg1: EConstr.t; parg2: EConstr.t; satOK: EConstr.t}
 
-  let name = "Saturate"
+  let name = Saturate
 
   let mk_elt evd i a = {parg1= a.(2); parg2= a.(3); satOK= a.(5)}
 
@@ -399,8 +422,6 @@ module CstOp = MakeTable (ECstOp)
 module BinRel = MakeTable (EBinRel)
 module PropOp = MakeTable (EPropOp)
 module Saturate = MakeTable (ESat)
-
-
 
 
 
@@ -444,6 +465,27 @@ module Spec = struct
     in
     Feedback.msg_notice l
 end
+
+
+let register_decl = function
+  | PropOp -> PropOp.register_constr
+  | InjTyp -> InjTable.register_constr
+  | BinRel -> BinRel.register_constr
+  | BinOp  -> BinOp.register_constr
+  | UnOp   -> UnOp.register_constr
+  | CstOp  -> CstOp.register_constr
+  | Saturate -> Saturate.register_constr
+
+
+let process_decl (d,c) =
+  let env = Global.env () in
+  let evd = Evd.from_env env in
+  register_decl d env evd c
+
+let process_all_decl () =
+  List.iter process_decl !not_registered ;
+  not_registered := []
+
 
 let unfold_decl evd =
   let f cst acc = cst :: acc in
@@ -991,6 +1033,7 @@ let zify_tac =
   Proofview.Goal.enter (fun gl ->
       Coqlib.check_required_library ["Coq"; "zify"; "ZifyClasses"] ;
       Coqlib.check_required_library ["Coq"; "zify"; "ZifyInst"] ;
+      process_all_decl ();
       let evd = Tacmach.New.project gl in
       let env = Tacmach.New.pf_env gl in
       let concl = trans_check_prop env evd (Tacmach.New.pf_concl gl) in
@@ -1054,6 +1097,7 @@ let saturate =
       let concl = Tacmach.New.pf_concl gl in
       let hyps = Tacmach.New.pf_hyps_types gl in
       let evd = Tacmach.New.project gl in
+      process_all_decl ();
       let rec sat t =
         match EConstr.kind evd t with
         | App (c, args) ->
