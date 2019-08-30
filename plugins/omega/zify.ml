@@ -1031,8 +1031,8 @@ let tclTHENOpt e tac tac' =
 
 let zify_tac =
   Proofview.Goal.enter (fun gl ->
-      Coqlib.check_required_library ["Coq"; "zify"; "ZifyClasses"] ;
-      Coqlib.check_required_library ["Coq"; "zify"; "ZifyInst"] ;
+      Coqlib.check_required_library ["Coq"; "omega"; "ZifyClasses"] ;
+      Coqlib.check_required_library ["Coq"; "omega"; "ZifyInst"] ;
       process_all_decl ();
       let evd = Tacmach.New.project gl in
       let env = Tacmach.New.pf_env gl in

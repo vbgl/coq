@@ -1,5 +1,0 @@
-(library
- (name zify_plugin)
- (public_name coq.plugins.zify)
- (synopsis "Coq's zify plugin")
- (libraries coq.plugins.ltac))

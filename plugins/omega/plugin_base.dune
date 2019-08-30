@@ -2,4 +2,12 @@
  (name omega_plugin)
  (public_name coq.plugins.omega)
  (synopsis "Coq's omega plugin")
+ (modules g_omega coq_omega omega)
+ (libraries coq.plugins.ltac))
+
+(library
+ (name zify_plugin)
+ (public_name coq.plugins.zify)
+ (synopsis "Coq's zify plugin")
+ (modules g_zify zify)
  (libraries coq.plugins.ltac))
