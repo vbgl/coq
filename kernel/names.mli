@@ -650,6 +650,7 @@ module GlobRef : sig
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
+    | ProjectioRef of int * inductive (** A reference to the n-th projection of a primitive record. *)
 
   val equal : t -> t -> bool
 

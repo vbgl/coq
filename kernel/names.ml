@@ -664,6 +664,13 @@ let constructor_user_hash (ind, i) =
 let constructor_syntactic_hash (ind, i) =
   Hashset.Combine.combine (ind_syntactic_hash ind) (Int.hash i)
 
+let eq_projector n1 ind1 n2 ind2 = Int.equal n1 n2 && eq_ind ind1 ind2
+let projector_ord ind_ord n1 ind1 n2 ind2 =
+  let c = Int.compare n1 n2 in
+  if Int.equal c 0 then ind_ord ind1 ind2 else c
+let projector_hash ind_hash n ind =
+  Hashset.Combine.combine (Int.hash n) (ind_hash ind)
+
 module InductiveOrdered = struct
   type t = inductive
   let compare = ind_ord
@@ -925,6 +932,7 @@ module GlobRefInternal = struct
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
+    | ProjectioRef of int * inductive (** A reference to the n-th projection of a primitive record. *)
 
   let equal gr1 gr2 =
     gr1 == gr2 || match gr1,gr2 with
@@ -932,7 +940,8 @@ module GlobRefInternal = struct
     | IndRef kn1, IndRef kn2 -> eq_ind kn1 kn2
     | ConstructRef kn1, ConstructRef kn2 -> eq_constructor kn1 kn2
     | VarRef v1, VarRef v2 -> Id.equal v1 v2
-    | (ConstRef _ | IndRef _ | ConstructRef _ | VarRef _), _ -> false
+    | ProjectioRef (n1, i1), ProjectioRef (n2, i2) -> eq_projector n1 i1 n2 i2
+    | (ConstRef _ | IndRef _ | ConstructRef _ | VarRef _ | ProjectioRef _), _ -> false
 
   let global_eq_gen eq_cst eq_ind eq_cons x y =
     x == y ||
@@ -941,7 +950,8 @@ module GlobRefInternal = struct
     | IndRef indx, IndRef indy -> eq_ind indx indy
     | ConstructRef consx, ConstructRef consy -> eq_cons consx consy
     | VarRef v1, VarRef v2 -> Id.equal v1 v2
-    | (VarRef _ | ConstRef _ | IndRef _ | ConstructRef _), _ -> false
+    | ProjectioRef (n1, i1), ProjectioRef (n2, i2) -> Int.equal n1 n2 && eq_ind i1 i2
+    | (VarRef _ | ConstRef _ | IndRef _ | ConstructRef _ | ProjectioRef _), _ -> false
 
   let global_ord_gen ord_cst ord_ind ord_cons x y =
     if x == y then 0
@@ -956,6 +966,9 @@ module GlobRefInternal = struct
     | IndRef _, _ -> -1
     | _ , IndRef _ -> 1
     | ConstructRef consx, ConstructRef consy -> ord_cons consx consy
+    | ConstructRef _, _ -> -1
+    | _, ConstructRef _ -> 1
+    | ProjectioRef (n1, i1), ProjectioRef (n2, i2) -> projector_ord ord_ind n1 i1 n2 i2
 
   let global_hash_gen hash_cst hash_ind hash_cons gr =
     let open Hashset.Combine in
@@ -964,6 +977,7 @@ module GlobRefInternal = struct
     | IndRef i -> combinesmall 2 (hash_ind i)
     | ConstructRef c -> combinesmall 3 (hash_cons c)
     | VarRef id -> combinesmall 4 (Id.hash id)
+    | ProjectioRef (n, i) -> combinesmall 4 (projector_hash hash_ind n i)
 
 end
 
@@ -974,6 +988,7 @@ module GlobRef = struct
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
+    | ProjectioRef of int * inductive (** A reference to the n-th projection of a primitive record. *)
 
   let equal = GlobRefInternal.equal
 

@@ -575,6 +575,7 @@ let declare_univ_binders gr pl =
       | ConstructRef _ ->
         CErrors.anomaly ~label:"declare_univ_binders"
           Pp.(str "declare_univ_binders on an constructor reference")
+      | ProjectioRef _ -> assert false (* TODO *)
     in
     let univs = Id.Map.fold (fun id univ univs ->
         match Univ.Level.name univ with

@@ -341,12 +341,14 @@ let of_reference = let open GlobRef in function
 | ConstRef cst -> ValBlk (1, [| of_constant cst |])
 | IndRef ind -> ValBlk (2, [| of_ext val_inductive ind |])
 | ConstructRef cstr -> ValBlk (3, [| of_ext val_constructor cstr |])
+| ProjectioRef (n, ind) -> ValBlk (4, [| ValInt n ; of_ext val_inductive ind |])
 
 let to_reference = let open GlobRef in function
 | ValBlk (0, [| id |]) -> VarRef (to_ident id)
 | ValBlk (1, [| cst |]) -> ConstRef (to_constant cst)
 | ValBlk (2, [| ind |]) -> IndRef (to_ext val_inductive ind)
 | ValBlk (3, [| cstr |]) -> ConstructRef (to_ext val_constructor cstr)
+| ValBlk (4, [| ValInt n ; ind |]) -> ProjectioRef (n, to_ext val_inductive ind)
 | _ -> assert false
 
 let reference = {
