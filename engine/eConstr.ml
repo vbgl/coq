@@ -76,12 +76,14 @@ let mkProj (p, c) = of_kind (Proj (p, c))
 let mkArrow t1 r t2 = of_kind (Prod (make_annot Anonymous r, t1, t2))
 let mkArrowR t1 t2 = mkArrow t1 Sorts.Relevant t2
 let mkInt i = of_kind (Int i)
+let mkProjector n ind = of_constr (mkProjector n ind)
 
 let mkRef (gr,u) = let open GlobRef in match gr with
   | ConstRef c -> mkConstU (c,u)
   | IndRef ind -> mkIndU (ind,u)
   | ConstructRef c -> mkConstructU (c,u)
   | VarRef x -> mkVar x
+  | ProjectioRef (n, ind) -> mkProjector n ind
 
 let type1 = mkSort Sorts.type1
 
@@ -438,6 +440,7 @@ let eq_universes env sigma cstrs cv_pb ref nargs l l' =
     | VarRef _ -> assert false (* variables don't have instances *)
     | ConstRef _ ->
       cstrs := enforce_eq_instances_univs true l l' !cstrs; true
+    | ProjectioRef _ -> assert false
     | IndRef ind ->
       let mind = Environ.lookup_mind (fst ind) env in
       cstrs := cmp_inductives cv_pb (mind,snd ind) nargs l l' !cstrs;

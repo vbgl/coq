@@ -159,6 +159,7 @@ let lookup_mind mind =
 let label_of = let open GlobRef in function
   | ConstRef kn -> Constant.label kn
   | IndRef (kn,_)
+  | ProjectioRef (_, (kn, _))
   | ConstructRef ((kn,_),_) -> MutInd.label kn
   | VarRef id -> Label.of_id id
 
@@ -333,6 +334,7 @@ let assumptions ?(add_opaque=false) ?(add_transparent=false) st gr t =
       ContextObjectMap.add (Transparent kn) t accu
     else
       accu
+  | ProjectioRef (_, (m, _))
   | IndRef (m,_) | ConstructRef ((m,_),_) ->
       let mind = lookup_mind m in
       let accu =

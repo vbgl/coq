@@ -147,6 +147,8 @@ let safe_pr_global = let open GlobRef in function
   | ConstructRef ((kn,i),j) -> pp (str "CONSTRUCTREF(" ++ MutInd.debug_print kn ++ str "," ++
 				      int i ++ str "," ++ int j ++ str ")")
   | VarRef id -> pp (str "VARREF(" ++ Id.print id ++ str ")")
+  | ProjectioRef (n, (kn, i)) ->
+    pp (str "PROJ(" ++ MutInd.debug_print kn ++ str "[" ++ int i ++ str "].(" ++ int n ++ str "))")
 
 let ppglobal x = try pp(pr_global x) with _ -> safe_pr_global x
 
@@ -572,6 +574,7 @@ let raw_string_of_ref ?loc _ = let open GlobRef in function
 	(Id.of_string ("_"^string_of_int j))
   | VarRef id ->
       encode_path ?loc "SECVAR" None [] id
+  | ProjectioRef _ -> assert false
 
 let short_string_of_ref ?loc _ = let open GlobRef in function
   | VarRef id -> qualid_of_ident ?loc id
@@ -584,6 +587,7 @@ let short_string_of_ref ?loc _ = let open GlobRef in function
       encode_path ?loc "CSTR" None
         [Label.to_id (MutInd.label kn);Id.of_string ("_"^string_of_int i)]
         (Id.of_string ("_"^string_of_int j))
+  | ProjectioRef _ -> assert false
 
 (* Anticipate that printers can be used from ocamldebug and that 
    pretty-printer should not make calls to the global env since ocamldebug

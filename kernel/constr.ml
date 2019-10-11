@@ -232,11 +232,30 @@ let mkMeta  n =  Meta n
 (* Constructs a Variable named id *)
 let mkVar id = Var id
 
+(* FIXME: this is random well-typed stuff *)
+let make_up_projection n ind =
+  Projection.(make
+    (Repr.make ind
+       ~proj_npars:(-1)
+       ~proj_arg:n
+       (Label.of_id (Id.of_string ("._" ^ string_of_int n)))
+    )
+    false) (* FIXME: true? *)
+
+(* Constructs a primitive projector (η-expanded) *)
+let mkProjector n ind =
+  let r = Id.of_string "rec" in
+  mkLambda (
+    Context.make_annot (Name.mk_name r) Sorts.Relevant,
+    mkInd ind,
+    mkProj (make_up_projection n ind, mkVar r))
+
 let mkRef (gr,u) = let open GlobRef in match gr with
   | ConstRef c -> mkConstU (c,u)
   | IndRef ind -> mkIndU (ind,u)
   | ConstructRef c -> mkConstructU (c,u)
   | VarRef x -> mkVar x
+  | ProjectioRef (n, ind) -> mkProjector n ind
 
 (* Constructs a primitive integer *)
 let mkInt i = Int i

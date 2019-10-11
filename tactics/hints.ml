@@ -300,7 +300,7 @@ let lookup_tacs sigma concl st se =
 let is_transparent_gr ts = let open GlobRef in function
   | VarRef id -> TransparentState.is_transparent_variable ts id
   | ConstRef cst -> TransparentState.is_transparent_constant ts cst
-  | IndRef _ | ConstructRef _ -> false
+  | IndRef _ | ConstructRef _ | ProjectioRef _ -> false
 
 let strip_params env sigma c = 
   match EConstr.kind sigma c with

@@ -294,7 +294,7 @@ let print_strategy r =
     let key = let open GlobRef in match r with
     | VarRef id -> VarKey id
     | ConstRef cst -> ConstKey cst
-    | IndRef _ | ConstructRef _ -> user_err Pp.(str "The reference is not unfoldable")
+    | IndRef _ | ConstructRef _ | ProjectioRef _ -> user_err Pp.(str "The reference is not unfoldable")
     in
     let lvl = get_strategy oracle key in
     pr_strategy (r, lvl)

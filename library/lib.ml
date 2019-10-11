@@ -436,6 +436,7 @@ let empty_segment = Section.empty_segment
 
 let section_segment_of_reference = let open GlobRef in function
 | ConstRef c -> section_segment_of_constant c
+| ProjectioRef (_, (kn, _))
 | IndRef (kn,_) | ConstructRef ((kn,_),_) ->
   section_segment_of_mutual_inductive kn
 | VarRef _ -> empty_segment
@@ -453,6 +454,7 @@ let section_instance = let open GlobRef in function
   | ConstRef con ->
     let data = section_segment_of_constant con in
     extract_worklist data
+  | ProjectioRef (_, (kn, _))
   | IndRef (kn,_) | ConstructRef ((kn,_),_) ->
     let data = section_segment_of_mutual_inductive kn in
     extract_worklist data
@@ -531,6 +533,7 @@ let init () =
 let mp_of_global = let open GlobRef in function
   | VarRef id -> !lib_state.path_prefix.Nametab.obj_mp
   | ConstRef cst -> Names.Constant.modpath cst
+  | ProjectioRef (_, ind)
   | IndRef ind -> Names.ind_modpath ind
   | ConstructRef constr -> Names.constr_modpath constr
 

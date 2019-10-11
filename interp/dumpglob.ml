@@ -126,6 +126,7 @@ let type_of_global_ref gr =
 	    | CoFinite -> "coind"
             end
     | ConstructRef _ -> "constr"
+    | ProjectioRef _ -> "proj"
 
 let remove_sections dir =
   let cwd = Lib.cwd_except_section () in
