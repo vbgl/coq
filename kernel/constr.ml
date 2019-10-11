@@ -232,8 +232,17 @@ let mkMeta  n =  Meta n
 (* Constructs a Variable named id *)
 let mkVar id = Var id
 
+let warn_making_up_projection =
+  let name = "fake-projection" in
+  let category = "魚" in
+  CWarnings.create ~name ~category (fun (ind, _) ->
+      Pp.(str "Faking a projection for inductive " ++
+          MutInd.print ind)
+    )
+
 (* FIXME: this is random well-typed stuff *)
 let make_up_projection n ind =
+  warn_making_up_projection ind;
   Projection.(make
     (Repr.make ind
        ~proj_npars:(-1)
@@ -246,9 +255,9 @@ let make_up_projection n ind =
 let mkProjector n ind =
   let r = Id.of_string "rec" in
   mkLambda (
-    Context.make_annot (Name.mk_name r) Sorts.Relevant,
+    Context.nameR r,
     mkInd ind,
-    mkProj (make_up_projection n ind, mkVar r))
+    mkProj (make_up_projection n ind, mkRel 1))
 
 let mkRef (gr,u) = let open GlobRef in match gr with
   | ConstRef c -> mkConstU (c,u)
