@@ -121,6 +121,9 @@ val mkConstU : pconstant -> constr
 (** Constructs a projection application *)
 val mkProj : (Projection.t * constr) -> constr
 
+(** Constructs an η-exanded projection *)
+val mkProjector : int -> inductive -> constr
+
 (** Inductive types *)
 
 (** Constructs the ith (co)inductive type of the block named kn *)

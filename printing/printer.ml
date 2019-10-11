@@ -162,6 +162,7 @@ let id_of_global env = let open GlobRef in function
   | ConstructRef ((kn,i),j) ->
     (Environ.lookup_mind kn env).mind_packets.(i).mind_consnames.(j-1)
   | VarRef v -> v
+  | ProjectioRef _ -> assert false (* TODO *)
 
 let rec dirpath_of_mp = function
   | MPfile sl -> sl
@@ -171,6 +172,7 @@ let rec dirpath_of_mp = function
 
 let dirpath_of_global = let open GlobRef in function
   | ConstRef kn -> dirpath_of_mp (Constant.modpath kn)
+  | ProjectioRef (_, (kn, _))
   | IndRef (kn,_) | ConstructRef ((kn,_),_) ->
     dirpath_of_mp (MutInd.modpath kn)
   | VarRef _ -> DirPath.empty
@@ -927,6 +929,7 @@ let pr_assumptionset env sigma s =
         | VarRef id -> Id.print id
         | ConstRef con -> Constant.print con
         | IndRef (mind,_) -> MutInd.print mind
+        | ProjectioRef _
         | ConstructRef _ -> assert false
     in
     let safe_pr_inductive env kn =

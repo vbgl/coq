@@ -193,7 +193,7 @@ let discharge_class (_,cl) =
   let abs_context cl =
     let open GlobRef in
     match cl.cl_impl with
-      | VarRef _ | ConstructRef _ -> assert false
+      | VarRef _ | ConstructRef _ | ProjectioRef _ -> assert false
       | ConstRef cst -> Lib.section_segment_of_constant cst
       | IndRef (ind,_) -> Lib.section_segment_of_mutual_inductive ind in
   let discharge_context ctx' subst (grs, ctx) =

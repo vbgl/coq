@@ -10,9 +10,10 @@ let simple_body_access gref =
     failwith "inductive types are not covered in this example"
   | ConstructRef _ ->
     failwith "constructors are not covered in this example"
+  | ProjectioRef _ ->
+    failwith "projectors are not covered in this example"
   | ConstRef cst ->
     let cb = Environ.lookup_constant cst (Global.env()) in
     match Global.body_of_constant_body Library.indirect_accessor cb with
     | Some(e, _, _) -> EConstr.of_constr e
     | None -> failwith "This term has no value"
-

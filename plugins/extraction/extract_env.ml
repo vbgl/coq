@@ -119,7 +119,7 @@ module Visit : VISIT = struct
   let add_kn kn = v.kn <- KNset.add kn v.kn; add_mp (KerName.modpath kn)
   let add_ref = let open GlobRef in function
     | ConstRef c -> add_kn (Constant.user c)
-    | IndRef (ind,_) | ConstructRef ((ind,_),_) -> add_kn (MutInd.user ind)
+    | IndRef (ind,_) | ConstructRef ((ind,_),_) | ProjectioRef (_, (ind, _)) -> add_kn (MutInd.user ind)
     | VarRef _ -> assert false
   let add_decl_deps = decl_iter_references add_ref add_ref add_ref
   let add_spec_deps = spec_iter_references add_ref add_ref add_ref
