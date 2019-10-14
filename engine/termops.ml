@@ -1064,6 +1064,16 @@ let global_of_constr sigma c =
   | Ind (i, u) -> IndRef i, u
   | Construct (c, u) -> ConstructRef c, u
   | Var id -> VarRef id, EConstr.EInstance.empty
+  | Lambda (_, ty, body) ->
+    begin match EConstr.kind sigma ty with
+      | Ind (ind, u) ->
+        begin match EConstr.kind sigma body with
+          | Proj (pr, arg) when Names.eq_ind ind (Projection.inductive pr) ->
+            begin match EConstr.kind sigma arg with
+              | Rel 1 -> ProjectioRef (Projection.arg pr, ind), u
+              | _ -> raise Not_found end
+          | _ -> raise Not_found end
+      | _ -> raise Not_found end
   | _ -> raise Not_found
 
 let is_global sigma c t =
@@ -1073,11 +1083,31 @@ let is_global sigma c t =
   | IndRef i, Ind (i', _) -> eq_ind i i'
   | ConstructRef i, Construct (i', _) -> eq_constructor i i'
   | VarRef id, Var id' -> Id.equal id id'
+  | ProjectioRef (n, i), Lambda (_, ty, body) ->
+    begin match EConstr.kind sigma ty with
+      | Ind (ind, _) when eq_ind i ind ->
+        begin match EConstr.kind sigma body with
+          | Proj (pr, arg) when Names.eq_ind ind (Projection.inductive pr) && Int.equal n (Projection.arg pr) ->
+            begin match EConstr.kind sigma arg with
+              | Rel 1 -> true
+              | _ -> false end
+          | _ -> false end
+      | _ -> false end
   | _ -> false
 
 let isGlobalRef sigma c =
   match EConstr.kind sigma c with
   | Const _ | Ind _ | Construct _ | Var _ -> true
+  | Lambda (_, ty, body) ->
+    begin match EConstr.kind sigma ty with
+      | Ind (ind, _) ->
+        begin match EConstr.kind sigma body with
+          | Proj (pr, arg) when Names.eq_ind ind (Projection.inductive pr) ->
+            begin match EConstr.kind sigma arg with
+              | Rel 1 -> true
+              | _ -> false end
+          | _ -> false end
+      | _ -> false end
   | _ -> false
 
 let is_template_polymorphic_ind env sigma f =

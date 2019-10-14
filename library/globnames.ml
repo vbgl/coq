@@ -79,6 +79,16 @@ let global_of_constr c = match kind c with
   | Ind (ind_sp,u) -> IndRef ind_sp
   | Construct (cstr_cp,u) -> ConstructRef cstr_cp
   | Var id -> VarRef id
+  | Lambda (_, ty, body) ->
+    begin match kind ty with
+      | Ind (ind, _) ->
+        begin match kind body with
+          | Proj (pr, arg) when Names.eq_ind ind (Projection.inductive pr) ->
+            begin match kind arg with
+              | Rel 1 -> ProjectioRef (Projection.arg pr, ind)
+              | _ -> raise Not_found end
+          | _ -> raise Not_found end
+      | _ -> raise Not_found end
   |  _ -> raise Not_found
 
 let is_global c t =
