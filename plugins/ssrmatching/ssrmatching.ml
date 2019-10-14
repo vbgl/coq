@@ -464,8 +464,7 @@ let nb_cs_proj_args pc f u =
   | Sort s -> na (Sort_cs (Sorts.family s))
   | Const (c',_) when Constant.equal c' pc -> nargs_of_proj u.up_f 
   | Proj (c',_) when Constant.equal (Projection.constant c') pc -> nargs_of_proj u.up_f
-  | Var _ | Ind _ | Construct _ | Const _ -> na (Const_cs (global_of_constr f))
-  | _ -> -1
+  | _ -> na (Const_cs (global_of_constr f))
   with Not_found -> -1
 
 let isEvar_k k f =
@@ -487,6 +486,8 @@ let splay_app ise =
   fun c -> match kind c with
   | App (f, a) -> loop f a
   | Cast _ | Evar _ -> loop c [| |]
+  | Proj (_, a) when kind a = Rel 1 -> c, [| |]
+  | Proj (p, a) -> mkLambda (Context.nameR (Id.of_string "rec"), mkInd (Projection.inductive p), mkProj (p, mkRel 1)), [| a |]
   | _ -> c, [| |]
 
 let filter_upat i0 f n u fpats =
