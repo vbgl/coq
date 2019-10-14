@@ -567,9 +567,15 @@ let shortest_qualid_of_universe ?loc kn =
     UnivTab.shortest_qualid ?loc Id.Set.empty sp !the_univtab
 
 let pr_global_env env ref =
+  let pr_global_env ref =
   try pr_qualid (shortest_qualid_of_global env ref)
   with Not_found as e ->
     if !Flags.debug then Feedback.msg_debug (Pp.str "pr_global_env not found"); raise e
+  in
+  match ref with
+  | GlobRef.ProjectioRef (n, ind) ->
+    Pp.(pr_global_env (GlobRef.IndRef ind) ++ str ("._" ^ string_of_int n))
+  | _ -> pr_global_env ref
 
 let global_inductive qid =
   let open GlobRef in
