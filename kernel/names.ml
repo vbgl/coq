@@ -674,6 +674,8 @@ let projector_ord ind_ord (n1, ind1) (n2, ind2) =
   if Int.equal c 0 then ind_ord ind1 ind2 else c
 let projector_hash ind_hash n ind =
   Hashset.Combine.combine (Int.hash n) (ind_hash ind)
+let projector_print (n, (mind, idx)) =
+  Pp.(MutInd.print mind ++ str "[" ++ int idx ++ str "].(" ++ int n ++ str ")")
 
 module InductiveOrdered = struct
   type t = inductive

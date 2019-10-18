@@ -522,6 +522,8 @@ val constructor_syntactic_hash : constructor -> int
 val eq_projector : projector -> projector -> bool
 val projector_ord : projector -> projector -> bool
 
+val projector_print : projector -> Pp.t
+
 (** {6 Hash-consing } *)
 
 val hcons_con : Constant.t -> Constant.t
