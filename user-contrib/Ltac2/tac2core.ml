@@ -421,9 +421,10 @@ let () = define1 "constr_kind" constr begin fun c ->
       ts;
       cs;
     |]
-  | Proj (p, c) ->
+  | Proj ((n, ind), c) ->
     v_blk 16 [|
-      Value.of_ext Value.val_projection p;
+      Value.of_int n;
+      Value.of_ext Value.val_inductive ind;
       Value.of_constr c;
     |]
   | Int n ->
@@ -501,10 +502,11 @@ let () = define1 "constr_make" valexpr begin fun knd ->
     let i = Value.to_int i in
     let def = to_rec_declaration (nas, ts, cs) in
     EConstr.mkCoFix (i, def)
-  | (16, [|p; c|]) ->
-    let p = Value.to_ext Value.val_projection p in
+  | (16, [|n; ind; c|]) ->
+    let n = Value.to_int n in
+    let ind = Value.to_ext Value.val_inductive ind in
     let c = Value.to_constr c in
-    EConstr.mkProj (p, c)
+    EConstr.mkProj ((n, ind), c)
   | (17, [|n|]) ->
     let n = Value.to_uint63 n in
     EConstr.mkInt n

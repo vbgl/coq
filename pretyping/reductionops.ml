@@ -258,12 +258,12 @@ sig
 
   type cst_member =
     | Cst_const of pconstant
-    | Cst_proj of Projection.t
+    | Cst_proj of projector
 
   type 'a member =
   | App of 'a app_node
   | Case of case_info * 'a * 'a array * Cst_stack.t
-  | Proj of Projection.t * Cst_stack.t
+  | Proj of projector * Cst_stack.t
   | Fix of ('a, 'a) pfixpoint * 'a t * Cst_stack.t
   | Primitive of CPrimitives.t * (Constant.t * EInstance.t) * 'a t * CPrimitives.args_red * Cst_stack.t
   | Cst of cst_member * int * int list * 'a t * Cst_stack.t
@@ -319,12 +319,12 @@ struct
 
   type cst_member =
     | Cst_const of pconstant
-    | Cst_proj of Projection.t
+    | Cst_proj of projector
 
   type 'a member =
   | App of 'a app_node
   | Case of case_info * 'a * 'a array * Cst_stack.t
-  | Proj of Projection.t * Cst_stack.t
+  | Proj of projector * Cst_stack.t
   | Fix of ('a, 'a) pfixpoint * 'a t * Cst_stack.t
   | Primitive of CPrimitives.t * (Constant.t * EInstance.t) * 'a t * CPrimitives.args_red * Cst_stack.t
   | Cst of cst_member * int * int list * 'a t * Cst_stack.t
@@ -342,7 +342,7 @@ struct
 	 prvect_with_sep (pr_bar) pr_c br
        ++ str ")"
     | Proj (p,cst) ->
-      str "ZProj(" ++ Constant.debug_print (Projection.constant p) ++ str ")"
+      str "ZProj(" ++ str "<TODO>" ++ str ")"
     | Fix (f,args,cst) ->
        str "ZFix(" ++ Constr.debug_print_fix pr_c f
        ++ pr_comma () ++ pr pr_c args ++ str ")"
@@ -366,7 +366,7 @@ struct
         else str"(" ++ Constant.debug_print c ++ str ", " ++
 	  Univ.Instance.pr Univ.Level.pr u ++ str")"
       | Cst_proj p ->
-        str".(" ++ Constant.debug_print (Projection.constant p) ++ str")"
+        str".(" ++ str "<TODO>" ++ str")"
 
   let empty = []
   let is_empty = CList.is_empty
@@ -392,7 +392,7 @@ struct
       match x, y with
       | Cst_const (c1,u1), Cst_const (c2, u2) ->
         Constant.equal c1 c2 && Univ.Instance.equal u1 u2
-      | Cst_proj p1, Cst_proj p2 -> Projection.repr_equal p1 p2
+      | Cst_proj p1, Cst_proj p2 -> eq_projector p1 p2
       | _, _ -> false
     in
     let rec equal_rec sk1 sk2 =
@@ -404,8 +404,7 @@ struct
         (f t1 t2) && (equal_rec s1' s2')
       | Case (_,t1,a1,_) :: s1, Case (_,t2,a2,_) :: s2 ->
         f t1 t2 && CArray.equal (fun x y -> f x y) a1 a2 && equal_rec s1 s2
-      | (Proj (p,_)::s1, Proj(p2,_)::s2) ->
-        Projection.Repr.equal (Projection.repr p) (Projection.repr p2)
+      | (Proj (p,_)::s1, Proj(p2,_)::s2) -> eq_projector p p2
         && equal_rec s1 s2
       | Fix (f1,s1,_) :: s1', Fix (f2,s2,_) :: s2' ->
         f_fix f1 f2

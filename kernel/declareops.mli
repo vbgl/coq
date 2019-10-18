@@ -70,7 +70,8 @@ val inductive_make_projection : Names.inductive -> mutual_inductive_body -> proj
 val inductive_make_projections : Names.inductive -> mutual_inductive_body ->
   Names.Projection.Repr.t array option
 
-val relevance_of_projection_repr : mutual_inductive_body -> Names.Projection.Repr.t -> Sorts.relevance
+(** [relevance_of_projector mib i n] is the relevance on the [n]-th projection of the [i]-th inductive of [mib] *)
+val relevance_of_projector : mutual_inductive_body -> int -> int -> Sorts.relevance
 
 (** {6 Kernel flags} *)
 

@@ -34,10 +34,9 @@ let relevance_of_constructor env ((mi,i),_) =
   let packet = decl.mind_packets.(i) in
   packet.mind_relevance
 
-let relevance_of_projection env p =
-  let mind = Projection.mind p in
+let relevance_of_projection env (n, (mind, i)) =
   let mib = lookup_mind mind env in
-  Declareops.relevance_of_projection_repr mib (Projection.repr p)
+  Declareops.relevance_of_projection_repr mib i n
 
 let rec relevance_of_rel_extra env extra n =
   match extra with

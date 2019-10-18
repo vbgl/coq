@@ -54,11 +54,11 @@ val find_projection : GlobRef.t -> struc_typ
 val is_projection : Constant.t -> bool
 
 (** Sets up the mapping from constants to primitive projections *)
-val register_primitive_projection : Projection.Repr.t -> Constant.t -> unit
+val register_primitive_projection : projector -> Constant.t -> unit
 
 val is_primitive_projection : Constant.t -> bool
 
-val find_primitive_projection : Constant.t -> Projection.Repr.t option
+val find_primitive_projection : Constant.t -> projector option
 
 (** {6 Canonical structures } *)
 (** A canonical structure declares "canonical" conversion hints between 

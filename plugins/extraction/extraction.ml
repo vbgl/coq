@@ -331,11 +331,7 @@ let rec extract_type env sg db j c args =
     | Ind ((kn,i),u) ->
         let s = (extract_ind env kn).ind_packets.(i).ip_sign in
         extract_type_app env sg db (GlobRef.IndRef (kn,i),s) args
-    | Proj (p,t) ->
-       (* Let's try to reduce, if it hasn't already been done. *)
-       if Projection.unfolded p then Tunknown
-       else
-         extract_type env sg db j (EConstr.mkProj (Projection.unfold p, t)) args
+    | Proj _
     | Case _ | Fix _ | CoFix _ -> Tunknown
     | Evar _ | Meta _ -> Taxiom (* only possible during Show Extraction *)
     | Var v ->
@@ -1030,9 +1026,7 @@ let extract_fixpoint env sg vkn (fi,ti,ci) =
    constant body of primitive projections doesn't work. We pretend
    that they are implemented by matches until someone figures out how
    to clean it up (test with #4710 when working on this). *)
-let fake_match_projection env p =
-  let ind = Projection.Repr.inductive p in
-  let proj_arg = Projection.Repr.arg p in
+let fake_match_projection env (proj_arg, ind) =
   let mib, mip = Inductive.lookup_mind_specif env ind in
   let u = Univ.make_abstract_instance (Declareops.inductive_polymorphic_context mib) in
   let indu = mkIndU (ind,u) in
@@ -1049,7 +1043,7 @@ let fake_match_projection env p =
     ci_npar = mib.mind_nparams;
     ci_cstr_ndecls = mip.mind_consnrealdecls;
     ci_cstr_nargs = mip.mind_consnrealargs;
-    ci_relevance = Declareops.relevance_of_projection_repr mib p;
+    ci_relevance = Declareops.relevance_of_projector mib (snd ind) proj_arg;
     ci_pp_info;
   }
   in
@@ -1065,9 +1059,7 @@ let fake_match_projection env p =
     | LocalAssum (na,ty) :: rem ->
       let ty = Vars.substl subst (liftn 1 j ty) in
       if arg != proj_arg then
-        let lab = match na.binder_name with Name id -> Label.of_id id | Anonymous -> assert false in
-        let kn = Projection.Repr.make ind ~proj_npars:mib.mind_nparams ~proj_arg:arg lab in
-        fold (arg+1) (j+1) (mkProj (Projection.make kn false, mkRel 1)::subst) rem
+        fold (arg+1) (j+1) (mkProj ((arg, ind), mkRel 1)::subst) rem
       else
         let p = mkLambda (x, lift 1 indty, liftn 1 2 ty) in
         let branch = lift 1 (it_mkLambda_or_LetIn (mkRel (List.length ctx - (j-1))) ctx) in

@@ -96,7 +96,6 @@ module type RedFlagsSig = sig
   val red_transparent : reds -> TransparentState.t
   val mkflags : red_kind list -> reds
   val red_set : reds -> red_kind -> bool
-  val red_projection : reds -> Projection.t -> bool
 end
 
 module RedFlags : RedFlagsSig = struct
@@ -191,10 +190,6 @@ module RedFlags : RedFlagsSig = struct
     | COFIX -> incr_cnt red.r_cofix cofix
     | DELTA -> (* Used for Rel/Var defined in context *)
 	incr_cnt red.r_delta delta
-
-  let red_projection red p =
-    if Projection.unfolded p then true
-    else red_set red (fCONST (Projection.constant p))
 
 end
 
@@ -339,7 +334,7 @@ and fterm =
   | FInd of pinductive
   | FConstruct of pconstructor
   | FApp of fconstr * fconstr array
-  | FProj of Projection.t * fconstr
+  | FProj of projector * fconstr
   | FFix of fixpoint * fconstr subs
   | FCoFix of cofixpoint * fconstr subs
   | FCaseT of case_info * constr * fconstr * constr array * fconstr subs (* predicate and branches are closures *)
@@ -392,7 +387,7 @@ type 'a next_native_args = (CPrimitives.arg_kind * 'a) list
 type stack_member =
   | Zapp of fconstr array
   | ZcaseT of case_info * constr * constr array * fconstr subs
-  | Zproj of Projection.Repr.t
+  | Zproj of projector
   | Zfix of fconstr * stack
   | Zprimitive of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
        (* operator, constr def, arguments already seen (in rev order), next arguments *)
@@ -659,7 +654,7 @@ let rec zip m stk =
         zip {mark; term=t} s
     | Zproj p :: s ->
         let mark = mark (neutr (Mark.red_state m.mark)) Unknown in
-        zip {mark; term=FProj(Projection.make p true,m)} s
+        zip {mark; term=FProj(p, m)} s
     | Zfix(fx,par)::s ->
         zip fx (par @ append_stack [|m|] s)
     | Zshift(n)::s ->
@@ -897,12 +892,6 @@ let contract_fix_vect fix =
   in
   (subs_cons(Array.init nfix make_body, env), thisbody)
 
-let unfold_projection info p =
-  if red_projection info.i_flags p
-  then
-    Some (Zproj (Projection.repr p))
-  else None
-
 (*********************************************************************)
 (* A machine that inspects the head of a term until it finds an
    atom or a subterm that may produce a redex (abstraction,
@@ -919,10 +908,7 @@ let rec knh info m stk =
         (match get_nth_arg m ri.(n) stk with
              (Some(pars,arg),stk') -> knh info arg (Zfix(m,pars)::stk')
            | (None, stk') -> (m,stk'))
-    | FProj (p,c) ->
-      (match unfold_projection info p with
-       | None -> (m, stk)
-       | Some s -> knh info c (s :: zupdate info m stk))
+    | FProj (p,c) -> knh info c (Zproj p :: zupdate info m stk)
 
 (* cases where knh stops *)
     | (FFlex _|FLetIn _|FConstruct _|FEvar _|
@@ -1147,8 +1133,7 @@ let rec knr info tab m stk =
             let (fxe,fxbd) = contract_fix_vect fx.term in
             knit info tab fxe fxbd stk'
         | (depth, args, Zproj p::s) when use_match ->
-            let rargs = drop_parameters depth (Projection.Repr.npars p) args in
-            let rarg = project_nth_arg (Projection.Repr.arg p) rargs in
+            let rarg = project_nth_arg (Projection.Repr.arg p) args in
             kni info tab rarg s
         | (_,args,s) -> (m,args@s))
      else (m,stk)

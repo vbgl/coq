@@ -681,7 +681,7 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
         let p = Projection.make p false in
         let npars = Projection.npars p in
         fun n ->
-          if Int.equal n npars then fun _ v -> mkProj (p, v)
+          if Int.equal n npars then fun _ v -> mkProj (Projection.(arg p, inductive p), v)
           else fun f v -> applist (f, [v])
       | _ -> fun _ f v -> applist (f, [v])
     in
@@ -848,7 +848,7 @@ let rec pretype ~program_mode ~poly resolve_tc (tycon : type_constraint) (env : 
             let t = EConstr.of_constr t in
 	    let proj = Projection.make ps.(cs.cs_nargs - k) true in
             LocalDef ({na' with binder_name = na},
-                      lift (cs.cs_nargs - n) (mkProj (proj, cj.uj_val)), t)
+                      lift (cs.cs_nargs - n) (mkProj (Projection.(arg proj, inductive proj), cj.uj_val)), t)
 	    :: aux (n+1) (k + 1) names l
 	  | na :: names, (decl :: l) ->
 	    set_name na decl :: aux (n+1) k names l

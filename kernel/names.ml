@@ -669,7 +669,7 @@ let constructor_syntactic_hash (ind, i) =
   Hashset.Combine.combine (ind_syntactic_hash ind) (Int.hash i)
 
 let eq_projector (n1, ind1) (n2, ind2) = Int.equal n1 n2 && eq_ind ind1 ind2
-let projector_ord ind_ord n1 ind1 n2 ind2 =
+let projector_ord ind_ord (n1, ind1) (n2, ind2) =
   let c = Int.compare n1 n2 in
   if Int.equal c 0 then ind_ord ind1 ind2 else c
 let projector_hash ind_hash n ind =
@@ -972,7 +972,7 @@ module GlobRefInternal = struct
     | ConstructRef consx, ConstructRef consy -> ord_cons consx consy
     | ConstructRef _, _ -> -1
     | _, ConstructRef _ -> 1
-    | ProjectorRef (n1, i1), ProjectorRef (n2, i2) -> projector_ord ord_ind n1 i1 n2 i2
+    | ProjectorRef p1, ProjectorRef p2 -> projector_ord ord_ind p1 p2
 
   let global_hash_gen hash_cst hash_ind hash_cons gr =
     let open Hashset.Combine in

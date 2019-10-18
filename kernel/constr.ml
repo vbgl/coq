@@ -102,7 +102,7 @@ type ('constr, 'types, 'sort, 'univs) kind_of_term =
   | Case      of case_info * 'constr * 'constr * 'constr array
   | Fix       of ('constr, 'types) pfixpoint
   | CoFix     of ('constr, 'types) pcofixpoint
-  | Proj      of Projection.t * 'constr
+  | Proj      of projector * 'constr
   | Int       of Uint63.t
 (* constr is the fixpoint of the previous type. Requires option
    -rectypes of the Caml compiler to be set *)
@@ -232,32 +232,13 @@ let mkMeta  n =  Meta n
 (* Constructs a Variable named id *)
 let mkVar id = Var id
 
-let warn_making_up_projection =
-  let name = "fake-projection" in
-  let category = "魚" in
-  CWarnings.create ~name ~category (fun (ind, _) ->
-      Pp.(str "Faking a projection for inductive " ++
-          MutInd.print ind)
-    )
-
-(* FIXME: this is random well-typed stuff *)
-let make_up_projection n ind =
-  warn_making_up_projection ind;
-  Projection.(make
-    (Repr.make ind
-       ~proj_npars:(-1)
-       ~proj_arg:n
-       (Label.of_id (Id.of_string ("._" ^ string_of_int n)))
-    )
-    false) (* FIXME: true? *)
-
 (* Constructs a primitive projector (η-expanded) *)
-let mkProjector (n, ind) =
+let mkProjector (_n, ind as p) =
   let r = Id.of_string "rec" in
   mkLambda (
     Context.nameR r,
     mkInd ind,
-    mkProj (make_up_projection n ind, mkRel 1))
+    mkProj (p, mkRel 1))
 
 let mkRef (gr,u) = let open GlobRef in match gr with
   | ConstRef c -> mkConstU (c,u)
@@ -889,7 +870,7 @@ let compare_head_gen_leq_with kind1 kind2 leq_universes leq_sorts eq leq nargs t
     let len = Array.length l1 in
     Int.equal len (Array.length l2) &&
     leq (nargs+len) c1 c2 && Array.equal_norefl (eq 0) l1 l2
-  | Proj (p1,c1), Proj (p2,c2) -> Projection.equal p1 p2 && eq 0 c1 c2
+  | Proj (p1,c1), Proj (p2,c2) -> eq_projector p1 p2 && eq 0 c1 c2
   | Evar (e1,l1), Evar (e2,l2) -> Evar.equal e1 e2 && Array.equal (eq 0) l1 l2
   | Const (c1,u1), Const (c2,u2) ->
     (* The args length currently isn't used but may as well pass it. *)
@@ -1080,7 +1061,7 @@ let constr_ord_int f t1 t2 =
         ((Int.compare =? (Array.compare f)) ==? (Array.compare f))
         ln1 ln2 tl1 tl2 bl1 bl2
     | CoFix _, _ -> -1 | _, CoFix _ -> 1
-    | Proj (p1,c1), Proj (p2,c2) -> (Projection.compare =? f) p1 p2 c1 c2
+    | Proj (p1,c1), Proj (p2,c2) -> (projector_ord =? f) p1 p2 c1 c2
     | Proj _, _ -> -1 | _, Proj _ -> 1
     | Int i1, Int i2 -> Uint63.compare i1 i2
 

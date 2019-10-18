@@ -99,7 +99,7 @@ let find_projection = function
 let is_projection cst = Cmap.mem cst !projection_table
 
 let prim_table =
-  Summary.ref (Cmap_env.empty : Projection.Repr.t Cmap_env.t) ~name:"record-prim-projs"
+  Summary.ref (Cmap_env.empty : projector Cmap_env.t) ~name:"record-prim-projs"
 
 let register_primitive_projection p c =
   prim_table := Cmap_env.add c p !prim_table

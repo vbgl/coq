@@ -519,6 +519,8 @@ val constructor_user_ord : constructor -> constructor -> int
 val constructor_user_hash : constructor -> int
 val constructor_syntactic_ord : constructor -> constructor -> int
 val constructor_syntactic_hash : constructor -> int
+val eq_projector : projector -> projector -> bool
+val projector_ord : projector -> projector -> bool
 
 (** {6 Hash-consing } *)
 

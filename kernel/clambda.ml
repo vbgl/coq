@@ -31,7 +31,7 @@ type lambda =
   | Lval          of structured_values
   | Lsort         of Sorts.t
   | Lind          of pinductive
-  | Lproj         of Projection.Repr.t * lambda
+  | Lproj         of projector * lambda
 
 (* We separate branches for constant and non-constant constructors. If the OCaml
    limitation on non-constant constructors is reached, remaining branches are

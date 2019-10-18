@@ -115,7 +115,7 @@ val mkLetIn : Name.t Context.binder_annot * t * t * t -> t
 val mkApp : t * t array -> t
 val mkConst : Constant.t -> t
 val mkConstU : Constant.t * EInstance.t -> t
-val mkProj : (Projection.t * t) -> t
+val mkProj : (projector * t) -> t
 val mkInd : inductive -> t
 val mkIndU : inductive * EInstance.t -> t
 val mkConstruct : constructor -> t
@@ -190,7 +190,7 @@ val destEvar : Evd.evar_map -> t -> t pexistential
 val destInd : Evd.evar_map -> t -> inductive * EInstance.t
 val destConstruct : Evd.evar_map -> t -> constructor * EInstance.t
 val destCase : Evd.evar_map -> t -> case_info * t * t * t array
-val destProj : Evd.evar_map -> t -> Projection.t * t
+val destProj : Evd.evar_map -> t -> projector * t
 val destFix : Evd.evar_map -> t -> (t, t) pfixpoint
 val destCoFix : Evd.evar_map -> t -> (t, t) pcofixpoint
 
