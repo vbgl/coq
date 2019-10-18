@@ -122,7 +122,7 @@ val mkConstU : pconstant -> constr
 val mkProj : (Projection.t * constr) -> constr
 
 (** Constructs an η-exanded projection *)
-val mkProjector : int -> inductive -> constr
+val mkProjector : projector -> constr
 
 (** Inductive types *)
 

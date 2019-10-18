@@ -94,7 +94,7 @@ let printable_constr_of_global = function
   | ConstRef sp -> mkConst sp
   | ConstructRef sp -> mkConstruct sp
   | IndRef sp -> mkInd sp
-  | ProjectorRef (n, ind) -> mkProjector n ind
+  | ProjectorRef p -> mkProjector p
 
 (* Extended global references *)
 

@@ -127,7 +127,7 @@ val mkCoFix : (t, t) pcofixpoint -> t
 val mkArrow : t -> Sorts.relevance  -> t -> t
 val mkArrowR : t -> t -> t
 val mkInt : Uint63.t -> t
-val mkProjector : int -> inductive -> t
+val mkProjector : projector -> t
 
 val mkRef : GlobRef.t * EInstance.t -> t
 
