@@ -19,16 +19,6 @@ type projection_flags = {
   pf_canonical: bool;
 }
 
-val declare_projections :
-  inductive ->
-  Entries.universes_entry ->
-  ?kind:Decls.definition_object_kind ->
-  Id.t ->
-  projection_flags list ->
-  Impargs.manual_implicits list ->
-  Constr.rel_context ->
-    Recordops.proj_kind list * Constant.t option list
-
 val declare_structure_entry : Recordops.struc_tuple -> unit
 
 val definition_structure
