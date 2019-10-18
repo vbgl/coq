@@ -252,7 +252,7 @@ let make_up_projection n ind =
     false) (* FIXME: true? *)
 
 (* Constructs a primitive projector (η-expanded) *)
-let mkProjector n ind =
+let mkProjector (n, ind) =
   let r = Id.of_string "rec" in
   mkLambda (
     Context.nameR r,
@@ -264,7 +264,7 @@ let mkRef (gr,u) = let open GlobRef in match gr with
   | IndRef ind -> mkIndU (ind,u)
   | ConstructRef c -> mkConstructU (c,u)
   | VarRef x -> mkVar x
-  | ProjectorRef (n, ind) -> mkProjector n ind
+  | ProjectorRef p -> mkProjector p
 
 (* Constructs a primitive integer *)
 let mkInt i = Int i
