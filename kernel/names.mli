@@ -520,6 +520,8 @@ val constructor_user_hash : constructor -> int
 val constructor_syntactic_ord : constructor -> constructor -> int
 val constructor_syntactic_hash : constructor -> int
 
+val projector_print : projector -> Pp.t
+
 (** {6 Hash-consing } *)
 
 val hcons_con : Constant.t -> Constant.t
