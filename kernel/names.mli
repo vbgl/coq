@@ -484,6 +484,10 @@ type constructor = inductive   (* designates the inductive type *)
                  * int         (* the index of the constructor
                                   BEWARE: indexing starts from 1. *)
 
+(** Designation of a (particular) projector of a (particular) inductive type. *)
+type projector = int (* designates the index of the field, starting from zero *)
+  * inductive (* designates the inductive type *)
+
 module Indset : CSig.SetS with type elt = inductive
 module Indmap : CSig.MapS with type key = inductive
 module Constrmap : CSig.MapS with type key = constructor
@@ -650,7 +654,7 @@ module GlobRef : sig
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
-    | ProjectioRef of int * inductive (** A reference to the n-th projection of a primitive record. *)
+    | ProjectorRef of projector (** A reference to the n-th projection of a primitive record. *)
 
   val equal : t -> t -> bool
 

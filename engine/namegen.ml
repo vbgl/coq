@@ -73,7 +73,7 @@ let is_imported_modpath = function
 
 let is_imported_ref = let open GlobRef in function
   | VarRef _ -> false
-  | ProjectioRef (_, (kn, _))
+  | ProjectorRef (_, (kn, _))
   | IndRef (kn,_)
   | ConstructRef ((kn,_),_) ->
       let mp = MutInd.modpath kn in is_imported_modpath mp

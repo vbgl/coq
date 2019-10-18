@@ -17,7 +17,7 @@ type global_reference = GlobRef.t =
   | ConstRef of Constant.t [@ocaml.deprecated "Use Names.GlobRef.ConstRef"]
   | IndRef of inductive    [@ocaml.deprecated "Use Names.GlobRef.IndRef"]
   | ConstructRef of constructor [@ocaml.deprecated "Use Names.GlobRef.ConstructRef"]
-  | ProjectioRef of int * inductive [@ocaml.deprecated "Use Names.GlobRef.ProjectioRef"]
+  | ProjectorRef of projector [@ocaml.deprecated "Use Names.GlobRef.ProjectioRef"]
 [@@ocaml.deprecated "Use Names.GlobRef.t"]
 
 open GlobRef
@@ -48,9 +48,9 @@ let subst_global_reference subst ref = match ref with
   | ConstructRef ((kn,i),j as c) ->
     let c' = subst_constructor subst c in
     if c'==c then ref else ConstructRef c'
-  | ProjectioRef (n, ind) ->
+  | ProjectorRef (n, ind) ->
     let ind' = subst_ind subst ind in
-    if ind == ind' then ref else ProjectioRef (n, ind')
+    if ind == ind' then ref else ProjectorRef (n, ind')
 
 let subst_global subst ref = match ref with
   | VarRef var -> ref, None
@@ -63,16 +63,16 @@ let subst_global subst ref = match ref with
   | ConstructRef ((kn,i),j as c) ->
       let c' = subst_constructor subst c in
       if c'==c then ref,None else ConstructRef c', None
-  | ProjectioRef (n, ind) ->
+  | ProjectorRef (n, ind) ->
     let ind' = subst_ind subst ind in
-    if ind == ind' then ref, None else ProjectioRef (n, ind'), None
+    if ind == ind' then ref, None else ProjectorRef (n, ind'), None
 
 let canonical_gr = function
   | ConstRef con -> ConstRef(Constant.make1 (Constant.canonical con))
   | IndRef (kn,i) -> IndRef(MutInd.make1(MutInd.canonical kn),i)
   | ConstructRef ((kn,i),j )-> ConstructRef((MutInd.make1(MutInd.canonical kn),i),j)
   | VarRef id -> VarRef id
-  | ProjectioRef (n, (kn, i)) -> ProjectioRef (n, (MutInd.make1 (MutInd.canonical kn), i))
+  | ProjectorRef (n, (kn, i)) -> ProjectorRef (n, (MutInd.make1 (MutInd.canonical kn), i))
 
 let global_of_constr c = match kind c with
   | Const (sp,u) -> ConstRef sp
@@ -94,7 +94,7 @@ let printable_constr_of_global = function
   | ConstRef sp -> mkConst sp
   | ConstructRef sp -> mkConstruct sp
   | IndRef sp -> mkInd sp
-  | ProjectioRef (n, ind) -> mkProjector n ind
+  | ProjectorRef (n, ind) -> mkProjector n ind
 
 (* Extended global references *)
 

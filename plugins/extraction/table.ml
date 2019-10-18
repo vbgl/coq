@@ -32,13 +32,13 @@ module Refset' = GlobRef.Set_env
 
 let occur_kn_in_ref kn = let open GlobRef in function
   | IndRef (kn',_)
-  | ProjectioRef (_, (kn', _))
+  | ProjectorRef (_, (kn', _))
   | ConstructRef ((kn',_),_) -> MutInd.equal kn kn'
   | ConstRef _ | VarRef _ -> false
 
 let repr_of_r = let open GlobRef in function
   | ConstRef kn -> Constant.repr2 kn
-  | ProjectioRef (_, (kn, _))
+  | ProjectorRef (_, (kn, _))
   | IndRef (kn,_)
   | ConstructRef ((kn,_),_) -> MutInd.repr2 kn
   | VarRef v -> KerName.repr (Lib.make_kn v)
@@ -277,7 +277,7 @@ let safe_basename_of_global r =
       (try (unsafe_lookup_ind kn).ind_packets.(i).ip_consnames.(j-1)
        with Not_found -> last_chance r)
     | VarRef v -> v
-    | ProjectioRef _ -> assert false (* TODO *)
+    | ProjectorRef _ -> assert false (* TODO *)
 
 let string_of_global r =
  try string_of_qualid (Nametab.shortest_qualid_of_global Id.Set.empty r)

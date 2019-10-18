@@ -98,7 +98,7 @@ let class_of_global = function
       user_err ~hdr:"class_of_global"
 	(str "Constructors, such as " ++ Printer.pr_global c ++
 	   str ", cannot be used as a class.")
-  | GlobRef.ProjectioRef _ -> assert false (* TODO *)
+  | GlobRef.ProjectorRef _ -> assert false (* TODO *)
 
 (*
 lp est la liste (inverse'e) des arguments de la coercion

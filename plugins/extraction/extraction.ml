@@ -565,7 +565,7 @@ and extract_type_cons env sg db dbmap c i =
 (*s Recording the ML type abbreviation of a Coq type scheme constant. *)
 
 and mlt_env env r = let open GlobRef in match r with
-  | IndRef _ | ConstructRef _ | VarRef _ | ProjectioRef _ -> None
+  | IndRef _ | ConstructRef _ | VarRef _ | ProjectorRef _ -> None
   | ConstRef kn ->
      let cb = Environ.lookup_constant kn env in
      match cb.const_body with

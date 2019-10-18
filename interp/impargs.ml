@@ -426,7 +426,7 @@ let compute_var_implicits flags id =
 let compute_global_implicits flags = let open GlobRef in function
   | VarRef id -> compute_var_implicits flags id
   | ConstRef kn -> compute_constant_implicits flags kn
-  | ProjectioRef _ -> []
+  | ProjectorRef _ -> []
   | IndRef (kn,i) ->
       let ((_,imps),_) = (compute_mib_implicits flags kn).(i) in imps
   | ConstructRef ((kn,i),j) ->

@@ -193,7 +193,7 @@ let evalglobref_of_globref =
   function
   | GlobRef.VarRef v -> EvalVarRef v
   | GlobRef.ConstRef c -> EvalConstRef c
-  | GlobRef.IndRef _ | GlobRef.ConstructRef _ | GlobRef.ProjectioRef _ -> assert false
+  | GlobRef.IndRef _ | GlobRef.ConstructRef _ | GlobRef.ProjectorRef _ -> assert false
 
 let make_unfold name =
   let const = evalglobref_of_globref (Coqlib.lib_ref name) in
