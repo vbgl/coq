@@ -2035,7 +2035,7 @@ let build_case_scheme fa =
     try (let open GlobRef in
          match Smartlocate.global_with_alias f with
          | ConstRef c -> c
-         | IndRef _ | ConstructRef _ | VarRef _ | ProjectioRef _ -> assert false)
+         | IndRef _ | ConstructRef _ | VarRef _ | ProjectorRef _ -> assert false)
     with Not_found ->
       CErrors.user_err ~hdr:"FunInd.build_case_scheme"
         Pp.(str "Cannot find " ++ Libnames.pr_qualid f) in

@@ -10,7 +10,7 @@ let simple_body_access gref =
     failwith "inductive types are not covered in this example"
   | ConstructRef _ ->
     failwith "constructors are not covered in this example"
-  | ProjectioRef _ ->
+  | ProjectorRef _ ->
     failwith "projectors are not covered in this example"
   | ConstRef cst ->
     let cb = Environ.lookup_constant cst (Global.env()) in

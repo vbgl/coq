@@ -281,7 +281,7 @@ let mkNamed = let open GlobRef in function
   | VarRef v -> EConstr.mkVar v
   | ConstructRef c -> EConstr.mkConstruct c
   | IndRef i -> EConstr.mkInd i
-  | ProjectioRef (n, i) -> EConstr.mkProjector n i
+  | ProjectorRef (n, i) -> EConstr.mkProjector n i
 
 let get_coercion_constructor env coe =
   let evd = Evd.from_env env in

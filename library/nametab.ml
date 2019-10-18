@@ -573,7 +573,7 @@ let pr_global_env env ref =
     if !Flags.debug then Feedback.msg_debug (Pp.str "pr_global_env not found"); raise e
   in
   match ref with
-  | GlobRef.ProjectioRef (n, ind) ->
+  | GlobRef.ProjectorRef (n, ind) ->
     Pp.(pr_global_env (GlobRef.IndRef ind) ++ str ("._" ^ string_of_int n))
   | _ -> pr_global_env ref
 

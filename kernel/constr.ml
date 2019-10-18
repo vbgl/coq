@@ -264,7 +264,7 @@ let mkRef (gr,u) = let open GlobRef in match gr with
   | IndRef ind -> mkIndU (ind,u)
   | ConstructRef c -> mkConstructU (c,u)
   | VarRef x -> mkVar x
-  | ProjectioRef (n, ind) -> mkProjector n ind
+  | ProjectorRef (n, ind) -> mkProjector n ind
 
 (* Constructs a primitive integer *)
 let mkInt i = Int i
