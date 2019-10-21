@@ -23,7 +23,6 @@ open EConstr
 open Vars
 open Reduction
 open Reductionops
-open Tacred
 open Pretype_errors
 open Evarutil
 open Unification
@@ -57,7 +56,7 @@ let refresh_undefined_univs clenv =
       { clenv with evd = evd'; templval = map_freelisted clenv.templval;
 	templtyp = map_freelisted clenv.templtyp }, subst
 
-let clenv_hnf_constr ce t = hnf_constr (cl_env ce) (cl_sigma ce) t
+let clenv_hnf_constr ce t = whd_all (cl_env ce) (cl_sigma ce) t
 
 let clenv_get_type_of ce c = Retyping.get_type_of (cl_env ce) (cl_sigma ce) c
 
