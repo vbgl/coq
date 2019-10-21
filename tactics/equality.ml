@@ -1080,7 +1080,7 @@ let onNegatedEquality with_evars tac =
     let sigma = Tacmach.New.project gl in
     let ccl = Proofview.Goal.concl gl in
     let env = Proofview.Goal.env gl in
-    match EConstr.kind sigma (hnf_constr env sigma ccl) with
+    match EConstr.kind sigma (whd_all env sigma ccl) with
     | Prod (_,t,u) when is_empty_type env sigma u ->
         tclTHEN introf
           (onLastHypId (fun id ->
