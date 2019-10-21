@@ -105,7 +105,9 @@ module New : sig
   val pf_nf_concl : Proofview.Goal.t -> types
   val pf_reduce_to_quantified_ind : Proofview.Goal.t -> types -> (inductive * EInstance.t) * types
 
+  val pf_whd_all       : Proofview.Goal.t -> constr -> constr
   val pf_hnf_constr : Proofview.Goal.t -> constr -> types
+  [@@ocaml.deprecated "use pf_whd_all"]
   val pf_hnf_type_of : Proofview.Goal.t -> constr -> types
 
   val pf_compute : Proofview.Goal.t -> constr -> constr
