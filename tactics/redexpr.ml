@@ -228,7 +228,7 @@ let reduction_of_red_expr env =
   | Red internal ->
       if internal then (e_red try_red_product,DEFAULTcast)
       else (e_red red_product,DEFAULTcast)
-  | Hnf -> (e_red hnf_constr,DEFAULTcast)
+  | Hnf -> (e_red whd_all, DEFAULTcast)
   | Simpl (f,o) ->
      let whd_am = if !simplIsCbn then whd_cbn (make_flag f) else whd_simpl in
      let am = if !simplIsCbn then strong_cbn (make_flag f) else simpl in
