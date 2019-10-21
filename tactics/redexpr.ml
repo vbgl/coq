@@ -222,13 +222,19 @@ let warn_simpl_unfolding_modifiers =
          (fun () ->
           Pp.strbrk "The legacy simpl ignores constant unfolding modifiers.")
 
+let warn_hnf_deprecated =
+  let name = "hnf-derecated" in
+  let category = "deprecated" in
+  CWarnings.create ~name ~category (fun () ->
+    Pp.str "The “hnf” tactic is deprecated.")
+
 let reduction_of_red_expr env =
   let make_flag = make_flag env in
   let rec reduction_of_red_expr = function
   | Red internal ->
       if internal then (e_red try_red_product,DEFAULTcast)
       else (e_red red_product,DEFAULTcast)
-  | Hnf -> (e_red hnf_constr,DEFAULTcast)
+  | Hnf -> warn_hnf_deprecated (); (e_red hnf_constr, DEFAULTcast)
   | Simpl (f,o) ->
      let whd_am = if !simplIsCbn then whd_cbn (make_flag f) else whd_simpl in
      let am = if !simplIsCbn then strong_cbn (make_flag f) else simpl in
