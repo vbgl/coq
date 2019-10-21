@@ -664,6 +664,30 @@ let constructor_user_hash (ind, i) =
 let constructor_syntactic_hash (ind, i) =
   Hashset.Combine.combine (ind_syntactic_hash ind) (Int.hash i)
 
+module Projector =
+struct
+  (** Designation of a (particular) projector of a (particular) inductive type. *)
+  type t = int (* designates the index of the field, starting from zero *)
+           * inductive (* designates the inductive type *)
+  let equal (n1, ind1) (n2, ind2) = Int.equal n1 n2 && eq_ind ind1 ind2
+  let hash_gen ind_hash (n, ind) =
+    Hashset.Combine.combine (Int.hash n) (ind_hash ind)
+  let hash p = hash_gen ind_hash p
+  let print (n, (mind, idx)) =
+    Pp.(MutInd.print mind ++ str "[" ++ int idx ++ str "].(" ++ int n ++ str ")")
+
+  let compare_gen ind_ord (n1, ind1) (n2, ind2) =
+    let c = Int.compare n1 n2 in
+    if Int.equal c 0 then ind_ord ind1 ind2 else c
+  let compare p1 p2 = compare_gen ind_ord p1 p2
+
+  let map_mind f (n, (mind, i) as p) =
+    let mind' = f mind in
+    if mind' == mind then p else (n, (mind', i))
+end
+
+module Projectormap = Map.Make (Projector)
+
 module InductiveOrdered = struct
   type t = inductive
   let compare = ind_ord
@@ -851,6 +875,9 @@ struct
 
     let map f p = map_npars (fun mind n -> f mind, n) p
 
+    let to_projector p : Projector.t =
+      arg p, inductive p
+
     let to_string p = Constant.to_string (constant p)
     let print p = Constant.print (constant p)
   end
@@ -915,6 +942,9 @@ struct
   let map_npars f (c, b as x) =
     let c' = Repr.map_npars f c in
     if c' == c then x else (c', b)
+
+  let to_projector (p, _) : Projector.t =
+    Repr.to_projector p
 
   let to_string p = Constant.to_string (constant p)
   let print p = Constant.print (constant p)

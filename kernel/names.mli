@@ -493,6 +493,20 @@ module Constrmap : CMap.ExtS with type key = constructor and module Set := Const
 module Indmap_env : CMap.ExtS with type key = inductive and module Set := Indset_env
 module Constrmap_env : CMap.ExtS with type key = constructor and module Set := Constrset_env
 
+module Projector : sig
+  (** Designation of a (particular) projector of a (particular) inductive type. *)
+  type t = int (* designates the index of the field, starting from zero *)
+    * inductive (* designates the inductive type *)
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+  val hash_gen : (inductive -> int) -> (t -> int)
+  val map_mind : (MutInd.t -> MutInd.t) -> (t -> t)
+  val hash : t -> int
+  val print : t -> Pp.t
+end
+
+module Projectormap : CSig.MapS with type key = Projector.t
+
 val ind_modpath : inductive -> ModPath.t
 val constr_modpath : constructor -> ModPath.t
 
@@ -590,6 +604,8 @@ module Projection : sig
     val map : (MutInd.t -> MutInd.t) -> t -> t
     val map_npars : (MutInd.t -> int -> MutInd.t * int) -> t -> t
 
+    val to_projector : t -> Projector.t
+
     val to_string : t -> string
     (** Encode as a string (not to be used for user-facing messages). *)
 
@@ -634,6 +650,8 @@ module Projection : sig
 
   val map : (MutInd.t -> MutInd.t) -> t -> t
   val map_npars : (MutInd.t -> int -> MutInd.t * int) -> t -> t
+
+  val to_projector : t -> Projector.t
 
   val to_string : t -> string
   (** Encode as a string (not to be used for user-facing messages). *)
