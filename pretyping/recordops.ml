@@ -98,10 +98,17 @@ let find_projection = function
 
 let is_projection cst = Cmap.mem cst !projection_table
 
+(** Compatibility layer for primitive projections *)
+
+let primitive_projection_compat_table =
+  let name = "primproj-compat" in
+  Summary.ref (Projectormap.empty : Constant.t Projectormap.t) ~name
+
 let prim_table =
   Summary.ref (Cmap_env.empty : Projection.Repr.t Cmap_env.t) ~name:"record-prim-projs"
 
 let register_primitive_projection p c =
+  primitive_projection_compat_table := Projectormap.add (Projection.Repr.to_projector p) c !primitive_projection_compat_table;
   prim_table := Cmap_env.add c p !prim_table
 
 let is_primitive_projection c = Cmap_env.mem c !prim_table
