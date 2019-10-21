@@ -100,7 +100,7 @@ Lemma eqbP : Equality.axiom eqb.
 Proof. by do 2!case; constructor. Qed.
 
 Canonical bool_eqMixin := EqMixin eqbP.
-Canonical bool_eqType := Eval hnf in EqType bool bool_eqMixin.
+Canonical bool_eqType := Eval cbn in EqType bool bool_eqMixin.
 
 Section ProdEqType.
 
@@ -110,12 +110,12 @@ Definition pair_eq := [rel u v : T1 * T2 | (u.1 == v.1) && (u.2 == v.2)].
 
 Lemma pair_eqP : Equality.axiom pair_eq.
 Proof.
-move=> [x1 x2] [y1 y2] /=; apply: (iffP andP) => [[]|[<- <-]] //=.
+move=> [x1 x2] [y1 y2] /=; apply: (iffP andP) => [[]|[<- <-]]; last by split.
 by do 2!move/eqP->.
 Qed.
 
 Definition prod_eqMixin := EqMixin pair_eqP.
-Canonical prod_eqType := Eval hnf in EqType (T1 * T2) prod_eqMixin.
+Canonical prod_eqType := Eval cbn in EqType (T1 * T2) prod_eqMixin.
 
 End ProdEqType.
 
@@ -132,7 +132,7 @@ case=> [x|] [y|] /=; by [constructor | apply: (iffP eqP) => [|[]] ->].
 Qed.
 
 Canonical option_eqMixin := EqMixin opt_eqP.
-Canonical option_eqType := Eval hnf in EqType (option T) option_eqMixin.
+Canonical option_eqType := Eval cbn in EqType (option T) option_eqMixin.
 
 End OptionEqType.
 
@@ -332,7 +332,7 @@ Local Notation ev_ax := (fun T v => @Equality.axiom T (fun x y => v x == v y)).
 Lemma val_eqP : ev_ax sT val. Proof. exact: inj_eqAxiom val_inj. Qed.
 
 Definition sub_eqMixin := EqMixin val_eqP.
-Canonical sub_eqType := Eval hnf in EqType sT sub_eqMixin.
+Canonical sub_eqType := Eval cbn in EqType sT sub_eqMixin.
 
 Definition SubEqMixin :=
   (let: SubType _ v _ _ _ as sT' := sT
@@ -384,7 +384,7 @@ by elim: n m => [|n IHn] [|m] //= /IHn->.
 Qed.
 
 Canonical nat_eqMixin := EqMixin eqnP.
-Canonical nat_eqType := Eval hnf in EqType nat nat_eqMixin.
+Canonical nat_eqType := Eval cbn in EqType nat nat_eqMixin.
 
 Arguments eqnP [x y].
 Prenex Implicits eqnP.
@@ -445,7 +445,7 @@ Notation "m + n" := (addn m n) : nat_scope.
 Lemma addn0 : right_id 0 addn. Proof. by move=> n; apply/eqP; elim: n. Qed.
 Lemma add0n : left_id 0 addn.            Proof. by []. Qed.
 Lemma addSn m n : m.+1 + n = (m + n).+1. Proof. by []. Qed.
-Lemma addnS m n : m + n.+1 = (m + n).+1. Proof. by elim: m. Qed.
+Lemma addnS m n : m + n.+1 = (m + n).+1. Proof. by elim: m => // m /ltac:(cbn) ->. Qed.
 
 Lemma addnCA : left_commutative addn.
 Proof. by move=> m n p; elim: m => //= m; rewrite addnS => <-. Qed.
@@ -627,7 +627,7 @@ by apply: (iffP (IHs s2)) => [<-|[]].
 Qed.
 
 Canonical seq_eqMixin := EqMixin eqseqP.
-Canonical seq_eqType := Eval hnf in EqType (seq T) seq_eqMixin.
+Canonical seq_eqType := Eval cbn in EqType (seq T) seq_eqMixin.
 
 Fixpoint mem_seq (s : seq T) :=
   if s is y :: s' then xpredU1 y (mem_seq s') else xpred0.
@@ -643,8 +643,8 @@ Fixpoint uniq s := if s is x :: s' then (x \notin s') && uniq s' else true.
 End EqSeq.
 
 Definition bitseq := seq bool.
-Canonical bitseq_eqType := Eval hnf in [eqType of bitseq].
-Canonical bitseq_predType := Eval hnf in [predType of bitseq].
+Canonical bitseq_eqType := Eval cbn in [eqType of bitseq].
+Canonical bitseq_predType := Eval cbn in [predType of bitseq].
 
 Section Pmap.
 
@@ -748,7 +748,7 @@ End SubChoice.
 
 Fact seq_choiceMixin : choiceMixin (seq T).
 Admitted.
-Canonical seq_choiceType := Eval hnf in ChoiceType (seq T) seq_choiceMixin.
+Canonical seq_choiceType := Eval cbn in ChoiceType (seq T) seq_choiceMixin.
 End ChoiceTheory.
 
 Fact nat_choiceMixin : choiceMixin nat.
@@ -758,11 +758,11 @@ exists f => [P n m | P [n Pn] | P Q eqPQ n] /=; last by rewrite eqPQ.
   by case: ifP => // Pn [<-].
 by exists n; rewrite Pn.
 Qed.
-Canonical nat_choiceType := Eval hnf in ChoiceType nat nat_choiceMixin.
+Canonical nat_choiceType := Eval cbn in ChoiceType nat nat_choiceMixin.
 
 Definition bool_choiceMixin := CanChoiceMixin oddb.
-Canonical bool_choiceType := Eval hnf in ChoiceType bool bool_choiceMixin.
-Canonical bitseq_choiceType := Eval hnf in [choiceType of bitseq].
+Canonical bool_choiceType := Eval cbn in ChoiceType bool bool_choiceMixin.
+Canonical bitseq_choiceType := Eval cbn in [choiceType of bitseq].
 
 
 Notation "[ 'choiceMixin' 'of' T 'by' <: ]" :=
@@ -875,7 +875,7 @@ Structure subCountType : Type :=
   SubCountType {subCount_sort :> subType P; _ : mixin_of subCount_sort}.
 
 Coercion sub_countType (sT : subCountType) :=
-  Eval hnf in pack (let: SubCountType _ m := sT return mixin_of sT in m) id.
+  Eval cbn in pack (let: SubCountType _ m := sT return mixin_of sT in m) id.
 Canonical sub_countType.
 
 Definition pack_subCountType U :=
@@ -891,7 +891,7 @@ Notation "[ 'subCountType' 'of' T ]" :=
 
 Lemma nat_pickleK : pcancel id (@Some nat). Proof. by []. Qed.
 Definition nat_countMixin := CountMixin nat_pickleK.
-Canonical nat_countType := Eval hnf in CountType nat nat_countMixin.
+Canonical nat_countType := Eval cbn in CountType nat nat_countMixin.
 
 (* fintype --------------------------------------------------------- *)
 
@@ -1044,13 +1044,13 @@ Inductive ordinal : predArgType := Ordinal m of m < n.
 Coercion nat_of_ord i := let: Ordinal m _ := i in m.
 
 Canonical ordinal_subType := [subType for nat_of_ord].
-Definition ordinal_eqMixin := Eval hnf in [eqMixin of ordinal by <:].
-Canonical ordinal_eqType := Eval hnf in EqType ordinal ordinal_eqMixin.
+Definition ordinal_eqMixin := Eval cbn in [eqMixin of ordinal by <:].
+Canonical ordinal_eqType := Eval cbn in EqType ordinal ordinal_eqMixin.
 Definition ordinal_choiceMixin := [choiceMixin of ordinal by <:].
 Canonical ordinal_choiceType :=
-  Eval hnf in ChoiceType ordinal ordinal_choiceMixin.
+  Eval cbn in ChoiceType ordinal ordinal_choiceMixin.
 Definition ordinal_countMixin := [countMixin of ordinal by <:].
-Canonical ordinal_countType := Eval hnf in CountType ordinal ordinal_countMixin.
+Canonical ordinal_countType := Eval cbn in CountType ordinal ordinal_countMixin.
 Canonical ordinal_subCountType := [subCountType of ordinal].
 
 Lemma ltn_ord (i : ordinal) : i < n. Proof. exact: valP i. Qed.
@@ -1069,9 +1069,9 @@ Lemma mem_ord_enum i : i \in ord_enum.
 Admitted.
 
 Definition ordinal_finMixin :=
-  Eval hnf in UniqFinMixin ord_enum_uniq mem_ord_enum.
-Canonical ordinal_finType := Eval hnf in FinType ordinal ordinal_finMixin.
-Canonical ordinal_subFinType := Eval hnf in [subFinType of ordinal].
+  Eval cbn in UniqFinMixin ord_enum_uniq mem_ord_enum.
+Canonical ordinal_finType := Eval cbn in FinType ordinal ordinal_finMixin.
+Canonical ordinal_subFinType := Eval cbn in [subFinType of ordinal].
 
 End OrdinalSub.
 
