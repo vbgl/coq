@@ -113,7 +113,7 @@ Section Defs.
   (** Any symmetric crelation is equal to its inverse. *)
   
   Lemma subrelation_symmetric R `(Symmetric R) : subrelation (flip R) R.
-  Proof. hnf. intros x y H'. red in H'. apply symmetry. assumption. Qed.
+  Proof. compute. auto. Qed.
 
   Section flip.
   

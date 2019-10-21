@@ -28,7 +28,7 @@ Ltac compute_assertion eqn t' t :=
 
 Ltac relation_carrier req :=
   let ty := type of req in
-  match eval hnf in ty with
+  match eval lazy in ty with
    ?R -> _ => R
   | _ => fail 1000 "Equality has no relation type"
   end.

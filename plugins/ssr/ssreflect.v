@@ -284,7 +284,7 @@ Notation " #[# 'the' sT 'of' v : 'Type' #]#" := (@get Type sT v _ _)
    Definition my_type := a_type.
  my_type doesn't effectively inherit the struct structure from a_type. Our
  solution is to redeclare the instance as follows
-   Canonical my_type_struct := Eval hnf in #[#struct of my_type#]#.
+   Canonical my_type_struct := Eval lazy in #[#struct of my_type#]#.
  The special notation #[#str of _ #]# must be defined for each Strucure "str"
  with constructor "Str", typically as follows
    Definition clone_str s :=
@@ -406,7 +406,7 @@ Proof. unlock; discriminate. Qed.
 
 (**  The basic closing tactic "done".  **)
 Ltac done :=
-  trivial; hnf; intros; solve
+  trivial; lazy; intros; solve
    [ do ![solve [trivial | apply: sym_equal; trivial]
          | discriminate | contradiction | split]
    | case not_locked_false_eq_true; assumption
@@ -414,7 +414,7 @@ Ltac done :=
 
 (**  Quicker done tactic not including split, syntax: /0/  **)
 Ltac ssrdone0 :=
-  trivial; hnf; intros; solve
+  trivial; lazy; intros; solve
    [ do ![solve [trivial | apply: sym_equal; trivial]
          | discriminate | contradiction ]
    | case not_locked_false_eq_true; assumption

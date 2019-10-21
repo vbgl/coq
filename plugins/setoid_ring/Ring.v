@@ -36,7 +36,7 @@ destruct b1; destruct b2; auto.
 Qed.
 
 Ltac bool_cst t :=
-  let t := eval hnf in t in
+  let t := eval lazy in t in
   match t with
     true => constr:(true)
   | false => constr:(false)

@@ -107,7 +107,7 @@ Section Defs.
   (** Any symmetric relation is equal to its inverse. *)
   
   Lemma subrelation_symmetric R `(Symmetric R) : subrelation (flip R) R.
-  Proof. hnf. intros. red in H0. apply symmetry. assumption. Qed.
+  Proof. compute. auto. Qed.
 
   Section flip.
   
