@@ -53,7 +53,6 @@ val pf_e_reduce :
   Goal.goal sigma -> constr -> evar_map * constr
 
 val pf_whd_all       : Goal.goal sigma -> constr -> constr
-val pf_hnf_constr              : Goal.goal sigma -> constr -> constr
 val pf_nf                      : Goal.goal sigma -> constr -> constr
 val pf_nf_betaiota             : Goal.goal sigma -> constr -> constr
 val pf_reduce_to_quantified_ind : Goal.goal sigma -> types -> (inductive * EInstance.t) * types
