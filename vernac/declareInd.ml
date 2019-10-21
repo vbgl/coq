@@ -72,7 +72,9 @@ let inInductive : inductive_obj -> Libobject.obj =
   }
 
 
-let cache_prim (_,(p,c)) = Recordops.register_primitive_projection p c
+let cache_prim (_,(p,c)) =
+  Nametab.declare_compat_projection p;
+  Recordops.register_primitive_projection p c
 
 let load_prim _ p = cache_prim p
 

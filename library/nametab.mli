@@ -208,6 +208,10 @@ val shortest_qualid_of_modtype : ?loc:Loc.t -> ModPath.t -> qualid
 val shortest_qualid_of_module : ?loc:Loc.t -> ModPath.t -> qualid
 val shortest_qualid_of_universe : ?loc:Loc.t -> Univ.Level.UGlobal.t -> qualid
 
+(** Primitive projections *)
+val declare_compat_projection : Projection.Repr.t -> unit
+val get_compat_projection_for_projector : Projector.t -> Projection.Repr.t
+
 (** {5 Generic name handling} *)
 
 (** NOT FOR PUBLIC USE YET. Plugin writers, please do not rely on this API. *)
