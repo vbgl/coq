@@ -1302,7 +1302,7 @@ let w_coerce_to_type env evd c cty mvty =
     (* inh_conv_coerce_rigid_to should have reasoned modulo reduction
        but there are cases where it though it was not rigid (like in
        fst (nat,nat)) and stops while it could have seen that it is rigid *)
-    let cty = Tacred.hnf_constr env evd cty in
+    let cty = whd_all env evd cty in
       try_to_coerce env evd c cty tycon
 	  
 let w_coerce env evd mv c =
