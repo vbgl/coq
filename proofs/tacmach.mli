@@ -53,7 +53,6 @@ val pf_e_reduce :
   Goal.goal sigma -> constr -> evar_map * constr
 
 val pf_whd_all       : Goal.goal sigma -> constr -> constr
-val pf_hnf_constr              : Goal.goal sigma -> constr -> constr
 val pf_nf                      : Goal.goal sigma -> constr -> constr
 val pf_nf_betaiota             : Goal.goal sigma -> constr -> constr
 val pf_reduce_to_quantified_ind : Goal.goal sigma -> types -> (inductive * EInstance.t) * types
@@ -105,7 +104,10 @@ module New : sig
   val pf_nf_concl : Proofview.Goal.t -> types
   val pf_reduce_to_quantified_ind : Proofview.Goal.t -> types -> (inductive * EInstance.t) * types
 
+  val pf_whd_all       : Proofview.Goal.t -> constr -> constr
   val pf_hnf_constr : Proofview.Goal.t -> constr -> types
+  [@@ocaml.deprecated "use pf_whd_all"]
+
   val pf_hnf_type_of : Proofview.Goal.t -> constr -> types
 
   val pf_compute : Proofview.Goal.t -> constr -> constr

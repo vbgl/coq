@@ -1929,7 +1929,7 @@ let apply_in_delayed_once ?(respect_opaque = false) with_delta
 let cut_and_apply c =
   Proofview.Goal.enter begin fun gl ->
     let sigma = Tacmach.New.project gl in
-    match EConstr.kind sigma (Tacmach.New.pf_hnf_constr gl (Tacmach.New.pf_unsafe_type_of gl c)) with
+    match EConstr.kind sigma (Tacmach.New.pf_whd_all gl (Tacmach.New.pf_unsafe_type_of gl c)) with
       | Prod (_,c1,c2) when Vars.noccurn sigma 1 c2 ->
         let concl = Proofview.Goal.concl gl in
         let env = Tacmach.New.pf_env gl in

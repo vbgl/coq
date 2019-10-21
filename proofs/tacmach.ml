@@ -71,7 +71,6 @@ let pf_reduce = pf_apply
 let pf_e_reduce = pf_apply
 
 let pf_whd_all         = pf_reduce whd_all
-let pf_hnf_constr                = pf_reduce hnf_constr
 let pf_nf                        = pf_reduce simpl
 let pf_nf_betaiota               = pf_reduce nf_betaiota
 let pf_compute                   = pf_reduce compute
@@ -175,7 +174,9 @@ module New = struct
   let pf_reduce_to_quantified_ind gl t =
     pf_apply reduce_to_quantified_ind gl t
 
+  [@@@ocaml.warning "-3"]
   let pf_hnf_constr gl t = pf_apply hnf_constr gl t
+
   let pf_hnf_type_of gl t =
     pf_whd_all gl (pf_get_type_of gl t)
 
