@@ -578,3 +578,14 @@ let global_inductive qid =
   | ref ->
       user_err ?loc:qid.CAst.loc ~hdr:"global_inductive"
         (pr_qualid qid ++ spc () ++ str "is not an inductive type")
+
+(* Primitive projections *)
+let primitive_projection_compat_table =
+  let name = "primproj-compat" in
+  Summary.ref (Projectormap.empty : Projection.Repr.t Projectormap.t) ~name
+
+let declare_compat_projection (p: Projection.Repr.t) : unit =
+    primitive_projection_compat_table := Projectormap.add (Projection.Repr.to_projector p) p !primitive_projection_compat_table
+
+let get_compat_projection_for_projector (p: Projector.t) : Projection.Repr.t =
+  Projectormap.find p !primitive_projection_compat_table
