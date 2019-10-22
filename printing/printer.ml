@@ -161,6 +161,11 @@ let id_of_global env = let open GlobRef in function
     (Environ.lookup_mind kn env).mind_packets.(i).mind_typename
   | ConstructRef ((kn,i),j) ->
     (Environ.lookup_mind kn env).mind_packets.(i).mind_consnames.(j-1)
+  | ProjectorRef (n, (kn, i)) ->
+    begin match (Environ.lookup_mind kn env).mind_record with
+      | PrimRecord r -> let (_, labs, _, _) = r.(i) in Label.to_id labs.(n)
+      | NotRecord | FakeRecord -> assert false
+    end
   | VarRef v -> v
 
 let rec dirpath_of_mp = function
@@ -171,6 +176,7 @@ let rec dirpath_of_mp = function
 
 let dirpath_of_global = let open GlobRef in function
   | ConstRef kn -> dirpath_of_mp (Constant.modpath kn)
+  | ProjectorRef (_, (kn, _))
   | IndRef (kn,_) | ConstructRef ((kn,_),_) ->
     dirpath_of_mp (MutInd.modpath kn)
   | VarRef _ -> DirPath.empty
@@ -928,6 +934,7 @@ let pr_assumptionset env sigma s =
         | ConstRef con -> Constant.print con
         | IndRef (mind,_) -> MutInd.print mind
         | ConstructRef _ -> assert false
+        | ProjectorRef p -> Projector.print p
     in
     let safe_pr_inductive env kn =
       try pr_inductive env (kn,0)

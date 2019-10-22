@@ -212,6 +212,7 @@ let is_in_section env gr s =
       List.exists (fun decl -> Id.equal id (NamedDecl.get_id decl)) vars
     | ConstRef con ->
       Cmap.mem con (fst sec.sec_data)
+    | ProjectorRef (_, (ind, _))
     | IndRef (ind, _) | ConstructRef ((ind, _), _) ->
       Mindmap.mem ind (snd sec.sec_data)
   in

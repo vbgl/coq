@@ -31,12 +31,14 @@ module Refset' = GlobRef.Set_env
 (*S Utilities about [module_path] and [kernel_names] and [global_reference] *)
 
 let occur_kn_in_ref kn = let open GlobRef in function
+  | ProjectorRef (_, (kn', _))
   | IndRef (kn',_)
   | ConstructRef ((kn',_),_) -> MutInd.equal kn kn'
   | ConstRef _ | VarRef _ -> false
 
 let repr_of_r = let open GlobRef in function
   | ConstRef kn -> Constant.repr2 kn
+  | ProjectorRef (_, (kn, _))
   | IndRef (kn,_)
   | ConstructRef ((kn,_),_) -> MutInd.repr2 kn
   | VarRef v -> KerName.repr (Lib.make_kn v)
@@ -274,6 +276,7 @@ let safe_basename_of_global r =
     | ConstructRef ((kn,i),j) ->
       (try (unsafe_lookup_ind kn).ind_packets.(i).ip_consnames.(j-1)
        with Not_found -> last_chance r)
+    | ProjectorRef _ -> last_chance r
     | VarRef v -> v
 
 let string_of_global r =

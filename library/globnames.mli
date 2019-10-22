@@ -17,6 +17,7 @@ type global_reference = GlobRef.t =
   | ConstRef of Constant.t [@ocaml.deprecated "Use Names.GlobRef.ConstRef"]
   | IndRef of inductive    [@ocaml.deprecated "Use Names.GlobRef.IndRef"]
   | ConstructRef of constructor [@ocaml.deprecated "Use Names.GlobRef.ConstructRef"]
+  | ProjectorRef of Projector.t [@ocaml.deprecated "Use Names.GlobRef.ProjectorRef"]
 [@@ocaml.deprecated "Use Names.GlobRef.t"]
 
 val isVarRef : GlobRef.t -> bool

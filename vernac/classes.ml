@@ -195,6 +195,7 @@ let discharge_class (_,cl) =
     match cl.cl_impl with
       | VarRef _ | ConstructRef _ -> assert false
       | ConstRef cst -> Lib.section_segment_of_constant cst
+      | ProjectorRef (_, (ind, _))
       | IndRef (ind,_) -> Lib.section_segment_of_mutual_inductive ind in
   let discharge_context ctx' subst (grs, ctx) =
     let env = Global.env () in

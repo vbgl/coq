@@ -955,6 +955,7 @@ module GlobRefInternal = struct
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
+    | ProjectorRef of Projector.t (** A reference to a projector. *)
 
   let equal gr1 gr2 =
     gr1 == gr2 || match gr1,gr2 with
@@ -962,7 +963,8 @@ module GlobRefInternal = struct
     | IndRef kn1, IndRef kn2 -> eq_ind kn1 kn2
     | ConstructRef kn1, ConstructRef kn2 -> eq_constructor kn1 kn2
     | VarRef v1, VarRef v2 -> Id.equal v1 v2
-    | (ConstRef _ | IndRef _ | ConstructRef _ | VarRef _), _ -> false
+    | ProjectorRef p1, ProjectorRef p2 -> Projector.equal p1 p2
+    | (ConstRef _ | IndRef _ | ConstructRef _ | VarRef _ | ProjectorRef _), _ -> false
 
   let global_eq_gen eq_cst eq_ind eq_cons x y =
     x == y ||
@@ -971,7 +973,8 @@ module GlobRefInternal = struct
     | IndRef indx, IndRef indy -> eq_ind indx indy
     | ConstructRef consx, ConstructRef consy -> eq_cons consx consy
     | VarRef v1, VarRef v2 -> Id.equal v1 v2
-    | (VarRef _ | ConstRef _ | IndRef _ | ConstructRef _), _ -> false
+    | ProjectorRef (n1, ind1), ProjectorRef (n2, ind2) -> Int.equal n1 n2 && eq_ind ind1 ind2
+    | (VarRef _ | ConstRef _ | IndRef _ | ConstructRef _ | ProjectorRef _), _ -> false
 
   let global_ord_gen ord_cst ord_ind ord_cons x y =
     if x == y then 0
@@ -986,6 +989,9 @@ module GlobRefInternal = struct
     | IndRef _, _ -> -1
     | _ , IndRef _ -> 1
     | ConstructRef consx, ConstructRef consy -> ord_cons consx consy
+    | ConstructRef _, _ -> -1
+    | _, ConstructRef _ -> 1
+    | ProjectorRef p1, ProjectorRef p2 -> Projector.compare_gen ord_ind p1 p2
 
   let global_hash_gen hash_cst hash_ind hash_cons gr =
     let open Hashset.Combine in
@@ -994,6 +1000,7 @@ module GlobRefInternal = struct
     | IndRef i -> combinesmall 2 (hash_ind i)
     | ConstructRef c -> combinesmall 3 (hash_cons c)
     | VarRef id -> combinesmall 4 (Id.hash id)
+    | ProjectorRef p -> combinesmall 5 (Projector.hash p)
 
 end
 
@@ -1004,6 +1011,7 @@ module GlobRef = struct
     | ConstRef of Constant.t       (** A reference to the environment. *)
     | IndRef of inductive          (** A reference to an inductive type. *)
     | ConstructRef of constructor  (** A reference to a constructor of an inductive type. *)
+    | ProjectorRef of Projector.t (** A reference to a projector. *)
 
   let equal = GlobRefInternal.equal
 

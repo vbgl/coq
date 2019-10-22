@@ -430,6 +430,7 @@ let compute_global_implicits flags = let open GlobRef in function
       let ((_,imps),_) = (compute_mib_implicits flags kn).(i) in imps
   | ConstructRef ((kn,i),j) ->
       let (_,cimps) = (compute_mib_implicits flags kn).(i) in snd cimps.(j-1)
+  | ProjectorRef _ -> []
 
 (* Merge a manual explicitation with an implicit_status list *)
 

@@ -292,6 +292,7 @@ let coerce_to_evaluable_ref env sigma v =
     match r with
     | VarRef var -> EvalVarRef var
     | ConstRef c -> EvalConstRef c
+    | ProjectorRef _
     | IndRef _ | ConstructRef _ -> fail ()
   else
     match Value.to_constr v with

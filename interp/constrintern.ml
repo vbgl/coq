@@ -1065,6 +1065,7 @@ let check_applied_projection isproj realref qid =
     let open GlobRef in
     let is_prim = match realref with
       | None | Some (IndRef _ | ConstructRef _ | VarRef _) -> false
+      | Some (ProjectorRef _) -> true
       | Some (ConstRef c) ->
         if Recordops.is_primitive_projection c then true
         else if Recordops.is_projection c then false
@@ -1291,7 +1292,7 @@ let find_constructor loc add_params ref =
   | IndRef _ ->
     let error = str "There is an inductive name deep in a \"in\" clause." in
     user_err ?loc ~hdr:"find_constructor" error
-  | ConstRef _ | VarRef _ ->
+  | ConstRef _ | VarRef _ | ProjectorRef _ ->
     let error = str "This reference is not a constructor." in
     user_err ?loc ~hdr:"find_constructor" error
   in

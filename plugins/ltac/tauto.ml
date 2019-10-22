@@ -193,6 +193,7 @@ let evalglobref_of_globref =
   function
   | GlobRef.VarRef v -> EvalVarRef v
   | GlobRef.ConstRef c -> EvalConstRef c
+  | GlobRef.ProjectorRef _
   | GlobRef.IndRef _ | GlobRef.ConstructRef _ -> assert false
 
 let make_unfold name =

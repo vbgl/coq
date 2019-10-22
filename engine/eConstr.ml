@@ -82,6 +82,7 @@ let mkRef (gr,u) = let open GlobRef in match gr with
   | IndRef ind -> mkIndU (ind,u)
   | ConstructRef c -> mkConstructU (c,u)
   | VarRef x -> mkVar x
+  | ProjectorRef _ -> assert false (* TODO *)
 
 let type1 = mkSort Sorts.type1
 
@@ -438,6 +439,7 @@ let eq_universes env sigma cstrs cv_pb ref nargs l l' =
     | VarRef _ -> assert false (* variables don't have instances *)
     | ConstRef _ ->
       cstrs := enforce_eq_instances_univs true l l' !cstrs; true
+    | ProjectorRef (_, ind)
     | IndRef ind ->
       let mind = Environ.lookup_mind (fst ind) env in
       cstrs := cmp_inductives cv_pb (mind,snd ind) nargs l l' !cstrs;

@@ -461,6 +461,7 @@ let type_of_global_in_context env r =
     let univs = Declareops.inductive_polymorphic_context mib in
     let inst = Univ.make_abstract_instance univs in
     Inductive.type_of_constructor (cstr,inst) specif, univs
+  | ProjectorRef _ -> assert false (* TODO *)
 
 (************************************************************************)
 (************************************************************************)

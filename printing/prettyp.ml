@@ -84,6 +84,7 @@ let print_ref reduce ref udecl =
     else typ in
   let variance = let open GlobRef in match ref with
     | VarRef _ | ConstRef _ -> None
+    | ProjectorRef (_, (ind, _))
     | IndRef (ind,_) | ConstructRef ((ind,_),_) ->
       let mind = Environ.lookup_mind ind env in
       mind.Declarations.mind_variance
@@ -370,6 +371,7 @@ let pr_located_qualid = function
 	  ConstRef _ -> "Constant"
 	| IndRef _ -> "Inductive"
 	| ConstructRef _ -> "Constructor"
+  | ProjectorRef _ -> "Projector"
 	| VarRef _ -> "Variable" in
       str ref_str ++ spc () ++ pr_path (Nametab.path_of_global ref)
   | Syntactic kn ->
@@ -403,6 +405,10 @@ let canonize_ref = let open GlobRef in function
     let kn = MutInd.canonical ind in
     if KerName.equal (MutInd.user ind) kn then None
     else Some (ConstructRef ((MutInd.make1 kn, i),j))
+  | ProjectorRef (n, (ind,i)) ->
+    let kn = MutInd.canonical ind in
+    if KerName.equal (MutInd.user ind) kn then None
+    else Some (ProjectorRef (n, (MutInd.make1 kn, i)))
   | VarRef _ -> None
 
 let display_alias = function
@@ -798,7 +804,7 @@ let print_sec_context_typ ~mod_ops indirect_accessor env sigma sec =
 let maybe_error_reject_univ_decl na udecl =
   let open GlobRef in
   match na, udecl with
-  | _, None | Term (ConstRef _ | IndRef _ | ConstructRef _), Some _ -> ()
+  | _, None | Term (ConstRef _ | IndRef _ | ConstructRef _ | ProjectorRef _), Some _ -> ()
   | (Term (VarRef _) | Syntactic _ | Dir _ | ModuleType _ | Other _ | Undefined _), Some udecl ->
     (* TODO Print na somehow *)
     user_err ~hdr:"reject_univ_decl" (str "This object does not support universe names.")
@@ -808,6 +814,7 @@ let print_any_name ~mod_ops indirect_accessor env sigma na udecl =
   let open GlobRef in
   match na with
   | Term (ConstRef sp) -> print_constant_with_infos indirect_accessor sp udecl
+  | Term (ProjectorRef (_, (sp, _)))
   | Term (IndRef (sp,_)) -> print_inductive sp udecl
   | Term (ConstructRef ((sp,_),_)) -> print_inductive sp udecl
   | Term (VarRef sp) -> print_section_variable env sigma sp
@@ -855,6 +862,7 @@ let print_opaque_name indirect_accessor env sigma qid =
       print_typed_value_in_env env sigma (mkConstruct cstr, ty)
     | VarRef id ->
       env |> lookup_named id |> print_named_decl env sigma
+    | ProjectorRef _ -> assert false (* TODO *)
 
 let print_about_any ?loc env sigma k udecl =
   maybe_error_reject_univ_decl k udecl;

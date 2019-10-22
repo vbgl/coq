@@ -638,6 +638,7 @@ let universes_of_global env r =
     match r with
     | VarRef _ -> Univ.AUContext.empty
     | ConstRef c -> constant_context env c
+    | ProjectorRef (_, (mind, _))
     | IndRef (mind,_) | ConstructRef ((mind,_),_) ->
       let mib = lookup_mind mind env in
       Declareops.inductive_polymorphic_context mib
@@ -649,6 +650,7 @@ let vars_of_global env gr =
   match gr with
   | VarRef id -> Id.Set.singleton id
   | ConstRef kn -> lookup_constant_variables kn env
+  | ProjectorRef (_, ind)
   | IndRef ind -> lookup_inductive_variables ind env
   | ConstructRef cstr -> lookup_constructor_variables cstr env
 
@@ -779,6 +781,7 @@ let is_polymorphic env r =
   match r with
   | VarRef _id -> false
   | ConstRef c -> polymorphic_constant c env
+  | ProjectorRef (_, ind)
   | IndRef ind -> polymorphic_ind ind env
   | ConstructRef cstr -> polymorphic_ind (inductive_of_constructor cstr) env
 
@@ -787,6 +790,7 @@ let is_template_polymorphic env r =
   match r with
   | VarRef _id -> false
   | ConstRef _c -> false
+  | ProjectorRef (_, ind)
   | IndRef ind -> template_polymorphic_ind ind env
   | ConstructRef cstr -> template_polymorphic_ind (inductive_of_constructor cstr) env
 
@@ -795,6 +799,7 @@ let get_template_polymorphic_variables env r =
   match r with
   | VarRef _id -> []
   | ConstRef _c -> []
+  | ProjectorRef (_, ind)
   | IndRef ind -> template_polymorphic_variables ind env
   | ConstructRef cstr -> template_polymorphic_variables (inductive_of_constructor cstr) env
 
@@ -803,6 +808,7 @@ let is_template_checked env r =
   match r with
   | VarRef _id -> false
   | ConstRef _c -> false
+  | ProjectorRef (_, ind)
   | IndRef ind -> template_checked_ind ind env
   | ConstructRef cstr -> template_checked_ind (inductive_of_constructor cstr) env
 
@@ -811,6 +817,7 @@ let is_type_in_type env r =
   match r with
   | VarRef _id -> false
   | ConstRef c -> type_in_type_constant c env
+  | ProjectorRef (_, ind)
   | IndRef ind -> type_in_type_ind ind env
   | ConstructRef cstr -> type_in_type_ind (inductive_of_constructor cstr) env
 
