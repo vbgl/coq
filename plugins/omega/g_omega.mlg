@@ -31,7 +31,14 @@ let eval_tactic name =
   let tac = Tacenv.interp_ltac kn in
   Tacinterp.eval_tactic tac
 
+let warn_omega_is_deprecated =
+  let name = "omega-is-deprecated" in
+  let category = "deprecated" in
+  CWarnings.create ~name ~category (fun () ->
+    Pp.str "omega is deprecated since 8.12; use “lia” instead.")
+
 let omega_tactic l =
+  warn_omega_is_deprecated ();
   let tacs = List.map
     (function
        | "nat" -> eval_tactic "zify_nat"

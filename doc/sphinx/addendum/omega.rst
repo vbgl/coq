@@ -10,6 +10,8 @@ Description of ``omega``
 
 .. tacn:: omega
 
+   .. deprecated:: 8.12
+
    :tacn:`omega` is a tactic for solving goals in Presburger arithmetic,
    i.e. for proving formulas made of equations and inequalities over the
    type ``nat`` of natural numbers or the type ``Z`` of binary-encoded integers.
@@ -97,7 +99,7 @@ loaded by
 
 .. example::
 
-  .. coqtop:: all
+  .. coqtop:: all warn
 
      Require Import Omega.
 
