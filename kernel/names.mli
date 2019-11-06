@@ -503,6 +503,7 @@ module Projector : sig
   val map_mind : (MutInd.t -> MutInd.t) -> (t -> t)
   val hash : t -> int
   val print : t -> Pp.t
+  val hcons : t -> t
 end
 
 module Projectormap : CSig.MapS with type key = Projector.t

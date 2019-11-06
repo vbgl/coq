@@ -2085,8 +2085,8 @@ let compile_deps env sigma prefix ~interactive init t =
       let const_updates = Cmap_env.add c (nameref, name) const_updates in
       comp_stack, (mind_updates, const_updates)
   | Construct (((mind,_),_),_u) -> compile_mind_deps env prefix ~interactive init mind
-  | Proj (p,c) ->
-    let init = compile_mind_deps env prefix ~interactive init (Projection.mind p) in
+  | Proj ((_, (mind, _)),c) ->
+    let init = compile_mind_deps env prefix ~interactive init mind in
     aux env lvl init c
   | Case (ci, _p, _c, _ac) ->
       let mind = fst ci.ci_ind in

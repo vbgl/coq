@@ -424,12 +424,12 @@ let type_of_case env ci p pt c ct _lf lft =
   ci, rslty
 
 let type_of_projection env p c ct =
-  let pty = lookup_projection p env in
+  let pty = lookup_projector p env in
   let (ind,u), args =
     try find_rectype env ct
     with Not_found -> error_case_not_inductive env (make_judge c ct)
   in
-  assert(eq_ind (Projection.inductive p) ind);
+  assert(eq_ind (snd p) ind);
   let ty = Vars.subst_instance_constr u pty in
   substl (c :: CList.rev args) ty
       

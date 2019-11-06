@@ -244,6 +244,8 @@ val is_primitive : env -> Constant.t -> bool
 
 (** {6 Primitive projections} *)
 
+val lookup_projector : Names.Projector.t -> env -> types
+
 (** Checks that the number of parameters is correct. *)
 val lookup_projection : Names.Projection.t -> env -> types
 

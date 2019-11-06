@@ -72,7 +72,7 @@ type lft_fconstr = lift * fconstr
 
 type lft_constr_stack_elt =
     Zlapp of (lift * fconstr) array
-  | Zlproj of Projection.Repr.t * lift
+  | Zlproj of Projector.t * lift
   | Zlfix of (lift * fconstr) * lft_constr_stack
   | Zlcase of case_info * lift * constr * constr array * fconstr subs
   | Zlprimitive of
@@ -404,31 +404,16 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
          eqappr cv_pb l2r infos app1 app2 cuniv)
 
     | (FProj (p1,c1), FProj (p2, c2)) ->
-      (* Projections: prefer unfolding to first-order unification,
-	 which will happen naturally if the terms c1, c2 are not in constructor
-	 form *)
-      (match unfold_projection infos.cnv_inf p1 with
-      | Some s1 ->
-        eqappr cv_pb l2r infos (lft1, (c1, (s1 :: v1))) appr2 cuniv
-      | None ->
-        match unfold_projection infos.cnv_inf p2 with
-        | Some s2 ->
-          eqappr cv_pb l2r infos appr1 (lft2, (c2, (s2 :: v2))) cuniv
-        | None ->
-          if Projection.Repr.equal (Projection.repr p1) (Projection.repr p2)
+          if Projector.equal p1 p2
              && compare_stack_shape v1 v2 then
             let el1 = el_stack lft1 v1 in
             let el2 = el_stack lft2 v2 in
             let u1 = ccnv CONV l2r infos el1 el2 c1 c2 cuniv in
               convert_stacks l2r infos lft1 lft2 v1 v2 u1
           else (* Two projections in WHNF: unfold *)
-	    raise NotConvertible)
+            raise NotConvertible
 
-    | (FProj (p1,c1), t2) ->
-      begin match unfold_projection infos.cnv_inf p1 with
-       | Some s1 ->
-         eqappr cv_pb l2r infos (lft1, (c1, (s1 :: v1))) appr2 cuniv
-       | None ->
+    | (FProj _, t2) ->
          begin match t2 with
           | FFlex fl2 ->
             begin match unfold_ref_with_args infos.cnv_inf infos.rgt_tab fl2 v2 with
@@ -438,13 +423,8 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
             end
           | _ -> raise NotConvertible
          end
-      end
 
-    | (t1, FProj (p2,c2)) ->
-      begin match unfold_projection infos.cnv_inf p2 with
-       | Some s2 ->
-         eqappr cv_pb l2r infos appr1 (lft2, (c2, (s2 :: v2))) cuniv
-       | None ->
+    | (t1, FProj _) ->
          begin match t1 with
           | FFlex fl1 ->
             begin match unfold_ref_with_args infos.cnv_inf infos.lft_tab fl1 v1 with
@@ -453,7 +433,6 @@ and eqappr cv_pb l2r infos (lft1,st1) (lft2,st2) cuniv =
              | None -> raise NotConvertible
             end
           | _ -> raise NotConvertible
-         end
       end
 
     (* other constructors *)
@@ -649,7 +628,7 @@ and convert_stacks l2r infos lft1 lft2 stk1 stk2 cuniv =
             | (Zlapp a1,Zlapp a2) ->
                Array.fold_right2 f a1 a2 cu1
             | (Zlproj (c1,_l1),Zlproj (c2,_l2)) ->
-              if not (Projection.Repr.equal c1 c2) then
+              if not (Projector.equal c1 c2) then
                 raise NotConvertible
               else cu1
             | (Zlfix(fx1,a1),Zlfix(fx2,a2)) ->

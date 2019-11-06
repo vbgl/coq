@@ -152,7 +152,7 @@ val val_of_block : tag -> structured_values array -> structured_values
 val val_of_uint : Uint63.t -> structured_values
 
 external val_of_annot_switch : annot_switch -> values = "%identity"
-external val_of_proj_name : Projection.Repr.t -> values = "%identity"
+external val_of_proj_name : Projector.t -> values = "%identity"
 
 (** Destructors *)
 

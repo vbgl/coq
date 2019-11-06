@@ -63,10 +63,6 @@ module type RedFlagsSig = sig
 
   (** Tests if a reduction kind is set *)
   val red_set : reds -> red_kind -> bool
-
-  (** This tests if the projection is in unfolded state already or
-      is unfodable due to delta. *)
-  val red_projection : reds -> Projection.t -> bool
 end
 
 module RedFlags : RedFlagsSig
@@ -106,7 +102,7 @@ type fterm =
   | FInd of inductive Univ.puniverses
   | FConstruct of constructor Univ.puniverses
   | FApp of fconstr * fconstr array
-  | FProj of Projection.t * fconstr
+  | FProj of Projector.t * fconstr
   | FFix of fixpoint * fconstr subs
   | FCoFix of cofixpoint * fconstr subs
   | FCaseT of case_info * constr * fconstr * constr array * fconstr subs (* predicate and branches are closures *)
@@ -128,7 +124,7 @@ type 'a next_native_args = (CPrimitives.arg_kind * 'a) list
 type stack_member =
   | Zapp of fconstr array
   | ZcaseT of case_info * constr * constr array * fconstr subs
-  | Zproj of Projection.Repr.t
+  | Zproj of Projector.t
   | Zfix of fconstr * stack
   | Zprimitive of CPrimitives.t * pconstant * fconstr list * fconstr next_native_args
        (* operator, constr def, reduced arguments rev, next arguments *)
@@ -180,7 +176,6 @@ val create_tab : unit -> clos_tab
 
 val info_env : clos_infos -> env
 val info_flags: clos_infos -> reds
-val unfold_projection : clos_infos -> Projection.t -> stack_member option
 
 val infos_with_reds : clos_infos -> reds -> clos_infos
 

@@ -34,10 +34,9 @@ let relevance_of_constructor env ((mi,i),_) =
   let packet = decl.mind_packets.(i) in
   packet.mind_relevance
 
-let relevance_of_projection env p =
-  let mind = Projection.mind p in
+let relevance_of_projector env (_, (mind, _) as p) =
   let mib = lookup_mind mind env in
-  Declareops.relevance_of_projection_repr mib (Projection.repr p)
+  Declareops.relevance_of_projector mib p
 
 let rec relevance_of_rel_extra env extra n =
   match extra with
@@ -64,7 +63,7 @@ let rec relevance_of_fterm env extra lft f =
       | FInd _ | FProd _ -> Sorts.Relevant (* types are always relevant *)
       | FConstruct (c,_) -> relevance_of_constructor env c
       | FApp (f, _) -> relevance_of_fterm env extra lft f
-      | FProj (p, _) -> relevance_of_projection env p
+      | FProj (p, _) -> relevance_of_projector env p
       | FFix (((_,i),(lna,_,_)), _) -> (lna.(i)).binder_relevance
       | FCoFix ((i,(lna,_,_)), _) -> (lna.(i)).binder_relevance
       | FCaseT (ci, _, _, _, _) -> ci.ci_relevance
@@ -104,7 +103,7 @@ and relevance_of_term_extra env extra lft subs c =
   | Case (ci, _, _, _) -> ci.ci_relevance
   | Fix ((_,i),(lna,_,_)) -> (lna.(i)).binder_relevance
   | CoFix (i,(lna,_,_)) -> (lna.(i)).binder_relevance
-  | Proj (p, _) -> relevance_of_projection env p
+  | Proj (p, _) -> relevance_of_projector env p
   | Int _ | Float _ -> Sorts.Relevant
 
   | Meta _ | Evar _ -> Sorts.Relevant (* let's assume metas and evars are relevant for now *)

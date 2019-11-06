@@ -122,7 +122,7 @@ val mkConst : Constant.t -> constr
 val mkConstU : pconstant -> constr
 
 (** Constructs a projection application *)
-val mkProj : (Projection.t * constr) -> constr
+val mkProj : (Projector.t * constr) -> constr
 
 (** Inductive types *)
 
@@ -235,7 +235,7 @@ type ('constr, 'types, 'sort, 'univs) kind_of_term =
   | Case      of case_info * 'constr * 'constr * 'constr array
   | Fix       of ('constr, 'types) pfixpoint
   | CoFix     of ('constr, 'types) pcofixpoint
-  | Proj      of Projection.t * 'constr
+  | Proj      of Projector.t * 'constr
   | Int       of Uint63.t
   | Float     of Float64.t
 
@@ -340,7 +340,7 @@ where [info] is pretty-printing information *)
 val destCase : constr -> case_info * constr * constr * constr array
 
 (** Destructs a projection *)
-val destProj : constr -> Projection.t * constr
+val destProj : constr -> Projector.t * constr
 
 (** Destructs the {% $ %}i{% $ %}th function of the block
    [Fixpoint f{_ 1} ctx{_ 1} = b{_ 1}

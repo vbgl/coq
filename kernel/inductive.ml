@@ -799,14 +799,13 @@ let rec subterm_specif renv stack t =
       (* Metas and evars are considered OK *)
     | (Meta _|Evar _) -> Dead_code
 
-    | Proj (p, c) -> 
+    | Proj ((n, _), c) ->
       let subt = subterm_specif renv stack c in
       (match subt with
        | Subterm (_s, wf) ->
          (* We take the subterm specs of the constructor of the record *)
          let wf_args = (dest_subterms wf).(0) in
          (* We extract the tree of the projected argument *)
-         let n = Projection.arg p in
          spec_of_tree (List.nth wf_args n)
        | Dead_code -> Dead_code
        | Not_subterm -> Not_subterm)
@@ -1041,7 +1040,7 @@ let check_one_fix renv recpos trees def =
               match kind hd with
               | Construct _ ->
                   check_rec_call renv []
-                    (Term.applist (mkProj(Projection.unfold p,c), l))
+                    (Term.applist (mkProj(p, c), l))
               | _ -> Exninfo.iraise exn
             end
 

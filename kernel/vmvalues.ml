@@ -499,7 +499,7 @@ let val_of_constant c = val_of_idkey (ConstKey c)
 let val_of_evar evk = val_of_idkey (EvarKey evk)
 
 external val_of_annot_switch : annot_switch -> values = "%identity"
-external val_of_proj_name : Projection.Repr.t -> values = "%identity"
+external val_of_proj_name : Projector.t -> values = "%identity"
 
 (*************************************************)
 (** Operations manipulating data types ***********)

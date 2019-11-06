@@ -32,7 +32,7 @@ type lambda =
   | Lval          of structured_values
   | Lsort         of Sorts.t
   | Lind          of pinductive
-  | Lproj         of Projection.Repr.t * lambda
+  | Lproj         of Projector.t * lambda
 
 (* We separate branches for constant and non-constant constructors. If the OCaml
    limitation on non-constant constructors is reached, remaining branches are
@@ -160,7 +160,7 @@ let rec pp_lam lam =
             str")")
   | Lproj(p,arg) ->
     hov 1
-      (str "(proj " ++ Projection.Repr.print p ++ str "(" ++ pp_lam arg
+      (str "(proj " ++ Projector.print p ++ str "(" ++ pp_lam arg
        ++ str ")")
   | Lint i ->
     Pp.(str "(int:" ++ int i ++ str ")")
@@ -764,7 +764,7 @@ let rec lambda_of_constr env c =
 
   | Proj (p,c) ->
     let lc = lambda_of_constr env c in
-    Lproj (Projection.repr p,lc)
+    Lproj (p, lc)
 
   | Int i -> Luint i
   | Float f -> Lfloat f

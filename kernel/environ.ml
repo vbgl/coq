@@ -561,6 +561,14 @@ let polymorphic_pconstant (cst,u) env =
 let type_in_type_constant cst env =
   not (lookup_constant cst env).const_typing_flags.check_universes
 
+let lookup_projector (n, (mind, i)) env =
+  let mib = lookup_mind mind env in
+  match mib.mind_record with
+  | NotRecord | FakeRecord -> anomaly ~label:"lookup_projection" Pp.(str "not a projection")
+  | PrimRecord infos ->
+    let _,_,_,typs = infos.(i) in
+    typs.(n)
+
 let lookup_projection p env =
   let mind,i = Projection.inductive p in
   let mib = lookup_mind mind env in

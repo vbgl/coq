@@ -438,7 +438,7 @@ let compute_projections (kn, i as ind) mib =
       | Name id ->
         let r = na.Context.binder_relevance in
         let lab = Label.of_id id in
-        let kn = Projection.Repr.make ind ~proj_npars:mib.mind_nparams ~proj_arg:i lab in
+        let kn = (i, ind) in
         (* from [params, field1,..,fieldj |- t(params,field1,..,fieldj)]
            to [params, x:I, field1,..,fieldj |- t(params,field1,..,fieldj] *)
         let t = liftn 1 j t in
@@ -447,7 +447,7 @@ let compute_projections (kn, i as ind) mib =
 	let projty = substl letsubst t in
         (* from [params, x:I, field1,..,fieldj |- t(field1,..,fieldj)]
            to [params, x:I |- t(proj1 x,..,projj x)] *)
-	let fterm = mkProj (Projection.make kn false, mkRel 1) in
+        let fterm = mkProj (kn, mkRel 1) in
         (i + 1, j + 1, lab :: labs, r :: rs, projty :: pbs, fterm :: letsubst)
       | Anonymous -> assert false (* checked by indTyping *)
   in

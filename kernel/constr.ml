@@ -102,7 +102,7 @@ type ('constr, 'types, 'sort, 'univs) kind_of_term =
   | Case      of case_info * 'constr * 'constr * 'constr array
   | Fix       of ('constr, 'types) pfixpoint
   | CoFix     of ('constr, 'types) pcofixpoint
-  | Proj      of Projection.t * 'constr
+  | Proj      of Projector.t * 'constr
   | Int       of Uint63.t
   | Float     of Float64.t
 (* constr is the fixpoint of the previous type. Requires option
@@ -866,7 +866,7 @@ let compare_head_gen_leq_with kind1 kind2 leq_universes leq_sorts eq leq nargs t
     let len = Array.length l1 in
     Int.equal len (Array.length l2) &&
     leq (nargs+len) c1 c2 && Array.equal_norefl (eq 0) l1 l2
-  | Proj (p1,c1), Proj (p2,c2) -> Projection.equal p1 p2 && eq 0 c1 c2
+  | Proj (p1,c1), Proj (p2,c2) -> Projector.equal p1 p2 && eq 0 c1 c2
   | Evar (e1,l1), Evar (e2,l2) -> Evar.equal e1 e2 && Array.equal (eq 0) l1 l2
   | Const (c1,u1), Const (c2,u2) ->
     (* The args length currently isn't used but may as well pass it. *)
@@ -1057,7 +1057,7 @@ let constr_ord_int f t1 t2 =
         ((Int.compare =? (Array.compare f)) ==? (Array.compare f))
         ln1 ln2 tl1 tl2 bl1 bl2
     | CoFix _, _ -> -1 | _, CoFix _ -> 1
-    | Proj (p1,c1), Proj (p2,c2) -> (Projection.compare =? f) p1 p2 c1 c2
+    | Proj (p1,c1), Proj (p2,c2) -> (Projector.compare =? f) p1 p2 c1 c2
     | Proj _, _ -> -1 | _, Proj _ -> 1
     | Int i1, Int i2 -> Uint63.compare i1 i2
     | Int _, _ -> -1 | _, Int _ -> 1
@@ -1250,8 +1250,8 @@ let hashcons (sh_sort,sh_ci,sh_construct,sh_ind,sh_con,sh_na,sh_id) =
 	(t, combinesmall 16 n)
       | Proj (p,c) ->
         let c, hc = sh_rec c in
-        let p' = Projection.hcons p in
-          (Proj (p', c), combinesmall 17 (combine (Projection.SyntacticOrd.hash p') hc))
+        let p' = Projector.hcons p in
+          (Proj (p', c), combinesmall 17 (combine (Projector.hash p') hc))
       | Int i ->
         let (h,l) = Uint63.to_int2 i in
         (t, combinesmall 18 (combine h l))
@@ -1318,7 +1318,7 @@ let rec hash t =
     | Meta n -> combinesmall 15 n
     | Rel n -> combinesmall 16 n
     | Proj (p,c) ->
-      combinesmall 17 (combine (Projection.hash p) (hash c))
+      combinesmall 17 (combine (Projector.hash p) (hash c))
     | Int i -> combinesmall 18 (Uint63.hash i)
     | Float f -> combinesmall 19 (Float64.hash f)
 
@@ -1449,7 +1449,7 @@ let rec debug_print c =
   | Ind ((sp,i),u) -> str"Ind(" ++ pr_puniverses (MutInd.print sp ++ str"," ++ int i) u ++ str")"
   | Construct (((sp,i),j),u) ->
       str"Constr(" ++ pr_puniverses (MutInd.print sp ++ str"," ++ int i ++ str"," ++ int j) u ++ str")"
-  | Proj (p,c) -> str"Proj(" ++ Constant.debug_print (Projection.constant p) ++ str"," ++ bool (Projection.unfolded p) ++ debug_print c ++ str")"
+  | Proj (p,c) -> str"Proj(" ++ Projector.print p ++ str"," ++ debug_print c ++ str")"
   | Case (_ci,p,c,bl) -> v 0
       (hv 0 (str"<"++debug_print p++str">"++ cut() ++ str"Case " ++
              debug_print c ++ str"of") ++ cut() ++

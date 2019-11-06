@@ -25,4 +25,4 @@ val relevance_of_rel_extra : Environ.env -> Sorts.relevance list -> int -> Sorts
 val relevance_of_var : Environ.env -> Id.t -> Sorts.relevance
 val relevance_of_constant : Environ.env -> Constant.t -> Sorts.relevance
 val relevance_of_constructor : Environ.env -> constructor -> Sorts.relevance
-val relevance_of_projection : Environ.env -> Projection.t -> Sorts.relevance
+val relevance_of_projector : Environ.env -> Projector.t -> Sorts.relevance

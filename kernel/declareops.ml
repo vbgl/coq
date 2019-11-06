@@ -284,6 +284,14 @@ let inductive_make_projections ind mib =
     in
     Some projs
 
+let relevance_of_projector mib (n, (_mind, i)) =
+  match mib.mind_record with
+  | NotRecord | FakeRecord ->
+    CErrors.anomaly ~label:"relevance_of_projection" Pp.(str "not a projection")
+  | PrimRecord infos ->
+    let _,_,rs,_ = infos.(i) in
+    rs.(n)
+
 let relevance_of_projection_repr mib p =
   let _mind,i = Names.Projection.Repr.inductive p in
   match mib.mind_record with

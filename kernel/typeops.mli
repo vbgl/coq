@@ -59,7 +59,7 @@ val type_of_constant_in : env -> pconstant -> types
 val judge_of_constant : env -> pconstant -> unsafe_judgment
 
 (** {6 type of an applied projection } *)
-val judge_of_projection : env -> Projection.t -> unsafe_judgment -> unsafe_judgment
+val judge_of_projection : env -> Projector.t -> unsafe_judgment -> unsafe_judgment
 
 (** {6 Type of application. } *)
 val judge_of_apply :

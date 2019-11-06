@@ -25,7 +25,7 @@ type lambda =
   | Lval          of structured_values
   | Lsort         of Sorts.t
   | Lind          of pinductive
-  | Lproj         of Projection.Repr.t * lambda
+  | Lproj         of Projector.t * lambda
 
 and lam_branches =
   { constant_branches : lambda array;

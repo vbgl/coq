@@ -516,10 +516,9 @@ let rec lambda_of_constr cache env sigma c =
 
   | Construct _ ->  lambda_of_app cache env sigma c empty_args
 
-  | Proj (p, c) ->
-    let ind = Projection.inductive p in
+  | Proj ((i, ind), c) ->
     let prefix = get_mind_prefix env (fst ind) in
-    mkLapp (Lproj (prefix, ind, Projection.arg p)) [|lambda_of_constr cache env sigma c|]
+    mkLapp (Lproj (prefix, ind, i)) [|lambda_of_constr cache env sigma c|]
 
   | Case(ci,t,a,branches) ->
     let (mind,i as ind) = ci.ci_ind in

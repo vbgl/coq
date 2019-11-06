@@ -684,6 +684,8 @@ struct
   let map_mind f (n, (mind, i) as p) =
     let mind' = f mind in
     if mind' == mind then p else (n, (mind', i))
+
+  let hcons x = x (* TODO? *)
 end
 
 module Projectormap = Map.Make (Projector)
