@@ -35,7 +35,7 @@ type 'res lookup_res = 'res Dn.lookup_res = Label of 'res | Nothing | Everything
 let decomp_pat =
   let rec decrec acc = function
     | PApp (f,args) -> decrec (Array.to_list args @ acc) f
-    | PProj (p, c) -> (PRef (GlobRef.ConstRef (Projection.constant p)), c :: acc)
+    | PProj (p, c) -> (PRef (GlobRef.ProjectorRef (Projection.to_projector p)), c :: acc)
     | c -> (c,acc)
   in
   decrec []

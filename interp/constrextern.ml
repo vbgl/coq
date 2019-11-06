@@ -1236,7 +1236,7 @@ let rec glob_of_pat avoid env sigma pat = DAst.make @@ match pat with
       GVar id
   | PMeta None -> GHole (Evar_kinds.InternalHole, IntroAnonymous,None)
   | PMeta (Some n) -> GPatVar (Evar_kinds.FirstOrderPatVar n)
-  | PProj (p,c) -> GApp (DAst.make @@ GRef (GlobRef.ConstRef (Projection.constant p),None),
+  | PProj (p,c) -> GApp (DAst.make @@ GRef (GlobRef.ProjectorRef (Projection.to_projector p),None),
 			 [glob_of_pat avoid env sigma c])
   | PApp (f,args) ->
       GApp (glob_of_pat avoid env sigma f,Array.map_to_list (glob_of_pat avoid env sigma) args)

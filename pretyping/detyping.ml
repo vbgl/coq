@@ -777,14 +777,14 @@ and detype_r d flags avoid env sigma t =
         let pars = Projection.npars p in
         let hole = DAst.make @@ GHole(Evar_kinds.InternalHole,Namegen.IntroAnonymous,None) in
         let args = List.make pars hole in
-        GApp (DAst.make @@ GRef (GlobRef.ConstRef (Projection.constant p), None),
+        GApp (DAst.make @@ GRef (GlobRef.ProjectorRef (Projection.to_projector p), None),
               (args @ [detype d flags avoid env sigma c]))
       in
       if flags.flg_lax || !Flags.in_debugger || !Flags.in_toplevel then
 	try noparams ()
 	with _ ->
 	    (* lax mode, used by debug printers only *) 
-          GApp (DAst.make @@ GRef (GlobRef.ConstRef (Projection.constant p), None),
+          GApp (DAst.make @@ GRef (GlobRef.ProjectorRef (Projection.to_projector p), None),
 		[detype d flags avoid env sigma c])
       else 
         if print_primproj_params () then

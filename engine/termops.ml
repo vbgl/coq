@@ -1064,6 +1064,7 @@ let global_of_constr sigma c =
   | Ind (i, u) -> IndRef i, u
   | Construct (c, u) -> ConstructRef c, u
   | Var id -> VarRef id, EConstr.EInstance.empty
+  | Proj (p, _c) -> ProjectorRef (Projection.to_projector p), EConstr.EInstance.empty
   | _ -> raise Not_found
 
 let is_global sigma c t =
@@ -1385,7 +1386,7 @@ let global_app_of_constr sigma c =
   | Ind (i, u) -> (IndRef i, u), None
   | Construct (c, u) -> (ConstructRef c, u), None
   | Var id -> (VarRef id, EConstr.EInstance.empty), None
-  | Proj (p, c) -> (ConstRef (Projection.constant p), EConstr.EInstance.empty), Some c
+  | Proj (p, c) -> (ProjectorRef (Projection.to_projector p), EConstr.EInstance.empty), Some c
   | _ -> raise Not_found
 
 let prod_applist sigma c l =

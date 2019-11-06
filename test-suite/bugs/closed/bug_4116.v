@@ -251,7 +251,7 @@ Module Export Morphisms.
 
   Class Isomorphic {C : PreCategory} s d :=
     {
-      morphism_isomorphic :> morphism C s d;
+      morphism_isomorphic : morphism C s d;
       isisomorphism_isomorphic :> IsIsomorphism morphism_isomorphic
     }.
 
