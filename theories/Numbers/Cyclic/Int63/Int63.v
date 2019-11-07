@@ -1054,7 +1054,7 @@ Proof.
  apply to_Z_inj; rewrite to_Z_0; auto with zarith.
  apply to_Z_inj; rewrite to_Z_0; auto with zarith.
  intros n IH x y; rewrite inj_S.
- unfold Z.succ; rewrite -> Zpower_exp, Z.pow_1_r; auto with zarith.
+ unfold Z.succ; rewrite -> Zpower_exp, Z.pow_1_r by lia.
  intros Hx Hy.
  rewrite leb_spec.
  rewrite -> (to_Z_split y) at 1; rewrite (to_Z_split (x lor y)).
@@ -1083,7 +1083,7 @@ Proof.
  apply to_Z_inj; rewrite to_Z_0; auto with zarith.
  apply to_Z_inj; rewrite to_Z_0; auto with zarith.
  intros n IH x y; rewrite inj_S.
- unfold Z.succ; rewrite Zpower_exp, Z.pow_1_r; auto with zarith.
+ unfold Z.succ; rewrite Zpower_exp, Z.pow_1_r by lia.
  intros Hx Hy.
  split.
  intros Hn.

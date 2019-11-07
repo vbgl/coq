@@ -29,6 +29,8 @@ Hint Resolve Z.le_refl Z.add_comm Z.add_assoc Z.mul_comm Z.mul_assoc Z.add_0_l
 
 Require Export Zhints.
 
+Ltac zlia := PreOmega.elim_let; unfold Z.succ in *; xlia zchecker_ext.
+
 Hint Extern 10 (_ = _ :>nat) => abstract lia: zarith.
 Hint Extern 10 (_ <= _) => abstract lia: zarith.
 Hint Extern 10 (_ < _) => abstract lia: zarith.
@@ -41,16 +43,16 @@ Hint Extern 10 (~ _ < _) => abstract lia: zarith.
 Hint Extern 10 (~ _ >= _) => abstract lia: zarith.
 Hint Extern 10 (~ _ > _) => abstract lia: zarith.
 
-Hint Extern 10 (_ = _ :>Z) => abstract lia: zarith.
-Hint Extern 10 (_ <= _)%Z => abstract lia: zarith.
-Hint Extern 10 (_ < _)%Z => abstract lia: zarith.
-Hint Extern 10 (_ >= _)%Z => abstract lia: zarith.
-Hint Extern 10 (_ > _)%Z => abstract lia: zarith.
+Hint Extern 10 (_ = _ :>Z) => abstract zlia: zarith.
+Hint Extern 10 (_ <= _)%Z => abstract zlia: zarith.
+Hint Extern 10 (_ < _)%Z => abstract zlia: zarith.
+Hint Extern 10 (_ >= _)%Z => abstract zlia: zarith.
+Hint Extern 10 (_ > _)%Z => abstract zlia: zarith.
 
-Hint Extern 10 (_ <> _ :>Z) => abstract lia: zarith.
-Hint Extern 10 (~ (_ <= _)%Z) => abstract lia: zarith.
-Hint Extern 10 (~ (_ < _)%Z) => abstract lia: zarith.
-Hint Extern 10 (~ (_ >= _)%Z) => abstract lia: zarith.
-Hint Extern 10 (~ (_ > _)%Z) => abstract lia: zarith.
+Hint Extern 10 (_ <> _ :>Z) => abstract zlia: zarith.
+Hint Extern 10 (~ (_ <= _)%Z) => abstract zlia: zarith.
+Hint Extern 10 (~ (_ < _)%Z) => abstract zlia: zarith.
+Hint Extern 10 (~ (_ >= _)%Z) => abstract zlia: zarith.
+Hint Extern 10 (~ (_ > _)%Z) => abstract zlia: zarith.
 
-Hint Extern 10 False => abstract lia: zarith.
+Hint Extern 10 False => abstract zlia: zarith.

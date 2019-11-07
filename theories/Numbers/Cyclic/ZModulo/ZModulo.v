@@ -691,7 +691,7 @@ Section ZModulo.
  apply Z.lt_le_trans
    with (2^(zdigits - Z.log2 (Zpos p) - 1)*(2^(Z.succ (Z.log2 (Zpos p))))).
  apply Z.mul_lt_mono_pos_l; auto with zarith.
- rewrite <- Zpower_exp; auto with zarith.
+ rewrite <- Zpower_exp by auto with zarith.
  replace (zdigits - Z.log2 (Zpos p) -1 +Z.succ (Z.log2 (Zpos p))) with zdigits
    by ring.
  unfold wB, base, zdigits; auto with zarith.

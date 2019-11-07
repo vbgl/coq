@@ -127,7 +127,7 @@ Proof.
  elim size.
  intros _ p; simpl;
    rewrite to_Z_0, Pmult_1_r; split; auto with zarith; apply refl_equal.
- intros n; rewrite inj_S; unfold Z.succ; rewrite Zpower_exp, Z.pow_1_r; auto with zarith.
+ intros n; rewrite inj_S; unfold Z.succ; rewrite Zpower_exp, Z.pow_1_r by lia.
  intros IH Hle p.
  assert (F1: 2 ^ Z_of_nat n <= wB); auto with zarith.
   assert (0 <= 2 ^ Z_of_nat n); auto with zarith.
