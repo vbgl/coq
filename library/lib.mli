@@ -188,6 +188,5 @@ val replacement_context : unit -> Opaqueproof.work_list
 
 (* XXX Why can't we use the kernel functions ? *)
 
-val discharge_proj_repr : Projection.Repr.t -> Projection.Repr.t
 val discharge_abstract_universe_context :
   abstr_info -> Univ.AUContext.t -> Univ.universe_level_subst * Univ.AUContext.t

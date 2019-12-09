@@ -851,7 +851,7 @@ let eta_expand_ind_stack env ind m s (f, s') =
     let argss = try_drop_parameters depth pars args in
     let hstack = Array.map (fun p ->
         { mark = mark Red Unknown; (* right can't be a constructor though *)
-          term = FProj (Projection.make p true, right) })
+          term = FProj (Projection.(to_projector (make p true)), right) })
         projs
     in
     argss, [Zapp hstack]

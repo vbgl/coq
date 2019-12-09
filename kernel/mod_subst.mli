@@ -141,8 +141,7 @@ val subst_pcon :
 val subst_constant :
   substitution -> Constant.t -> Constant.t
 
-val subst_proj_repr : substitution -> Projection.Repr.t -> Projection.Repr.t
-val subst_proj : substitution -> Projection.t -> Projection.t
+val subst_proj : substitution -> Projector.t -> Projector.t
 
 val subst_retro_action : substitution -> Retroknowledge.action -> Retroknowledge.action
 

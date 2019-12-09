@@ -36,7 +36,7 @@ let relevance_of_constructor env ((mi,i),_) =
 
 let relevance_of_projection env (n, (mind, i)) =
   let mib = lookup_mind mind env in
-  Declareops.relevance_of_projection_repr mib i n
+  Declareops.relevance_of_projector mib i n
 
 let rec relevance_of_rel_extra env extra n =
   match extra with

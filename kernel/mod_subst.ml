@@ -324,11 +324,8 @@ let subst_constant sub con =
   try fst (subst_con0 sub con)
   with No_subst -> con
 
-let subst_proj_repr sub p =
-  Projection.Repr.map (subst_mind sub) p
-
 let subst_proj sub p =
-  Projection.map (subst_mind sub) p
+  Projector.map_mind (subst_mind sub) p
 
 let subst_retro_action subst action =
   let open Retroknowledge in
@@ -354,7 +351,7 @@ let rec map_kn f f' c =
     match kind c with
       | Const kn -> (try f' kn with No_subst -> c)
       | Proj (p,t) -> 
-          let p' = Projection.map f p in
+          let p' = Projector.map_mind f p in
 	  let t' = func t in
 	    if p' == p && t' == t then c
 	    else mkProj (p', t')

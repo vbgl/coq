@@ -773,26 +773,8 @@ and detype_r d flags avoid env sigma t =
         (Array.map_to_list (detype d flags avoid env sigma) args)
     | Const (sp,u) -> GRef (GlobRef.ConstRef sp, detype_instance sigma u)
     | Proj (p,c) ->
-      let noparams () =
-        let pars = Projection.npars p in
-        let hole = DAst.make @@ GHole(Evar_kinds.InternalHole,Namegen.IntroAnonymous,None) in
-        let args = List.make pars hole in
-        GApp (DAst.make @@ GRef (GlobRef.ConstRef (Projection.constant p), None),
-              (args @ [detype d flags avoid env sigma c]))
-      in
-      if flags.flg_lax || !Flags.in_debugger || !Flags.in_toplevel then
-	try noparams ()
-	with _ ->
-	    (* lax mode, used by debug printers only *) 
-          GApp (DAst.make @@ GRef (GlobRef.ConstRef (Projection.constant p), None),
-		[detype d flags avoid env sigma c])
-      else 
-        if print_primproj_params () then
-          try
-            let c = Retyping.expand_projection (snd env) sigma p c [] in
-            DAst.get (detype d flags avoid env sigma c)
-          with Retyping.RetypeError _ -> noparams ()
-        else noparams ()
+      GApp (DAst.make @@ GRef (GlobRef.ProjectorRef p, None),
+            [detype d flags avoid env sigma c])
 
     | Evar (evk,cl) ->
         let bound_to_itself_or_letin decl c =

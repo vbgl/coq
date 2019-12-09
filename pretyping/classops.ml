@@ -28,7 +28,7 @@ type cl_typ =
   | CL_SECVAR of variable
   | CL_CONST of Constant.t
   | CL_IND of inductive
-  | CL_PROJ of Projection.Repr.t
+  | CL_PROJ of projector
 
 type cl_info_typ = {
   cl_param : int
@@ -56,7 +56,7 @@ let coe_info_typ_equal c1 c2 =
 let cl_typ_ord t1 t2 = match t1, t2 with
   | CL_SECVAR v1, CL_SECVAR v2 -> Id.compare v1 v2
   | CL_CONST c1, CL_CONST c2 -> Constant.CanOrd.compare c1 c2
-  | CL_PROJ c1, CL_PROJ c2 -> Projection.Repr.CanOrd.compare c1 c2
+  | CL_PROJ c1, CL_PROJ c2 -> Projector.compare c1 c2
   | CL_IND i1, CL_IND i2 -> ind_ord i1 i2
   | _ -> pervasives_compare t1 t2 (** OK *)
 
@@ -172,8 +172,7 @@ let find_class_type sigma t =
   match EConstr.kind sigma t' with
     | Var id -> CL_SECVAR id, EInstance.empty, args
     | Const (sp,u) -> CL_CONST sp, u, args
-    | Proj (p, c) when not (Projection.unfolded p) ->
-      CL_PROJ (Projection.repr p), EInstance.empty, (c :: args)
+    | Proj (p, c) -> CL_PROJ p, EInstance.empty, (c :: args)
     | Ind (ind_sp,u) -> CL_IND ind_sp, u, args
     | Prod _ -> CL_FUN, EInstance.empty, []
     | Sort _ -> CL_SORT, EInstance.empty, []

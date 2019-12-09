@@ -1627,7 +1627,7 @@ let make_projection env sigma params cstr sign elim i n c u =
 	  let proj =
             match Recordops.find_primitive_projection proj with
             | Some proj ->
-	      mkProj (Projection.make proj false, mkApp (c, args))
+              mkProj (proj, mkApp (c, args))
             | None ->
 	      mkApp (mkConstU (proj,u), Array.append (Array.of_list params)
 		[|mkApp (c, args)|])

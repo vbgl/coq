@@ -610,10 +610,6 @@ type constructor = inductive   (* designates the inductive type *)
                  * int         (* the index of the constructor
                                   BEWARE: indexing starts from 1. *)
 
-(** Designation of a (particular) projector of a (particular) inductive type. *)
-type projector = int (* designates the index of the field, starting from zero *)
-                 * inductive (* designates the inductive type *)
-
 let ind_modpath (mind,_) = MutInd.modpath mind
 let constr_modpath (ind,_) = ind_modpath ind
 
@@ -668,14 +664,28 @@ let constructor_user_hash (ind, i) =
 let constructor_syntactic_hash (ind, i) =
   Hashset.Combine.combine (ind_syntactic_hash ind) (Int.hash i)
 
-let eq_projector (n1, ind1) (n2, ind2) = Int.equal n1 n2 && eq_ind ind1 ind2
-let projector_ord ind_ord (n1, ind1) (n2, ind2) =
-  let c = Int.compare n1 n2 in
-  if Int.equal c 0 then ind_ord ind1 ind2 else c
-let projector_hash ind_hash n ind =
-  Hashset.Combine.combine (Int.hash n) (ind_hash ind)
-let projector_print (n, (mind, idx)) =
-  Pp.(MutInd.print mind ++ str "[" ++ int idx ++ str "].(" ++ int n ++ str ")")
+module Projector =
+struct
+  (** Designation of a (particular) projector of a (particular) inductive type. *)
+  type t = int (* designates the index of the field, starting from zero *)
+           * inductive (* designates the inductive type *)
+  let equal (n1, ind1) (n2, ind2) = Int.equal n1 n2 && eq_ind ind1 ind2
+  let hash_gen ind_hash (n, ind) =
+    Hashset.Combine.combine (Int.hash n) (ind_hash ind)
+  let hash p = hash_gen ind_hash p
+  let print (n, (mind, idx)) =
+    Pp.(MutInd.print mind ++ str "[" ++ int idx ++ str "].(" ++ int n ++ str ")")
+
+  let mkCompare ind_ord (n1, ind1) (n2, ind2) =
+    let c = Int.compare n1 n2 in
+    if Int.equal c 0 then ind_ord ind1 ind2 else c
+  let compare p1 p2 = mkCompare ind_ord p1 p2
+
+  let map_mind f (n, (mind, i) as p) =
+    let mind' = f mind in
+    if mind' == mind then p else (n, (mind', i))
+end
+type projector = Projector.t
 
 module InductiveOrdered = struct
   type t = inductive
@@ -926,6 +936,9 @@ struct
     let c' = Repr.map_npars f c in
     if c' == c then x else (c', b)
 
+  let to_projector (p, _) : projector =
+    Repr.(arg p, inductive p)
+
   let to_string p = Constant.to_string (constant p)
   let print p = Constant.print (constant p)
 
@@ -946,7 +959,7 @@ module GlobRefInternal = struct
     | IndRef kn1, IndRef kn2 -> eq_ind kn1 kn2
     | ConstructRef kn1, ConstructRef kn2 -> eq_constructor kn1 kn2
     | VarRef v1, VarRef v2 -> Id.equal v1 v2
-    | ProjectorRef p1, ProjectorRef p2 -> eq_projector p1 p2
+    | ProjectorRef p1, ProjectorRef p2 -> Projector.equal p1 p2
     | (ConstRef _ | IndRef _ | ConstructRef _ | VarRef _ | ProjectorRef _), _ -> false
 
   let global_eq_gen eq_cst eq_ind eq_cons x y =
@@ -974,7 +987,7 @@ module GlobRefInternal = struct
     | ConstructRef consx, ConstructRef consy -> ord_cons consx consy
     | ConstructRef _, _ -> -1
     | _, ConstructRef _ -> 1
-    | ProjectorRef p1, ProjectorRef p2 -> projector_ord ord_ind p1 p2
+    | ProjectorRef p1, ProjectorRef p2 -> Projector.mkCompare ord_ind p1 p2
 
   let global_hash_gen hash_cst hash_ind hash_cons gr =
     let open Hashset.Combine in
@@ -983,7 +996,7 @@ module GlobRefInternal = struct
     | IndRef i -> combinesmall 2 (hash_ind i)
     | ConstructRef c -> combinesmall 3 (hash_cons c)
     | VarRef id -> combinesmall 4 (Id.hash id)
-    | ProjectorRef (n, i) -> combinesmall 4 (projector_hash hash_ind n i)
+    | ProjectorRef p -> combinesmall 4 (Projector.hash_gen hash_ind p)
 
 end
 

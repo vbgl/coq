@@ -407,11 +407,11 @@ let cache_prim (_,(p,c)) = Recordops.register_primitive_projection p c
 
 let load_prim _ p = cache_prim p
 
-let subst_prim (subst,(p,c)) = Mod_subst.subst_proj_repr subst p, Mod_subst.subst_constant subst c
+let subst_prim (subst,(p,c)) = Mod_subst.subst_proj subst p, Mod_subst.subst_constant subst c
 
-let discharge_prim (_,(p,c)) = Some (Lib.discharge_proj_repr p, c)
+let discharge_prim (_, pc) = Some pc
 
-let inPrim : (Projection.Repr.t * Constant.t) -> obj =
+let inPrim : (Projector.t * Constant.t) -> obj =
   declare_object {
     (default_object "PRIMPROJS") with
     cache_function = cache_prim ;
@@ -435,7 +435,7 @@ let declare_one_projection univs (mind,_ as ind) ~proj_npars proj_arg label (ter
   let types = Vars.subst_instance_constr u types in
   let entry = definition_entry ~types ~univs term in
   let cst = declare_constant ~name ~kind:Decls.(IsDefinition StructureComponent) (DefinitionEntry entry) in
-  let p = Projection.Repr.make ind ~proj_npars ~proj_arg label in
+  let p = proj_arg, ind in
   declare_primitive_projection p cst
 
 let declare_projections univs mind =

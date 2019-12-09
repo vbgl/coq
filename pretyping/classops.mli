@@ -21,7 +21,7 @@ type cl_typ =
   | CL_SECVAR of variable
   | CL_CONST of Constant.t
   | CL_IND of inductive
-  | CL_PROJ of Projection.Repr.t
+  | CL_PROJ of Projector.t
 
 (** Equality over [cl_typ] *)
 val cl_typ_eq : cl_typ -> cl_typ -> bool

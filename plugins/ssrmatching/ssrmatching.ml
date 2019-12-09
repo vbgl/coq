@@ -345,7 +345,7 @@ type pattern_class =
   | KpatLam
   | KpatRigid
   | KpatFlex
-  | KpatProj of Constant.t
+  | KpatProj of projector
 
 type tpattern = {
   up_k : pattern_class;
@@ -506,10 +506,6 @@ let filter_upat i0 f n u fpats =
   if np < na then fpats else
   let () = if !i0 < np then i0 := n in (u, np) :: fpats
 
-let eq_prim_proj c t = match kind t with
-  | Proj(p,_) -> Constant.equal (Projection.constant p) c
-  | _ -> false
-
 let filter_upat_FO i0 f n u fpats =
   let np = nb_args u.up_FO in
   if n < np then fpats else
@@ -520,7 +516,7 @@ let filter_upat_FO i0 f n u fpats =
   | KpatLet -> isLetIn f
   | KpatLam -> isLambda f
   | KpatRigid -> isRigid f
-  | KpatProj pc -> equal f (mkConst pc) || eq_prim_proj pc f
+  | KpatProj pc -> equal f (mkConst pc)
   | KpatFlex -> i0 := n; true in
   if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
 

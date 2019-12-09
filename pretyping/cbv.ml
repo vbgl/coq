@@ -76,7 +76,7 @@ and cbv_stack =
   | TOP
   | APP of cbv_value array * cbv_stack
   | CASE of constr * constr array * case_info * cbv_value subs * cbv_stack
-  | PROJ of Projection.t * cbv_stack
+  | PROJ of Projector.t * cbv_stack
 
 (* les vars pourraient etre des constr,
    cela permet de retarder les lift: utile ?? *)
@@ -326,14 +326,8 @@ let rec norm_head info env t stack =
   | Case (ci,p,c,v) -> norm_head info env c (CASE(p,v,ci,env,stack))
   | Cast (ct,_,_) -> norm_head info env ct stack
   
-  | Proj (p, c) -> 
-    let p' =
-      if red_set info.reds (fCONST (Projection.constant p))
-        && red_set info.reds fBETA
-      then Projection.unfold p
-      else p
-    in 
-      norm_head info env c (PROJ (p', stack))
+  | Proj (p, c) ->
+      norm_head info env c (PROJ (p, stack))
 	
   (* constants, axioms
    * the first pattern is CRUCIAL, n=0 happens very often:

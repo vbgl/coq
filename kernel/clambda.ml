@@ -158,7 +158,7 @@ let rec pp_lam lam =
             str")")
   | Lproj(p,arg) ->
     hov 1
-      (str "(proj " ++ Projection.Repr.print p ++ str "(" ++ pp_lam arg
+      (str "(proj " ++ Projector.print p ++ str "(" ++ pp_lam arg
        ++ str ")")
   | Lint i ->
     Pp.(str "(int:" ++ int i ++ str ")")
@@ -760,7 +760,7 @@ let rec lambda_of_constr env c =
 
   | Proj (p,c) ->
     let lc = lambda_of_constr env c in
-    Lproj (Projection.repr p,lc)
+    Lproj (p, lc)
 
   | Int i -> Luint i
 

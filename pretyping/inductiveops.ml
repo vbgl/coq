@@ -356,7 +356,7 @@ let make_case_or_project env sigma indf ci pred c branches =
          (fun decl (i, j, ctx) ->
           match decl with
           | LocalAssum (na, ty) ->
-             let t = mkProj (Projection.make ps.(i) true, mkRel j) in
+             let t = mkProj (Projection.to_projector (Projection.make ps.(i) true), mkRel j) in
              (i + 1, j + 1, LocalDef (na, t, Vars.liftn 1 j ty) :: ctx)
           | LocalDef (na, b, ty) ->
              (i, j + 1, LocalDef (na, Vars.liftn 1 j b, Vars.liftn 1 j ty) :: ctx))
@@ -500,8 +500,8 @@ let compute_projections env (kn, i as ind) =
         (* from [params, x:I, field1,..,fieldj |- t(field1,..,fieldj)]
            to [params, x:I |- t(proj1 x,..,projj x)] *)
         let ty = substl subst t in
-        let term = mkProj (Projection.make kn true, mkRel 1) in
-        let fterm = mkProj (Projection.make kn false, mkRel 1) in
+        let term = mkProj (Projection.to_projector (Projection.make kn true), mkRel 1) in
+        let fterm = mkProj (Projection.to_projector (Projection.make kn false), mkRel 1) in
         let etab = it_mkLambda_or_LetIn (mkLambda (x, indty, term)) params in
         let etat = it_mkProd_or_LetIn (mkProd (x, indty, ty)) params in
         let body = (etab, etat) in
