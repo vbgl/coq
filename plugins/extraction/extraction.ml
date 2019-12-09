@@ -331,11 +331,7 @@ let rec extract_type env sg db j c args =
     | Ind ((kn,i),u) ->
         let s = (extract_ind env kn).ind_packets.(i).ip_sign in
         extract_type_app env sg db (GlobRef.IndRef (kn,i),s) args
-    | Proj (p,t) ->
-       (* Let's try to reduce, if it hasn't already been done. *)
-       if Projection.unfolded p then Tunknown
-       else
-         extract_type env sg db j (EConstr.mkProj (Projection.unfold p, t)) args
+    | Proj _
     | Case _ | Fix _ | CoFix _ -> Tunknown
     | Evar _ | Meta _ -> Taxiom (* only possible during Show Extraction *)
     | Var v ->
@@ -664,6 +660,7 @@ let rec extract_term env sg mle mlt c args =
     | Construct (cp,_) ->
         extract_cons_app env sg mle mlt cp args
     | Proj (p, c) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
         let term = Retyping.expand_projection env (Evd.from_env env) p c [] in
         extract_term env sg mle mlt term args
     | Rel n ->
@@ -1066,9 +1063,8 @@ let fake_match_projection env p =
     | LocalAssum (na,ty) :: rem ->
       let ty = Vars.substl subst (liftn 1 j ty) in
       if arg != proj_arg then
-        let lab = match na.binder_name with Name id -> Label.of_id id | Anonymous -> assert false in
-        let kn = Projection.Repr.make ind ~proj_npars:mib.mind_nparams ~proj_arg:arg lab in
-        fold (arg+1) (j+1) (mkProj (Projection.make kn false, mkRel 1)::subst) rem
+        let kn = arg, ind in
+        fold (arg+1) (j+1) (mkProj (kn, mkRel 1)::subst) rem
       else
         let p = mkLambda (x, lift 1 indty, liftn 1 2 ty) in
         let branch = lift 1 (it_mkLambda_or_LetIn (mkRel (List.length ctx - (j-1))) ctx) in

@@ -457,7 +457,7 @@ let rec canonize_name sigma c =
       | App (ct,l) ->
           mkApp (func ct,Array.Smart.map func l)
       | Proj(p,c) ->
-	let p' = Projection.map (fun kn ->
+        let p' = Projector.map_mind (fun kn ->
           MutInd.make1 (MutInd.canonical kn)) p in
 	  (mkProj (p', func c))
       | _ -> c

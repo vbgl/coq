@@ -172,8 +172,9 @@ let find_class_type sigma t =
   match EConstr.kind sigma t' with
     | Var id -> CL_SECVAR id, EInstance.empty, args
     | Const (sp,u) -> CL_CONST sp, u, args
-    | Proj (p, c) when not (Projection.unfolded p) ->
-      CL_PROJ (Projection.repr p), EInstance.empty, (c :: args)
+    | Proj (p, c) ->
+      let p = Nametab.get_compat_projection_for_projector p in
+      CL_PROJ p, EInstance.empty, (c :: args)
     | Ind (ind_sp,u) -> CL_IND ind_sp, u, args
     | Prod _ -> CL_FUN, EInstance.empty, []
     | Sort _ -> CL_SORT, EInstance.empty, []

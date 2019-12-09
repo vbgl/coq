@@ -382,7 +382,8 @@ let rec execute env sigma cstr =
         | Type u -> sigma, judge_of_type u
       end
 
-    | Proj (p, c) -> 
+    | Proj (p, c) ->
+      let p = Names.Projection.make (Nametab.get_compat_projection_for_projector p) true in
       let sigma, cj = execute env sigma c in
       sigma, judge_of_projection env sigma p cj
 

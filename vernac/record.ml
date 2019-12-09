@@ -331,7 +331,7 @@ let declare_projections indsp ctx ?(kind=Decls.StructureComponent) binder_name f
                 (* Already defined by declare_mind silently *)
                 let kn = Projection.Repr.constant p in
                 Declare.definition_message fid;
-                kn, mkProj (Projection.make p false,mkRel 1)
+                kn, mkProj (Projection.Repr.to_projector p, mkRel 1)
 	      else
 		let ccl = subst_projection fid subst ti in
 		let body = match decl with

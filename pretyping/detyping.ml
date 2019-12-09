@@ -773,6 +773,7 @@ and detype_r d flags avoid env sigma t =
         (Array.map_to_list (detype d flags avoid env sigma) args)
     | Const (sp,u) -> GRef (GlobRef.ConstRef sp, detype_instance sigma u)
     | Proj (p,c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
       let noparams () =
         let pars = Projection.npars p in
         let hole = DAst.make @@ GHole(Evar_kinds.InternalHole,Namegen.IntroAnonymous,None) in

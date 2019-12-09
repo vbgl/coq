@@ -490,8 +490,7 @@ let compute_projections env (kn, i as ind) =
     | LocalAssum (na,t) ->
       match na.binder_name with
       | Name id ->
-        let lab = Label.of_id id in
-        let kn = Projection.Repr.make ind ~proj_npars:mib.mind_nparams ~proj_arg lab in
+        let kn = (proj_arg, ind) in
         (* from [params, field1,..,fieldj |- t(params,field1,..,fieldj)]
            to [params, x:I, field1,..,fieldj |- t(params,field1,..,fieldj] *)
         let t = liftn 1 j t in
@@ -500,8 +499,8 @@ let compute_projections env (kn, i as ind) =
         (* from [params, x:I, field1,..,fieldj |- t(field1,..,fieldj)]
            to [params, x:I |- t(proj1 x,..,projj x)] *)
         let ty = substl subst t in
-        let term = mkProj (Projection.make kn true, mkRel 1) in
-        let fterm = mkProj (Projection.make kn false, mkRel 1) in
+        let term = mkProj (kn, mkRel 1) in
+        let fterm = mkProj (kn, mkRel 1) in
         let etab = it_mkLambda_or_LetIn (mkLambda (x, indty, term)) params in
         let etat = it_mkProd_or_LetIn (mkProd (x, indty, ty)) params in
         let body = (etab, etat) in

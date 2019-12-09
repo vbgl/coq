@@ -43,7 +43,9 @@ let decomp_pat =
 let decomp sigma t =
   let rec decrec acc c = match EConstr.kind sigma c with
     | App (f,l) -> decrec (Array.fold_right (fun a l -> a::l) l acc) f
-    | Proj (p, c) -> (mkConst (Projection.constant p), c :: acc)
+    | Proj (p, c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
+      (mkConst (Projection.constant p), c :: acc)
     | Cast (c1,_,_) -> decrec acc c1
     | _ -> (c,acc)
   in

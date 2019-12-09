@@ -1078,7 +1078,8 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
           whrec Cst_stack.empty (a,Stack.Primitive(p,const,before,kargs,cst_l)::after)
        | exception NotEvaluableConst _ -> fold ()
       else fold ()
-    | Proj (p, c) when CClosure.RedFlags.red_projection flags p ->
+    | Proj (p, c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
       (let npars = Projection.npars p in
        if not tactic_mode then
          let stack' = (c, Stack.Proj (p, Cst_stack.empty (*cst_l*)) :: stack) in
@@ -1233,7 +1234,7 @@ let rec whd_state_gen ?csts ~refold ~tactic_mode flags env sigma =
        | _ -> fold ()
       end
 
-    | Rel _ | Var _ | LetIn _ | Proj _ -> fold ()
+    | Rel _ | Var _ | LetIn _ -> fold ()
     | Sort _ | Ind _ | Prod _ -> fold ()
   in
   fun xs ->
@@ -1270,7 +1271,8 @@ let local_whd_state_gen flags sigma =
 	| _ -> s)
       | _ -> s)
 
-    | Proj (p,c) when CClosure.RedFlags.red_projection flags p ->
+    | Proj (p,c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
       (whrec (c, Stack.Proj (p, Cst_stack.empty) :: stack))
 
     | Case (ci,p,d,lf) ->
@@ -1311,7 +1313,7 @@ let local_whd_state_gen flags sigma =
 	|_ -> s
       else s
 
-    | Rel _ | Var _ | Sort _ | Prod _ | LetIn _ | Const _  | Ind _ | Proj _
+    | Rel _ | Var _ | Sort _ | Prod _ | LetIn _ | Const _  | Ind _
       | Int _ | Float _ -> s
 
   in
@@ -1849,6 +1851,7 @@ let meta_reducible_instance evd b =
           if not is_coerce then irec g else u
 	 with Not_found -> u)
     | Proj (p,c) when isMeta evd c || isCast evd c && isMeta evd (pi1 (destCast evd c)) (* What if two nested casts? *) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
       let m = try destMeta evd c with _ -> destMeta evd (pi1 (destCast evd c)) (* idem *) in
 	  (match
 	  try

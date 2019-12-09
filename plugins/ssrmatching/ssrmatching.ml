@@ -419,7 +419,9 @@ let mk_tpattern ?p_origin ?(hack=false) env sigma0 (ise, t) ok dir p =
       let np = proj_nparams p in
       if np = 0 || np > List.length a then KpatConst, f, a else
       let a1, a2 = List.chop np a in KpatProj p, (applistc f a1), a2
-    | Proj (p,arg) -> KpatProj (Projection.constant p), f, a
+    | Proj (p,arg) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+      KpatProj (Projection.constant p), f, a
     | Var _ | Ind _ | Construct _ -> KpatFixed, f, a
     | Evar (k, _) ->
       if Evd.mem sigma0 k then KpatEvar k, f, a else
@@ -463,7 +465,11 @@ let nb_cs_proj_args pc f u =
   | Prod _ -> na Prod_cs
   | Sort s -> na (Sort_cs (Sorts.family s))
   | Const (c',_) when Constant.equal c' pc -> nargs_of_proj u.up_f 
-  | Proj (c',_) when Constant.equal (Projection.constant c') pc -> nargs_of_proj u.up_f
+  | Proj (c',_) ->
+    let c' = Projection.make (Nametab.get_compat_projection_for_projector c') true in
+    if Constant.equal (Projection.constant c') pc
+    then nargs_of_proj u.up_f
+    else -1
   | Var _ | Ind _ | Construct _ | Const _ -> na (Const_cs (global_of_constr f))
   | _ -> -1
   with Not_found -> -1
@@ -507,7 +513,9 @@ let filter_upat i0 f n u fpats =
   let () = if !i0 < np then i0 := n in (u, np) :: fpats
 
 let eq_prim_proj c t = match kind t with
-  | Proj(p,_) -> Constant.equal (Projection.constant p) c
+  | Proj(p,_) ->
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+    Constant.equal (Projection.constant p) c
   | _ -> false
 
 let filter_upat_FO i0 f n u fpats =

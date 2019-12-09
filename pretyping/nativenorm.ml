@@ -295,7 +295,7 @@ and nf_atom env sigma atom =
   | Aproj (p, c) ->
       let c = nf_accu env sigma c in
       let p = get_proj env p in
-      mkProj(p, c)
+      mkProj(Projection.to_projector p, c)
   | _ -> fst (nf_atom_type env sigma atom)
 
 and nf_atom_type env sigma atom =
@@ -377,7 +377,7 @@ and nf_atom_type env sigma atom =
       let c,tc = nf_accu_type env sigma c in
       let cj = make_judge c tc in
       let p = get_proj env p in
-      let uj = Typeops.judge_of_projection env p cj in
+      let uj = Typeops.judge_of_projection env (Projection.to_projector p) cj in
       uj.uj_val, uj.uj_type
 
 

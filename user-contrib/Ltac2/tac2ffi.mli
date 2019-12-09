@@ -178,7 +178,6 @@ val val_cast : Constr.cast_kind Val.tag
 val val_inductive : inductive Val.tag
 val val_constant : Constant.t Val.tag
 val val_constructor : constructor Val.tag
-val val_projection : Projection.t Val.tag
 val val_case : Constr.case_info Val.tag
 val val_univ : Univ.Level.t Val.tag
 val val_free : Id.Set.t Val.tag

@@ -299,40 +299,31 @@ let matches_core env sigma allow_bound_rels
             Array.fold_left2 (sorec ctx env) subst args1 args22
           else (* Might be a projection on the right *)
 	    match EConstr.kind sigma c2 with
-	    | Proj (pr, c) when not (Projection.unfolded pr) ->
-	      (try let term = Retyping.expand_projection env sigma pr c (Array.to_list args2) in
-		     sorec ctx env subst p term
-	       with Retyping.RetypeError _ -> raise PatternMatchingFailure)
 	    | _ -> raise PatternMatchingFailure)
 	   
       | PApp (c1,arg1), App (c2,arg2) ->
 	(match c1, EConstr.kind sigma c2 with
-        | PRef (GlobRef.ConstRef r), Proj (pr,c) when not (Constant.equal r (Projection.constant pr))
-	    || Projection.unfolded pr ->
+        | PRef (GlobRef.ConstRef r), Proj (pr,c) ->
 	  raise PatternMatchingFailure
 	| PProj (pr1,c1), Proj (pr,c) ->
-	  if Projection.equal pr1 pr then 
+          if Projector.equal (Projection.to_projector pr1) pr then
 	    try Array.fold_left2 (sorec ctx env) (sorec ctx env subst c1 c) arg1 arg2
 	    with Invalid_argument _ -> raise PatternMatchingFailure
 	  else raise PatternMatchingFailure
-	| _, Proj (pr,c) when not (Projection.unfolded pr) ->
-	  (try let term = Retyping.expand_projection env sigma pr c (Array.to_list arg2) in
-		 sorec ctx env subst p term
-	   with Retyping.RetypeError _ -> raise PatternMatchingFailure)	    
 	| _, _ ->
           try Array.fold_left2 (sorec ctx env) (sorec ctx env subst c1 c2) arg1 arg2
           with Invalid_argument _ -> raise PatternMatchingFailure)
 	  
-      | PApp (PRef (GlobRef.ConstRef c1), _), Proj (pr, c2)
-	when Projection.unfolded pr || not (Constant.equal c1 (Projection.constant pr)) -> 
+      | PApp (PRef (GlobRef.ConstRef c1), _), Proj (pr, c2) ->
 	raise PatternMatchingFailure
 	
       | PApp (c, args), Proj (pr, c2) ->
+        let pr = Projection.make (Nametab.get_compat_projection_for_projector pr) false in
 	(try let term = Retyping.expand_projection env sigma pr c2 [] in
 	       sorec ctx env subst p term
 	 with Retyping.RetypeError _ -> raise PatternMatchingFailure)
 
-      | PProj (p1,c1), Proj (p2,c2) when Projection.equal p1 p2 ->
+      | PProj (p1,c1), Proj (p2,c2) when Projector.equal (Projection.to_projector p1) p2 ->
           sorec ctx env subst c1 c2
 
       | PProd (na1,c1,d1), Prod(na2,c2,d2) ->
@@ -523,6 +514,7 @@ let sub_match ?(closed=true) env sigma pat c =
     try_aux sub next_mk_ctx next
   | Proj (p,c') ->
     begin try
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
       let term = Retyping.expand_projection env sigma p c' [] in
       aux env term mk_ctx next
     with Retyping.RetypeError _ -> next ()

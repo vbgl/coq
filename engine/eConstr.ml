@@ -72,7 +72,7 @@ let mkConstructUi ((ind,u),i) = of_kind (Construct ((ind,i),u))
 let mkCase (ci, c, r, p) = of_kind (Case (ci, c, r, p))
 let mkFix f = of_kind (Fix f)
 let mkCoFix f = of_kind (CoFix f)
-let mkProj (p, c) = of_kind (Proj (p, c))
+let mkProj (p, c) = of_kind (Proj (Projection.to_projector p, c))
 let mkArrow t1 r t2 = of_kind (Prod (make_annot Anonymous r, t1, t2))
 let mkArrowR t1 t2 = mkArrow t1 Sorts.Relevant t2
 let mkInt i = of_kind (Int i)
@@ -184,7 +184,9 @@ let destCase sigma c = match kind sigma c with
 | _ -> raise DestKO
 
 let destProj sigma c = match kind sigma c with
-| Proj (p, c) -> (p, c)
+| Proj (p, c) ->
+  let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+  (p, c)
 | _ -> raise DestKO
 
 let destRef sigma c = let open GlobRef in match kind sigma c with
@@ -496,7 +498,8 @@ let compare_head_gen_proj env sigma equ eqs eqc' nargs m n =
   let kind c = kind sigma c in
   match kind m, kind n with
   | Proj (p, c), App (f, args)
-  | App (f, args), Proj (p, c) -> 
+  | App (f, args), Proj (p, c) ->
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
       (match kind f with
       | Const (p', u) when Constant.equal (Projection.constant p) p' -> 
           let npars = Projection.npars p in

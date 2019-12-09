@@ -525,9 +525,8 @@ let key_of env sigma b flags f =
   | Var id when is_transparent env (VarKey id) && 
       TransparentState.is_transparent_variable flags.modulo_delta id ->
     Some (IsKey (VarKey id))
-  | Proj (p, c) when Projection.unfolded p
-    || (is_transparent env (ConstKey (Projection.constant p)) &&
-       (TransparentState.is_transparent_constant flags.modulo_delta (Projection.constant p))) ->
+  | Proj (p, c) ->
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
     Some (IsProj (p, c))
   | _ -> None
   
@@ -803,8 +802,7 @@ let rec unify_0_with_initial_metas (sigma,ms,es as subst : subst0) conv_at_top e
         | _, LetIn (_,a,_,c) -> unirec_rec curenvnb pb opt substn cM (subst1 a c)
 
         (* Fast path for projections. *)
-	| Proj (p1,c1), Proj (p2,c2) when Constant.equal
-	    (Projection.constant p1) (Projection.constant p2) ->
+        | Proj (p1,c1), Proj (p2,c2) when Projector.equal p1 p2 ->
 	  (try unify_same_proj curenvnb cv_pb {opt with at_top = true}
 	       substn c1 c2
 	   with ex when precatchable_exception ex ->
@@ -921,12 +919,15 @@ let rec unify_0_with_initial_metas (sigma,ms,es as subst : subst0) conv_at_top e
 	match EConstr.kind sigma c' with
 	| Meta _ -> true
 	| Evar _ -> true
-	| Const (c, u) -> Constant.equal c (Projection.constant p)
+        | Const (c, u) ->
+   let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
+   Constant.equal c (Projection.constant p)
 	| _ -> false
       in
       let expand_proj c c' l = 
       	match EConstr.kind sigma c with
-      	| Proj (p, t) when not (Projection.unfolded p) && needs_expansion p c' ->
+        | Proj (p, t) when needs_expansion p c' ->
+         let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
       	  (try destApp sigma (Retyping.expand_projection curenv sigma p t (Array.to_list l))
            with RetypeError _ -> (* Unification can be called on ill-typed terms, due
       				     to FO and eta in particular, fail gracefully in that case *)

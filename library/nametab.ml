@@ -588,4 +588,8 @@ let declare_compat_projection (p: Projection.Repr.t) : unit =
     primitive_projection_compat_table := Projectormap.add (Projection.Repr.to_projector p) p !primitive_projection_compat_table
 
 let get_compat_projection_for_projector (p: Projector.t) : Projection.Repr.t =
-  Projectormap.find p !primitive_projection_compat_table
+  let result =
+    Projectormap.find p !primitive_projection_compat_table
+  in
+  Feedback.msg_debug Pp.(str "Compat projection for " ++ Projector.print p ++ str " is " ++ Projection.Repr.print result);
+    result

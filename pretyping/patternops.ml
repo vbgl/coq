@@ -180,7 +180,8 @@ let pattern_of_constr env sigma t =
     | Const (sp,u)  -> PRef (GlobRef.ConstRef (Constant.make1 (Constant.canonical sp)))
     | Ind (sp,u)    -> PRef (canonical_gr (GlobRef.IndRef sp))
     | Construct (sp,u) -> PRef (canonical_gr (GlobRef.ConstructRef sp))
-    | Proj (p, c) -> 
+    | Proj (p, c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
       pattern_of_constr env (EConstr.Unsafe.to_constr (Retyping.expand_projection env sigma p (EConstr.of_constr c) []))
     | Evar (evk,ctxt as ev) ->
       (match snd (Evd.evar_source evk sigma) with

@@ -54,7 +54,9 @@ let head_constr_bound sigma t =
   | Ind (i, _) -> IndRef i
   | Construct (c, _) -> ConstructRef c
   | Var id -> VarRef id
-  | Proj (p, _) -> ConstRef (Projection.constant p)
+  | Proj (p, _) ->
+    let p = Names.Projection.make (Nametab.get_compat_projection_for_projector p) true in
+    ConstRef (Projection.constant p)
   | _ -> raise Bound
 
 let head_constr sigma c =
@@ -72,7 +74,9 @@ let decompose_app_bound sigma t =
     | Ind (i,u) -> IndRef i, args
     | Construct (c,u) -> ConstructRef c, args
     | Var id -> VarRef id, args
-    | Proj (p, c) -> ConstRef (Projection.constant p), Array.cons c args
+    | Proj (p, c) ->
+      let p = Names.Projection.make (Nametab.get_compat_projection_for_projector p) true in
+      ConstRef (Projection.constant p), Array.cons c args
     | _ -> raise Bound
 
 (** Compute the set of section variables that remain in the named context.

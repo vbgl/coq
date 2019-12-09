@@ -91,12 +91,6 @@ let coq_unit_judge =
         (mkProd (na1,mkProp,mkArrow (mkRel 1) Sorts.Relevant (mkRel 2))),
       Univ.ContextSet.empty
 
-let unfold_projection env evd ts p c =
-  let cst = Projection.constant p in
-    if TransparentState.is_transparent_constant ts cst then
-      Some (mkProj (Projection.unfold p, c))
-    else None
-      
 let eval_flexible_term ts env evd c =
   match EConstr.kind evd c with
   | Const (c, u) ->
@@ -116,9 +110,7 @@ let eval_flexible_term ts env evd c =
        with Not_found -> None)
   | LetIn (_,b,_,c) -> Some (subst1 b c)
   | Lambda _ -> Some c
-  | Proj (p, c) -> 
-    if Projection.unfolded p then assert false
-    else unfold_projection env evd ts p c
+  | Proj _ -> None
   | _ -> assert false
 
 type flex_kind_of_term =
@@ -190,6 +182,7 @@ let occur_rigidly flags env evd (evk,_) t =
     | Construct _ -> Normal false
     | Ind _ | Sort _ -> Rigid false
     | Proj (p, c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
       let cst = Projection.constant p in
       let rigid = not (TransparentState.is_transparent_constant flags.open_ts cst) in
         if rigid then aux c
@@ -263,6 +256,7 @@ let check_conv_record env sigma (t1,sk1) (t2,sk2) =
 	lookup_canonical_conversion
 	  (proji, Sort_cs (Sorts.family s)),[]
       | Proj (p, c) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
         let c2 = GlobRef.ConstRef (Projection.constant p) in
         let c = Retyping.expand_projection env sigma p c [] in
         let _, args = destApp sigma c in
@@ -648,6 +642,7 @@ and evar_eqappr_x ?(rhs_is_already_stuck = false) flags env evd pbty
     in
       match EConstr.kind evd termM with
       | Proj (p, c) when not (Stack.is_empty skF) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
 	(* Might be ?X args = p.c args', and we have to eta-expand the 
 	   primitive projection if |args| >= |args'|+1. *)
 	let nargsF = Stack.args_size skF and nargsM = Stack.args_size skM in
@@ -835,7 +830,7 @@ and evar_eqappr_x ?(rhs_is_already_stuck = false) flags env evd pbty
 	in
 	ise_try evd [f1; f2]
 
-        | Proj (p, c), Proj (p', c') when Projection.repr_equal p p' ->
+        | Proj (p, c), Proj (p', c') when Projector.equal p p' ->
 	  let f1 i = 
 	    ise_and i 
             [(fun i -> evar_conv_x flags env i CONV c c');
@@ -848,7 +843,10 @@ and evar_eqappr_x ?(rhs_is_already_stuck = false) flags env evd pbty
 	    ise_try evd [f1; f2]
 	      
 	(* Catch the p.c ~= p c' cases *)
-	| Proj (p,c), Const (p',u) when Constant.equal (Projection.constant p) p' ->
+        | Proj (p,c), Const (p',u) when
+     let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
+     Constant.equal (Projection.constant p) p' ->
+   let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
 	  let res = 
 	    try Some (destApp evd (Retyping.expand_projection env evd p c []))
 	    with Retyping.RetypeError _ -> None
@@ -859,7 +857,10 @@ and evar_eqappr_x ?(rhs_is_already_stuck = false) flags env evd pbty
                 appr2
 	    | None -> UnifFailure (evd,NotSameHead))
 	      
-	| Const (p,u), Proj (p',c') when Constant.equal p (Projection.constant p') ->
+        | Const (p,u), Proj (p',c') when
+     let p' = Projection.make (Nametab.get_compat_projection_for_projector p') false in
+     Constant.equal p (Projection.constant p') ->
+   let p' = Projection.make (Nametab.get_compat_projection_for_projector p') false in
 	  let res = 
 	    try Some (destApp evd (Retyping.expand_projection env evd p' c' []))
 	    with Retyping.RetypeError _ -> None
@@ -909,7 +910,7 @@ and evar_eqappr_x ?(rhs_is_already_stuck = false) flags env evd pbty
              (whd_betaiota_deltazeta_for_iota_state
                       flags.open_ts env i (subst1 b c, args))
 	    | Fix _ -> true (* Partially applied fix can be the result of a whd call *)
-	    | Proj (p, _) -> Projection.unfolded p || Stack.not_purely_applicative args
+            | Proj (p, _) -> Stack.not_purely_applicative args
             | Case _ | App _| Cast _ -> assert false in
           let rhs_is_stuck_and_unnamed () =
 	    let applicative_stack = fst (Stack.strip_app sk2) in

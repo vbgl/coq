@@ -139,6 +139,7 @@ let retype ?(polyprop=true) sigma =
         strip_outer_cast sigma
           (subst_type env sigma (type_of env f) (Array.to_list args))
     | Proj (p,c) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
        let ty = type_of env c in
        EConstr.of_constr (try
 	   Inductiveops.type_of_projection_knowing_arg env sigma p c ty
@@ -281,7 +282,7 @@ let relevance_of_term env sigma c =
       | Case (ci, _, _, _) -> ci.ci_relevance
       | Fix ((_,i),(lna,_,_)) -> (lna.(i)).binder_relevance
       | CoFix (i,(lna,_,_)) -> (lna.(i)).binder_relevance
-      | Proj (p, _) -> Retypeops.relevance_of_projection env p
+      | Proj (p, _) -> Retypeops.relevance_of_projector env p
       | Int _ | Float _ -> Sorts.Relevant
 
       | Meta _ | Evar _ -> Sorts.Relevant

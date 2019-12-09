@@ -285,7 +285,7 @@ and nf_stk ?from:(from=0) env sigma c t stk  =
      assert (from = 0) ;
      let p' = Projection.make p true in
      let ty = Inductiveops.type_of_projection_knowing_arg env sigma p' (EConstr.of_constr c) (EConstr.of_constr t) in
-     nf_stk env sigma (mkProj(p',c)) ty stk
+     nf_stk env sigma (mkProj(Projection.Repr.to_projector p, c)) ty stk
 
 and nf_predicate env sigma ind mip params v pT =
   match kind (whd_allnolet env pT) with

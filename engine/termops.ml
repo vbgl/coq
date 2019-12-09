@@ -634,7 +634,9 @@ let map_constr_with_binders_left_to_right sigma g f l c =
   | Proj (p,b) ->
     let b' = f l b in
       if b' == b then c
-      else mkProj (p, b')
+      else
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+        mkProj (p, b')
   | Evar (e,al) -> 
     let al' = Array.map_left (f l) al in
       if Array.for_all2 (==) al' al then c
@@ -705,7 +707,10 @@ let map_constr_with_full_binders_gen userview sigma g f l cstr =
       if c==c' && Array.for_all2 (==) al al' then cstr else mkApp (c', al')
   | Proj (p,c) -> 
       let c' = f l c in
-	if c' == c then cstr else mkProj (p, c')
+        if c' == c then cstr
+ else
+   let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+   mkProj (p, c')
   | Evar (e,al) ->
       let al' = Array.map (f l) al in
       if Array.for_all2 (==) al al' then cstr else mkEvar (e, al')
@@ -1385,7 +1390,9 @@ let global_app_of_constr sigma c =
   | Ind (i, u) -> (IndRef i, u), None
   | Construct (c, u) -> (ConstructRef c, u), None
   | Var id -> (VarRef id, EConstr.EInstance.empty), None
-  | Proj (p, c) -> (ConstRef (Projection.constant p), EConstr.EInstance.empty), Some c
+  | Proj (p, c) ->
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+    (ConstRef (Projection.constant p), EConstr.EInstance.empty), Some c
   | _ -> raise Not_found
 
 let prod_applist sigma c l =

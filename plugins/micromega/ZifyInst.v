@@ -67,6 +67,12 @@ Instance Inj_nat_Z : InjTyp nat Z :=
   mkinj _ _ Z.of_nat (fun x =>  0 <= x ) Nat2Z.is_nonneg.
 Add InjTyp Inj_nat_Z.
 
+Check
+  fun n : nat =>
+  eq_refl : Z.of_nat n = @inj _ _ Inj_nat_Z n.
+  @eq_refl Z (Z.of_nat n) : @inj _ _ Inj_nat_Z n = Z.of_nat n.
+  @eq_refl Z (@inj _ _ Inj_nat_Z n) : @inj _ _ Inj_nat_Z n = Z.of_nat n.
+
 (* zify_nat_rel *)
 Instance Op_ge : BinRel ge :=
   {| TR := Z.ge; TRInj := Nat2Z.inj_ge |}.

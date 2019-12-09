@@ -124,7 +124,9 @@ let constr_key kind c =
       | Construct (c,u) -> KGlob (GlobRef.ConstructRef c)
       | Var id -> KGlob (GlobRef.VarRef id)
       | App (f, _) -> aux f
-      | Proj (p, _) -> KGlob (GlobRef.ConstRef (Projection.constant p))
+      | Proj (p, _) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+        KGlob (GlobRef.ConstRef (Projection.constant p))
       | Cast (p, _, _) -> aux p
       | Lambda _ -> KLam
       | Prod _ -> KProd

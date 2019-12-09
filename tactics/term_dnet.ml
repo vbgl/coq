@@ -328,7 +328,8 @@ struct
     | App (f,ca)     ->
       Array.fold_left (fun c a -> Term (DApp (c,a)))
         (pat_of_constr f) (Array.map pat_of_constr ca)
-    | Proj (p,c) -> 
+    | Proj (p,c) ->
+        let p = Names.Projection.make (Nametab.get_compat_projection_for_projector p) true in
         Term (DApp (Term (DRef (ConstRef (Projection.constant p))), pat_of_constr c))
     | Int i -> Term (DInt i)
     | Float f -> Term (DFloat f)

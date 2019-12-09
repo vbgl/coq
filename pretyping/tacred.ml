@@ -563,11 +563,7 @@ let match_eval_ref_value env sigma constr stack =
       Some (EConstr.of_constr (constant_value_in env (sp, u)))
     else
       None
-  | Proj (p, c) when not (Projection.unfolded p) ->
-     if is_evaluable env (EvalConstRef (Projection.constant p)) then
-       Some (mkProj (Projection.unfold p, c))
-     else None
-  | Var id when is_evaluable env (EvalVarRef id) -> 
+  | Var id when is_evaluable env (EvalVarRef id) ->
      env |> lookup_named id |> NamedDecl.get_value
   | Rel n ->
      env |> lookup_rel n |> RelDecl.get_value |> Option.map (lift n)
@@ -611,7 +607,8 @@ let reduce_projection env sigma p ~npars (recarg'hd,stack') stack =
 let reduce_proj env sigma whfun whfun' c =
   let rec redrec s =
     match EConstr.kind sigma s with
-    | Proj (proj, c) -> 
+    | Proj (proj, c) ->
+      let proj = Projection.make (Nametab.get_compat_projection_for_projector proj) false in
       let c' = try redrec c with Redelimination -> c in
       let constr, cargs = whfun c' in
 	(match EConstr.kind sigma constr with
@@ -784,6 +781,7 @@ and whd_simpl_stack env sigma =
 	  with Redelimination -> s')
 
       | Proj (p, c) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
         (try
            let unf = Projection.unfolded p in
            if unf || is_evaluable env (EvalConstRef (Projection.constant p)) then
@@ -869,6 +867,7 @@ let try_red_product env sigma c =
       | LetIn (x,a,b,t) -> redrec env (Vars.subst1 a t)
       | Case (ci,p,d,lf) -> simpfun (mkCase (ci,p,redrec env d,lf))
       | Proj (p, c) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
 	let c' = 
 	  match EConstr.kind sigma c with
 	  | Construct _ -> c
@@ -965,9 +964,11 @@ let whd_simpl_orelse_delta_but_fix env sigma c =
       (match EConstr.kind sigma (snd (decompose_lam sigma c)) with
       | CoFix _ | Fix _ -> s'
       | Proj (p,t) when
+          let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
 	  (match EConstr.kind sigma constr with
 	  | Const (c', _) -> Constant.equal (Projection.constant p) c'
 	  | _ -> false) ->
+        let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
         let npars = Projection.npars p in
           if List.length stack <= npars then
             (* Do not show the eta-expanded form *)
@@ -993,7 +994,9 @@ let simpl env sigma c = strong whd_simpl env sigma c
 let matches_head env sigma c t =
   match EConstr.kind sigma t with
     | App (f,_) -> Constr_matching.matches env sigma c f
-    | Proj (p, _) -> Constr_matching.matches env sigma c (mkConstU (Projection.constant p, EInstance.empty))
+    | Proj (p, _) ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
+      Constr_matching.matches env sigma c (mkConstU (Projection.constant p, EInstance.empty))
     | _ -> raise Constr_matching.PatternMatchingFailure
 
 (** FIXME: Specific function to handle projections: it ignores what happens on the
@@ -1003,6 +1006,7 @@ let matches_head env sigma c t =
 let change_map_constr_with_binders_left_to_right g f (env, l as acc) sigma c = 
   match EConstr.kind sigma c with
   | Proj (p, r) -> (* Treat specially for partial applications *)
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
     let t = Retyping.expand_projection env sigma p r [] in
     let hdf, al = destApp sigma t in
     let a = al.(Array.length al - 1) in
@@ -1051,7 +1055,9 @@ let e_contextually byhead (occs,c) f = begin fun env sigma t ->
        application with same head *)
     match EConstr.kind !evd t with
     | App (f,l) when byhead -> mkApp (f, Array.map_left (traverse nested envc) l)
-    | Proj (p,c) when byhead -> mkProj (p,traverse nested envc c)
+    | Proj (p,c) when byhead ->
+      let p = Projection.make (Nametab.get_compat_projection_for_projector p) false in
+      mkProj (p, traverse nested envc c)
     | _ ->
         change_map_constr_with_binders_left_to_right
           (fun d (env,c) -> (push_rel d env,lift_pattern 1 c))

@@ -345,7 +345,7 @@ let rec reify_stack t = function
         (mkCase (ci, ty, t,br))
         st
   | PROJ (p, st) ->
-       reify_stack (mkProj (p, t)) st
+       reify_stack (mkProj (Projection.to_projector p, t)) st
 
 and reify_value = function (* reduction under binders *)
   | VAL (n,t) -> lift n t
@@ -404,7 +404,8 @@ let rec norm_head info env t stack =
   | Case (ci,p,c,v) -> norm_head info env c (CASE(p,v,ci,env,stack))
   | Cast (ct,_,_) -> norm_head info env ct stack
   
-  | Proj (p, c) -> 
+  | Proj (p, c) ->
+    let p = Projection.make (Nametab.get_compat_projection_for_projector p) true in
     let p' =
       if red_set info.reds (fCONST (Projection.constant p))
         && red_set info.reds fBETA
@@ -604,7 +605,7 @@ let rec apply_stack info t = function
 		    Array.map (cbv_norm_term info env) br))
         st
   | PROJ (p, st) ->
-       apply_stack info (mkProj (p, t)) st
+       apply_stack info (mkProj (Projection.to_projector p, t)) st
 
 (* performs the reduction on a constr, and returns a constr *)
 and cbv_norm_term info env t =
