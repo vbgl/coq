@@ -1417,7 +1417,7 @@ End Fold_Right_Recursor.
       inversion H.
       firstorder.
       destruct (orb_prop _ _ H1); firstorder.
-      firstorder.
+      firstorder auto with *.
       subst.
       rewrite H2; auto.
     Qed.
@@ -2747,7 +2747,7 @@ Section Exists_Forall.
     Proof.
       split.
       - induction 1; firstorder; subst; auto.
-      - induction l; firstorder.
+      - induction l; firstorder auto with datatypes.
     Qed.
 
     Lemma Forall_nth l :
