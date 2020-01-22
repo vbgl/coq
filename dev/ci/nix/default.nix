@@ -69,7 +69,11 @@ let Cheerios = (coqPackages.Cheerios.override { inherit StructTact; })
     src = fetchTarball "https://github.com/uwplse/cheerios/tarball/master";
   }); in
 
-let Verdi = (coqPackages.Verdi.override { inherit Cheerios ssreflect; })
+let InfSeqExt = coqPackages.InfSeqExt.overrideAttrs (o: {
+    src = fetchTarball "https://github.com/DistributedComponents/InfSeqExt/tarball/master";
+  }); in
+
+let Verdi = (coqPackages.Verdi.override { inherit Cheerios InfSeqExt ssreflect; })
   .overrideAttrs (o: {
     src = fetchTarball "https://github.com/uwplse/verdi/tarball/master";
   }); in
