@@ -105,6 +105,7 @@ let projects = {
   mathcomp = {};
   mtac2 = callPackage ./mtac2.nix {};
   oddorder = callPackage ./oddorder.nix {};
+  perennial = callPackage ./perennial.nix {};
   quickchick = callPackage ./quickchick.nix {};
   verdi-raft = callPackage ./verdi-raft.nix {};
   VST = callPackage ./VST.nix {};
