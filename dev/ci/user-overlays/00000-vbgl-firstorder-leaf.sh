@@ -9,6 +9,9 @@ color_CI_REF=firstorder-leaf
 coq_dpdgraph_CI_GITURL=https://github.com/vbgl/coq-dpdgraph
 coq_dpdgraph_CI_REF=firstorder-leaf
 
+perennial_CI_GITURL=https://github.com/vbgl/perennial
+perennial_CI_REF=firstorder-leaf
+
 vst_CI_GITURL=https://github.com/vbgl/VST
 vst_CI_REF=firstorder-leaf
 
