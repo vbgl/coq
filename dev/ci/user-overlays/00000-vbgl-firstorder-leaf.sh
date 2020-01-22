@@ -12,6 +12,9 @@ coq_dpdgraph_CI_REF=firstorder-leaf
 perennial_CI_GITURL=https://github.com/vbgl/perennial
 perennial_CI_REF=firstorder-leaf
 
+relation_algebra_CI_GITURL=https://github.com/vbgl/relation-algebra
+relation_algebra_CI_REF=firstorder-leaf
+
 vst_CI_GITURL=https://github.com/vbgl/VST
 vst_CI_REF=firstorder-leaf
 
